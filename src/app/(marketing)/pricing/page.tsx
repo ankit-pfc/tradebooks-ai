@@ -22,6 +22,10 @@ export default function PricingPage() {
                     <p className="mt-6 text-lg text-slate-600 max-w-2xl mx-auto">
                         Stop billing for manual entry. Convert Zerodha exports to Tally-ready XML in minutes. Start free, upgrade as your client list grows.
                     </p>
+                    <p className="mt-3 text-sm text-slate-500 max-w-2xl mx-auto">
+                        V1 uses a file-upload workflow: upload Zerodha exports, review exceptions, then export Tally-importable XML.
+                        No direct broker or Tally integration required.
+                    </p>
                 </div>
 
                 {/* Pricing Cards */}
@@ -41,8 +45,8 @@ export default function PricingPage() {
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Basic Reconciliation Visibility</li>
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Standard Support</li>
                         </ul>
-                        <Link href="/signup" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
-                            Start Free
+                        <Link href="/upload" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+                            Get Started Free
                         </Link>
                     </div>
 
@@ -64,8 +68,8 @@ export default function PricingPage() {
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Advanced Reconciliation</li>
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Priority Support</li>
                         </ul>
-                        <Link href="/signup" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-400 transition-colors">
-                            Start Free Trial
+                        <Link href="/upload" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-400 transition-colors">
+                            Get Started Free
                         </Link>
                     </div>
 
@@ -103,7 +107,11 @@ export default function PricingPage() {
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-slate-900">Is there a setup fee?</h3>
-                            <p className="mt-2 text-slate-600">No setup fees. You can upload your first Zerodha export and generate an XML in minutes.</p>
+                            <p className="mt-2 text-slate-600">No setup fees. You can upload your first Zerodha export and generate a Tally-importable XML in minutes.</p>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">Do I need to connect my Zerodha or Tally account?</h3>
+                            <p className="mt-2 text-slate-600">No. In V1, TradeBooks AI follows a secure upload-and-export model. You upload your Zerodha files and import the generated XML into Tally yourself.</p>
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-slate-900">Can I cancel anytime?</h3>
@@ -123,8 +131,8 @@ export default function PricingPage() {
                     <h2 className="text-3xl font-bold text-white">Ready to eliminate manual posting?</h2>
                     <p className="mt-4 text-indigo-100 text-lg">See the reconciliation engine in action today.</p>
                     <div className="mt-8">
-                        <Link href="/signup" className="inline-flex items-center justify-center rounded-lg px-8 h-12 text-base font-semibold bg-white text-indigo-700 hover:bg-indigo-50 transition-colors">
-                            Upload Your First File Free
+                        <Link href="/upload" className="inline-flex items-center justify-center rounded-lg px-8 h-12 text-base font-semibold bg-white text-indigo-700 hover:bg-indigo-50 transition-colors">
+                            Get Started Free
                         </Link>
                     </div>
                 </div>

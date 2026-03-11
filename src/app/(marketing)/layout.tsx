@@ -59,16 +59,16 @@ export default function MarketingLayout({
           {/* CTA */}
           <div className="flex items-center gap-3">
             <Link
-              href="/login"
+              href="/pricing"
               className="hidden sm:block text-sm text-slate-300 hover:text-white transition-colors"
             >
-              Sign in
+              Pricing
             </Link>
             <Link
-              href="/signup"
+              href="/upload"
               className="inline-flex items-center justify-center rounded-lg px-3 h-7 text-[0.8rem] font-medium bg-indigo-500 hover:bg-indigo-400 text-white transition-colors"
             >
-              Get Started
+              Get Started Free
             </Link>
           </div>
         </div>
