@@ -210,6 +210,23 @@ export default function LandingPage() {
                 See How It Works
               </Link>
             </div>
+            <p className="mt-4 text-sm text-slate-400">
+              No credit card required. Import your first file free.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-300">
+              <span className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Built for Indian Tax Workflows
+              </span>
+              <span className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Secure Processing
+              </span>
+              <span className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Tally Prime &amp; ERP 9 Compliant
+              </span>
+            </div>
           </div>
 
           {/* Flow visual */}
@@ -357,6 +374,48 @@ export default function LandingPage() {
                 </Badge>
                 <h3 className="text-base font-semibold text-slate-900 mb-2">{user.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{user.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+          </div>
+          <div className="space-y-8">
+            {[
+              {
+                q: "Do I need to learn a new accounting system?",
+                a: "No. TradeBooks AI is a secure bridge between your existing broker exports from Zerodha and your current Tally setup."
+              },
+              {
+                q: "Does TradeBooks AI connect directly to my Zerodha or Tally account?",
+                a: "No. We intentionally use a file-upload approach. You upload the exports you already download from Zerodha Console. We generate standard Tally-importable XML for you to import yourself. We do not require any login credentials."
+              },
+              {
+                q: "What if the uploaded export has missing data or mismatched funds?",
+                a: "The engine auto-reconciles across your uploaded files. If a trade has no matching funds debit, or if a contract note amount mismatches the tradebook, it highlights it as an 'Exception' so you can review it before exporting."
+              },
+              {
+                q: "Can I verify the entries being created?",
+                a: "Yes. Every generated entry provides an audit trail pointing back to the specific row in your Zerodha export. You review the summary before you download the XML."
+              },
+              {
+                q: "Does this handle Investor (Capital Gains) vs Trader (Business Income) classifications?",
+                a: "Yes, you can configure the engine for either mode depending on the client's profile."
+              },
+              {
+                q: "Will it work with brokers other than Zerodha?",
+                a: "Currently, we are heavily optimized for Zerodha to ensure the highest quality parsing and reconciliation. Support for other brokers is not in V1."
+              }
+            ].map((faq, i) => (
+              <div key={i}>
+                <h3 className="text-lg font-semibold text-slate-900">{faq.q}</h3>
+                <p className="mt-2 text-slate-600 leading-relaxed">{faq.a}</p>
               </div>
             ))}
           </div>

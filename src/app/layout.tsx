@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TradeBooks AI - Broker Statements to Tally, Automatically",
+  title: "TradeBooks AI | Convert Zerodha Exports to Tally XML",
   description:
-    "Convert Zerodha broker exports — tradebook, funds statement, holdings, contract notes — into reconciled, Tally-importable XML accounting entries. Built for CAs, accountants, and traders in India.",
+    "Stop posting Zerodha trades manually. Upload your broker exports, review reconciled exceptions, and generate a Tally-importable XML in minutes. Built for Indian CAs.",
 };
 
 export default function RootLayout({
