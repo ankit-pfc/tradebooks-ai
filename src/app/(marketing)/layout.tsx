@@ -7,13 +7,11 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 w-full bg-slate-900 border-b border-slate-800">
+    <div className="flex min-h-screen flex-col bg-white">
+      <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <svg
                 className="h-5 w-5 text-white"
                 fill="none"
@@ -29,67 +27,75 @@ export default function MarketingLayout({
                 />
               </svg>
             </div>
-            <span className="text-lg font-semibold text-white">
+            <span className="text-lg font-semibold text-slate-900">
               TradeBooks AI
             </span>
           </Link>
 
-          {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden items-center gap-6 md:flex">
             <Link
               href="/#how-it-works"
-              className="text-sm text-slate-300 hover:text-white transition-colors"
+              className="text-sm text-slate-600 transition-colors hover:text-slate-900"
             >
               How it Works
             </Link>
             <Link
-              href="/#mechanism"
-              className="text-sm text-slate-300 hover:text-white transition-colors"
+              href="/#proof"
+              className="text-sm text-slate-600 transition-colors hover:text-slate-900"
             >
-              Why It Works
+              Product Proof
+            </Link>
+            <Link
+              href="/#who-its-for"
+              className="text-sm text-slate-600 transition-colors hover:text-slate-900"
+            >
+              Who It&apos;s For
             </Link>
             <Link
               href="/#comparison"
-              className="text-sm text-slate-300 hover:text-white transition-colors"
+              className="text-sm text-slate-600 transition-colors hover:text-slate-900"
             >
               Comparison
             </Link>
             <Link
+              href="/#faq"
+              className="text-sm text-slate-600 transition-colors hover:text-slate-900"
+            >
+              FAQ
+            </Link>
+            <Link
               href="/pricing"
-              className="text-sm text-slate-300 hover:text-white transition-colors"
+              className="text-sm text-slate-600 transition-colors hover:text-slate-900"
             >
               Pricing
             </Link>
           </nav>
 
-          {/* CTA */}
           <div className="flex items-center gap-3">
             <Link
               href="/pricing"
-              className="hidden sm:block text-sm text-slate-300 hover:text-white transition-colors"
+              className="hidden text-sm text-slate-600 transition-colors hover:text-slate-900 sm:block"
             >
               Pricing
             </Link>
             <Link
               href="/upload"
-              className="inline-flex items-center justify-center rounded-lg px-3 h-7 text-[0.8rem] font-medium bg-indigo-500 hover:bg-indigo-400 text-white transition-colors"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-4 text-xs font-semibold text-white transition-colors hover:bg-indigo-500"
             >
-              Start Free Upload
+              Get Started Free
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Page content */}
       <main className="flex-1">{children}</main>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400">
+      <footer className="bg-slate-950 text-slate-300">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
                   <svg
                     className="h-4 w-4 text-white"
                     fill="none"
@@ -131,6 +137,16 @@ export default function MarketingLayout({
                   </Link>
                 </li>
                 <li>
+                  <Link href="/#who-its-for" className="hover:text-white transition-colors">
+                    Who It&apos;s For
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#faq" className="hover:text-white transition-colors">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
                   <Link href="/pricing" className="hover:text-white transition-colors">
                     Pricing
                   </Link>
@@ -157,9 +173,9 @@ export default function MarketingLayout({
               <div className="space-y-2 text-sm">
                 <Link
                   href="/upload"
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-indigo-500 px-4 py-2 font-medium text-white transition-colors hover:bg-indigo-400"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white transition-colors hover:bg-indigo-500"
                 >
-                  Start Free Upload
+                  Get Started Free
                 </Link>
                 <Link
                   href="/pricing"

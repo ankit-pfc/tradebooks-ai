@@ -106,13 +106,12 @@ function StepIndicator({
           <div key={step.num} className="flex items-center">
             <div className="flex flex-col items-center">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                  isCompleted
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${isCompleted
                     ? "bg-indigo-600 text-white"
                     : isActive
-                    ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
-                    : "bg-gray-100 text-gray-400"
-                }`}
+                      ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
               >
                 {isCompleted ? (
                   <svg
@@ -132,22 +131,20 @@ function StepIndicator({
                 )}
               </div>
               <span
-                className={`text-xs mt-1.5 font-medium whitespace-nowrap ${
-                  isActive
+                className={`text-xs mt-1.5 font-medium whitespace-nowrap ${isActive
                     ? "text-indigo-700"
                     : isCompleted
-                    ? "text-gray-700"
-                    : "text-gray-400"
-                }`}
+                      ? "text-gray-700"
+                      : "text-gray-400"
+                  }`}
               >
                 {step.label}
               </span>
             </div>
             {idx < total.length - 1 && (
               <div
-                className={`w-16 sm:w-24 h-0.5 mb-5 mx-1 transition-colors ${
-                  current > step.num ? "bg-indigo-600" : "bg-gray-200"
-                }`}
+                className={`w-16 sm:w-24 h-0.5 mb-5 mx-1 transition-colors ${current > step.num ? "bg-indigo-600" : "bg-gray-200"
+                  }`}
               />
             )}
           </div>
@@ -203,19 +200,17 @@ function StepConfigure({
               key={mode.value}
               type="button"
               onClick={() => onChange({ accountingMode: mode.value })}
-              className={`flex flex-col items-start rounded-lg border p-4 text-left transition-all cursor-pointer ${
-                formData.accountingMode === mode.value
+              className={`flex flex-col items-start rounded-lg border p-4 text-left transition-all cursor-pointer ${formData.accountingMode === mode.value
                   ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
                   : "border-gray-200 bg-white hover:border-gray-300"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2 mb-1">
                 <div
-                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    formData.accountingMode === mode.value
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.accountingMode === mode.value
                       ? "border-indigo-600"
                       : "border-gray-300"
-                  }`}
+                    }`}
                 >
                   {formData.accountingMode === mode.value && (
                     <div className="w-2 h-2 rounded-full bg-indigo-600" />
@@ -368,9 +363,8 @@ function StepUpload({
                 <p className="text-xs text-gray-400 mt-0.5">{req.note}</p>
               </div>
               <span
-                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
-                  STATUS_BADGE[req.status]
-                }`}
+                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_BADGE[req.status]
+                  }`}
               >
                 {req.status}
               </span>
@@ -424,9 +418,8 @@ function StepUpload({
 
                 {/* Type badge */}
                 <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full border whitespace-nowrap ${
-                    FILE_TYPE_BADGE[uf.detectedType]
-                  }`}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full border whitespace-nowrap ${FILE_TYPE_BADGE[uf.detectedType]
+                    }`}
                 >
                   {uf.detectedType}
                 </span>
@@ -587,8 +580,8 @@ function StepProcessing({ steps }: { steps: ProcessingStep[] }) {
           {isComplete
             ? "All steps completed successfully."
             : hasError
-            ? "An error occurred during processing."
-            : "Please wait while we process your files..."}
+              ? "An error occurred during processing."
+              : "Please wait while we process your files..."}
         </p>
       </div>
 
@@ -598,40 +591,37 @@ function StepProcessing({ steps }: { steps: ProcessingStep[] }) {
         {steps.map((step, idx) => (
           <div
             key={step.id}
-            className={`flex items-center gap-3.5 rounded-lg px-4 py-3.5 transition-colors ${
-              step.status === "running"
+            className={`flex items-center gap-3.5 rounded-lg px-4 py-3.5 transition-colors ${step.status === "running"
                 ? "bg-indigo-50 border border-indigo-100"
                 : step.status === "done"
-                ? "bg-gray-50"
-                : "bg-white"
-            }`}
+                  ? "bg-gray-50"
+                  : "bg-white"
+              }`}
           >
             {STEP_ICONS[step.status]}
             <div className="flex-1">
               <p
-                className={`text-sm font-medium ${
-                  step.status === "running"
+                className={`text-sm font-medium ${step.status === "running"
                     ? "text-indigo-700"
                     : step.status === "done"
-                    ? "text-gray-700"
-                    : step.status === "error"
-                    ? "text-red-600"
-                    : "text-gray-400"
-                }`}
+                      ? "text-gray-700"
+                      : step.status === "error"
+                        ? "text-red-600"
+                        : "text-gray-400"
+                  }`}
               >
                 {step.label}
               </p>
             </div>
             <span
-              className={`text-xs font-medium capitalize ${
-                step.status === "running"
+              className={`text-xs font-medium capitalize ${step.status === "running"
                   ? "text-indigo-500"
                   : step.status === "done"
-                  ? "text-emerald-600"
-                  : step.status === "error"
-                  ? "text-red-500"
-                  : "text-gray-300"
-              }`}
+                    ? "text-emerald-600"
+                    : step.status === "error"
+                      ? "text-red-500"
+                      : "text-gray-300"
+                }`}
             >
               {step.status === "pending" ? "Queued" : step.status}
             </span>
@@ -750,11 +740,10 @@ function StepResults({ onStartOver }: { onStartOver: () => void }) {
             {MOCK_RECONCILIATION.exceptions.map((ex) => (
               <div
                 key={ex.id}
-                className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
-                  ex.severity === "error"
+                className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${ex.severity === "error"
                     ? "border-red-200 bg-red-50"
                     : "border-amber-200 bg-amber-50"
-                }`}
+                  }`}
               >
                 <svg
                   width="15"
@@ -765,11 +754,10 @@ function StepResults({ onStartOver }: { onStartOver: () => void }) {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`mt-0.5 shrink-0 ${
-                    ex.severity === "error"
+                  className={`mt-0.5 shrink-0 ${ex.severity === "error"
                       ? "text-red-500"
                       : "text-amber-500"
-                  }`}
+                    }`}
                 >
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" />
@@ -778,21 +766,19 @@ function StepResults({ onStartOver }: { onStartOver: () => void }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p
-                      className={`text-xs font-semibold ${
-                        ex.severity === "error"
+                      className={`text-xs font-semibold ${ex.severity === "error"
                           ? "text-red-700"
                           : "text-amber-700"
-                      }`}
+                        }`}
                     >
                       {ex.id} — {ex.type}
                     </p>
                   </div>
                   <p
-                    className={`text-xs mt-0.5 ${
-                      ex.severity === "error"
+                    className={`text-xs mt-0.5 ${ex.severity === "error"
                         ? "text-red-600"
                         : "text-amber-600"
-                    }`}
+                      }`}
                   >
                     {ex.description}
                   </p>
@@ -985,22 +971,27 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">New Import</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Convert your Zerodha exports into Tally-importable XML.
+    <div className="min-h-full bg-slate-50 px-6 py-8 sm:px-8">
+      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+          Upload-first workflow
         </p>
+        <h1 className="mt-1 text-2xl font-semibold text-slate-900">New Import</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Convert Zerodha exports into reconciled, Tally-importable XML.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1">Investor / Trader mode</span>
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1">Exception-first review</span>
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1">Tally Prime / ERP 9 XML</span>
+        </div>
       </div>
 
-      {/* Step indicator */}
-      <div className="flex justify-center mb-10">
+      <div className="mb-10 flex justify-center">
         <StepIndicator current={step} total={STEPS} />
       </div>
 
-      {/* Step content */}
-      <Card className="border-gray-200 shadow-sm">
+      <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="px-8 py-8">
           {step === 1 && (
             <StepConfigure
