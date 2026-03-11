@@ -44,7 +44,7 @@ export interface ReconciliationResult {
  */
 export function checkTradeTotals(
   events: CanonicalEvent[],
-  rawTradebookRows: any[],
+  rawTradebookRows: Record<string, unknown>[],
 ): ReconciliationCheck {
   const CHECK_NAME = 'TRADE_TOTALS';
 
@@ -84,7 +84,7 @@ export function checkTradeTotals(
     );
     if (!field) return acc;
     try {
-      return acc.plus(new Decimal(row[field]));
+      return acc.plus(new Decimal(row[field] as string | number));
     } catch {
       return acc;
     }
@@ -186,7 +186,7 @@ export function checkVoucherBalance(vouchers: VoucherDraft[]): ReconciliationChe
  */
 export function checkHoldingsReconciliation(
   events: CanonicalEvent[],
-  holdingsRows: any[],
+  holdingsRows: Record<string, unknown>[],
 ): ReconciliationCheck {
   const CHECK_NAME = 'HOLDINGS_RECONCILIATION';
 
@@ -235,12 +235,12 @@ export function checkHoldingsReconciliation(
   const openingQtyMap = new Map<string, Decimal>();
   for (const row of holdingsRows) {
     const key: string | undefined =
-      row.security_id ?? row.isin ?? row.symbol ?? row.scrip;
+      (row.security_id ?? row.isin ?? row.symbol ?? row.scrip) as string | undefined;
     const qty =
       row.opening_quantity ?? row.opening_qty ?? row.quantity ?? row.qty;
     if (key && qty !== undefined && qty !== null) {
       try {
-        openingQtyMap.set(String(key).trim().toUpperCase(), new Decimal(qty));
+        openingQtyMap.set(String(key).trim().toUpperCase(), new Decimal(qty as string | number));
       } catch {
         // skip malformed rows
       }
@@ -263,10 +263,10 @@ export function checkHoldingsReconciliation(
     });
 
     const closingField =
-      holdingRow?.closing_quantity ??
-      holdingRow?.closing_qty ??
-      holdingRow?.expected_closing ??
-      null;
+      (holdingRow?.closing_quantity ??
+        holdingRow?.closing_qty ??
+        holdingRow?.expected_closing ??
+        null) as string | number | null;
 
     if (closingField === null) {
       // No closing figure in holdings – we can only verify net movement
@@ -471,8 +471,8 @@ export function checkChargeCompleteness(events: CanonicalEvent[]): Reconciliatio
 export function runFullReconciliation(params: {
   events: CanonicalEvent[];
   vouchers: VoucherDraft[];
-  rawTradebookRows?: any[];
-  holdingsRows?: any[];
+  rawTradebookRows?: Record<string, unknown>[];
+  holdingsRows?: Record<string, unknown>[];
 }): ReconciliationResult {
   const { events, vouchers, rawTradebookRows = [], holdingsRows = [] } = params;
 

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -588,7 +587,7 @@ function StepProcessing({ steps }: { steps: ProcessingStep[] }) {
       <Progress value={progress} className="h-2" />
 
       <div className="space-y-1">
-        {steps.map((step, idx) => (
+        {steps.map((step) => (
           <div
             key={step.id}
             className={`flex items-center gap-3.5 rounded-lg px-4 py-3.5 transition-colors ${step.status === "running"

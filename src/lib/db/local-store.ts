@@ -82,7 +82,7 @@ export async function createBatch(input: {
 export async function listBatches(): Promise<BatchRecord[]> {
     const state = await readState();
     return state.batches.map(
-        ({ uploaded_file_paths, exported_file_paths, ...rest }) => rest,
+        ({ uploaded_file_paths: _u, exported_file_paths: _e, ...rest }) => rest,
     );
 }
 
@@ -92,7 +92,7 @@ export async function getBatch(batchId: string): Promise<PersistedBatch | null> 
 }
 
 export function toPublicBatchDetail(batch: PersistedBatch): BatchDetail {
-    const { uploaded_file_paths, exported_file_paths, ...rest } = batch;
+    const { uploaded_file_paths: _u, exported_file_paths: _e, ...rest } = batch;
     return rest;
 }
 
@@ -154,7 +154,7 @@ export async function saveExportArtifacts(
     const state = await readState();
     const batch = state.batches.find((b) => b.id === batchId);
     if (!batch) return;
-    batch.exports = artifacts.map(({ storage_path, ...artifact }) => artifact);
+    batch.exports = artifacts.map(({ storage_path: _s, ...artifact }) => artifact);
     for (const artifact of artifacts) {
         batch.exported_file_paths[artifact.id] = artifact.storage_path;
     }
