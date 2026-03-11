@@ -1,4 +1,4 @@
-, cimport type {
+import type {
     AppBatchStatus,
         BatchDetail,
         BatchException,
