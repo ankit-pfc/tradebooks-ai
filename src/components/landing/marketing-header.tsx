@@ -6,12 +6,11 @@ import { FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-    { href: "/#how-it-works", label: "How it Works" },
-    { href: "/#proof", label: "Product Proof" },
-    { href: "/#who-its-for", label: "Who It’s For" },
-    { href: "/#comparison", label: "Comparison" },
+    { href: "/#how-it-works", label: "Workflow" },
+    { href: "/#who-its-for", label: "Who it’s for" },
+    { href: "/#proof", label: "Proof" },
+    { href: "/#pricing", label: "Pricing" },
     { href: "/#faq", label: "FAQ" },
-    { href: "/pricing", label: "Pricing" },
 ];
 
 export function MarketingHeader() {

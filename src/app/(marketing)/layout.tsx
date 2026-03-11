@@ -55,17 +55,12 @@ export default function MarketingLayout({
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link href="/#how-it-works" className="hover:text-white transition-colors">
-                    How it Works
+                    Workflow
                   </Link>
                 </li>
                 <li>
                   <Link href="/#proof" className="hover:text-white transition-colors">
-                    Product Proof
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/#comparison" className="hover:text-white transition-colors">
-                    Comparison
+                    Proof
                   </Link>
                 </li>
                 <li>
@@ -74,13 +69,13 @@ export default function MarketingLayout({
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#faq" className="hover:text-white transition-colors">
-                    FAQ
+                  <Link href="/#pricing" className="hover:text-white transition-colors">
+                    Pricing
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" className="hover:text-white transition-colors">
-                    Pricing
+                  <Link href="/#faq" className="hover:text-white transition-colors">
+                    FAQ
                   </Link>
                 </li>
               </ul>
@@ -99,7 +94,7 @@ export default function MarketingLayout({
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" className="hover:text-white transition-colors">
+                  <Link href="/#pricing" className="hover:text-white transition-colors">
                     Plan Details
                   </Link>
                 </li>
@@ -134,7 +129,7 @@ export default function MarketingLayout({
                 Get Started Free
               </Link>
               <Link
-                href="/pricing"
+                href="/#pricing"
                 className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-4 py-2 font-medium text-slate-200 transition-colors hover:border-slate-500 hover:text-white"
               >
                 View Plans

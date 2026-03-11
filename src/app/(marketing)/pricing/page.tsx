@@ -10,32 +10,23 @@ export const metadata: Metadata = {
 
 const tiers = [
     {
-        name: "Solo",
-        sub: "For independent accountants and self-filers",
-        price: "₹999",
+        name: "Free",
+        sub: "For trying your first Zerodha-to-Tally close workflow",
+        price: "₹0",
         period: "/month",
         cta: "Start Free Upload",
         href: "/upload",
-        points: ["Up to 5 client books", "Core Zerodha-to-Tally export", "Basic reconciliation visibility"],
+        points: ["1 active entity", "Exception-first validation preview", "Sample export package"],
     },
     {
-        name: "CA Pro",
-        sub: "For growing CA firms",
-        price: "₹3,499",
+        name: "Pro",
+        sub: "For CA firms and accounting teams running monthly closes",
+        price: "₹2,999",
         period: "/month",
         cta: "Start Free Upload",
         href: "/upload",
-        points: ["Up to 25 client books", "Team access (3 seats)", "Advanced reconciliation + priority support"],
+        points: ["Unlimited monthly batches", "Full Tally XML export", "Priority onboarding support"],
         featured: true,
-    },
-    {
-        name: "Practice",
-        sub: "For large firms managing high volume",
-        price: "Custom",
-        period: "",
-        cta: "Talk to Sales",
-        href: "mailto:sales@tradebooks.ai",
-        points: ["Unlimited client books", "Unlimited seats", "Custom workflows + dedicated support"],
     },
 ];
 
@@ -44,22 +35,22 @@ export default function PricingPage() {
         <div className="bg-white py-24 sm:py-32">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-3xl text-center">
-                    <Badge className="mb-6 border-indigo-500/30 bg-indigo-500/20 text-indigo-700 hover:bg-indigo-500/20">
+                    <Badge className="mb-6 border-[#387ED1]/30 bg-[#387ED1]/10 text-[#387ED1] hover:bg-[#387ED1]/10">
                         Transparent Pricing
                     </Badge>
-                    <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">Pricing that scales with your practice.</h1>
+                    <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">Simple pricing for clean, faster closes.</h1>
                     <p className="mt-6 text-lg text-slate-600">
                         Stop billing for manual entry. Convert Zerodha exports to Tally-ready XML in minutes.
                         Start free and upgrade as your client list grows.
                     </p>
-                    <p className="mt-3 text-sm text-slate-500">Annual billing eligible for savings up to 20%.</p>
+                    <p className="mt-3 text-sm text-slate-500">No broker credentials needed. No hidden reconciliation fees.</p>
                 </div>
 
-                <div className="mx-auto mt-16 grid max-w-md gap-6 lg:max-w-6xl lg:grid-cols-3">
+                <div className="mx-auto mt-16 grid max-w-md gap-6 lg:max-w-4xl lg:grid-cols-2">
                     {tiers.map((tier) => (
                         <div
                             key={tier.name}
-                            className={`flex flex-col rounded-3xl p-8 ${tier.featured ? "border-2 border-indigo-500 shadow-xl" : "border border-slate-200 shadow-sm"}`}
+                            className={`flex flex-col rounded-3xl p-8 ${tier.featured ? "border-2 border-[#387ED1] shadow-xl" : "border border-slate-200 shadow-sm"}`}
                         >
                             <h3 className="text-xl font-semibold text-slate-900">{tier.name}</h3>
                             <p className="mt-2 text-sm text-slate-500">{tier.sub}</p>
@@ -74,7 +65,7 @@ export default function PricingPage() {
                             </ul>
                             <Link
                                 href={tier.href}
-                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-sm font-semibold ${tier.featured ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
+                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-sm font-semibold ${tier.featured ? "bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
                             >
                                 {tier.cta}
                             </Link>
@@ -87,17 +78,16 @@ export default function PricingPage() {
                         <thead className="bg-slate-900 text-white">
                             <tr>
                                 <th className="px-4 py-3">Feature</th>
-                                <th className="px-4 py-3">Solo</th>
-                                <th className="px-4 py-3">CA Pro</th>
-                                <th className="px-4 py-3">Practice</th>
+                                <th className="px-4 py-3">Free</th>
+                                <th className="px-4 py-3">Pro</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white text-slate-600">
                             {[
-                                ["Client books", "Up to 5", "Up to 25", "Unlimited"],
-                                ["Team seats", "1", "3", "Unlimited"],
-                                ["Exception rules", "Basic", "Advanced", "Custom"],
-                                ["Support", "Standard", "Priority", "Dedicated manager"],
+                                ["Active entities", "1", "Unlimited"],
+                                ["Exception handling", "Preview-level", "Production-ready checks"],
+                                ["XML export", "Sample package", "Full Tally XML"],
+                                ["Support", "Community", "Priority onboarding"],
                             ].map((row) => (
                                 <tr key={row[0]}>
                                     {row.map((cell) => (
