@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
     ArrowRight,
     BadgeCheck,
@@ -229,9 +230,11 @@ export default function LandingPage() {
                         </div>
 
                         <div className="mt-8 flex max-w-xl items-center gap-3 rounded-2xl border border-[#D6E3F3] bg-white p-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
-                            <img
+                            <Image
                                 src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=240&q=80"
                                 alt="Indian accounting professional"
+                                width={56}
+                                height={56}
                                 className="h-14 w-14 rounded-xl object-cover"
                             />
                             <div>

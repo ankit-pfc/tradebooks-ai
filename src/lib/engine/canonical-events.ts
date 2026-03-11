@@ -61,6 +61,7 @@ const DIVIDEND_KEYWORDS = [
   'final dividend',
 ];
 
+/*
 const SETTLEMENT_DEBIT_KEYWORDS = [
   'settlement',
   'pay-in',
@@ -76,6 +77,7 @@ const SETTLEMENT_CREDIT_KEYWORDS = [
   'receipt',
   'settlement credit',
 ];
+*/
 
 function descriptionContains(description: string, keywords: string[]): boolean {
   const lower = description.toLowerCase();

@@ -96,6 +96,7 @@ const CHARGE_LEDGERS: LedgerMasterInput[] = [
  * Used when scanning events to confirm which charge ledgers are actually needed
  * (though we include all charge ledgers unconditionally for safety).
  */
+/*
 const CHARGE_EVENT_TO_LEDGER: Partial<Record<EventType, string>> = {
   [EventType.BROKERAGE]: 'Brokerage',
   [EventType.STT]: 'Securities Transaction Tax (STT)',
@@ -105,6 +106,7 @@ const CHARGE_EVENT_TO_LEDGER: Partial<Record<EventType, string>> = {
   [EventType.STAMP_DUTY]: 'Stamp Duty',
   [EventType.DP_CHARGE]: 'Depository (DP) Charges',
 };
+*/
 
 // ---------------------------------------------------------------------------
 // Security ledger name builders
