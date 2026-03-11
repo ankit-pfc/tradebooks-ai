@@ -18,7 +18,7 @@ interface AppState {
     batches: PersistedBatch[];
 }
 
-const DATA_DIR = join(process.cwd(), '.data');
+const DATA_DIR = process.env.DATA_PATH || join(process.cwd(), '.data');
 const UPLOADS_DIR = join(DATA_DIR, 'uploads');
 const ARTIFACTS_DIR = join(DATA_DIR, 'artifacts');
 const DB_FILE = join(DATA_DIR, 'store.json');
