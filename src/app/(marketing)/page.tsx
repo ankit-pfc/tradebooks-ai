@@ -147,7 +147,7 @@ const pricingPlans = [
         description: "Best for trying your first Zerodha-to-Tally workflow.",
         points: ["1 active entity", "Upload + exception preview", "Sample export package"],
         cta: "Start Free Workflow",
-        href: "#",
+        href: process.env.NODE_ENV === "production" ? "#" : "/upload",
     },
     {
         name: "Pro",
@@ -156,7 +156,7 @@ const pricingPlans = [
         description: "For CA teams closing client books every cycle.",
         points: ["Unlimited monthly batches", "Full Tally XML export", "Priority onboarding support"],
         cta: "Upgrade to Pro",
-        href: "#",
+        href: process.env.NODE_ENV === "production" ? "#" : "/pricing",
         featured: true,
     },
 ];
@@ -222,7 +222,7 @@ export default function LandingPage() {
                             </p>
                             <div className="mt-9">
                                 <Link
-                                    href="#"
+                                    href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
                                     className="inline-flex items-center justify-center rounded-lg bg-[#1E4FD8] px-7 py-[14px] text-base font-semibold text-white transition-colors hover:bg-[#1944bb]"
                                 >
                                     Start Free Workflow
@@ -384,7 +384,7 @@ export default function LandingPage() {
                         </div>
                         <div className="mt-8 flex justify-center">
                             <Link
-                                href="#"
+                                href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
                                 className="inline-flex h-11 items-center justify-center rounded-lg border border-[#1E4FD8]/30 bg-[#1E4FD8]/10 px-5 text-sm font-semibold text-[#1E4FD8] transition-colors hover:bg-[#1E4FD8]/15"
                             >
                                 Try this workflow on your next close <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -417,7 +417,7 @@ export default function LandingPage() {
                                     <h3 className="text-lg font-semibold text-[#1A1A2E]">{persona.title}</h3>
                                     <p className="mt-3 text-sm leading-7 text-[#4A5568]">{persona.text}</p>
                                     <p className="mt-3 text-sm leading-7 text-[#334155]">{persona.outcome}</p>
-                                    <Link href="#" className="mt-5 inline-flex items-center text-sm font-semibold text-[#1E4FD8] group-hover:text-[#1944bb]">
+                                    <Link href={process.env.NODE_ENV === "production" ? "#" : "/upload"} className="mt-5 inline-flex items-center text-sm font-semibold text-[#1E4FD8] group-hover:text-[#1944bb]">
                                         Know more <ArrowRight className="ml-1.5 h-4 w-4" />
                                     </Link>
                                 </div>
@@ -589,13 +589,13 @@ export default function LandingPage() {
                         <p className="mt-4 text-[#4B5563]">Move from manual posting to exception-first review and export ready XML your team can trust each cycle.</p>
                         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                             <Link
-                                href="#"
+                                href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
                                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#1E4FD8] px-7 text-sm font-semibold text-white hover:bg-[#1944bb]"
                             >
                                 Get Started Free
                             </Link>
                             <Link
-                                href="#"
+                                href={process.env.NODE_ENV === "production" ? "#" : "#pricing"}
                                 className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-7 text-sm font-medium text-[#1A1A2E] hover:bg-[#F9FAFB]"
                             >
                                 View Pricing

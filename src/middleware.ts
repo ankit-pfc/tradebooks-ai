@@ -3,21 +3,28 @@ import type { NextRequest } from 'next/server'
 
 // This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
+  // Allow all paths in development
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next()
+  }
+
   const { pathname } = request.nextUrl
 
-  // Define allowed paths
-  // We allow root (/), terms, and privacy
-  // We also need to allow static files, _next, favicon, etc.
+  // Define allowed paths for production (Landing Page only)
   const isAllowedPath = 
     pathname === '/' || 
     pathname.startsWith('/privacy') || 
     pathname.startsWith('/terms') ||
-    pathname.includes('.') || // Static files like .ico, .png, etc.
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') // Keep API alive for now unless told otherwise, but usually dashboard uses these
+    pathname.startsWith('/api') ||
+    pathname.includes('.') || 
+    pathname.startsWith('/favicon')
 
   if (!isAllowedPath) {
-    return NextResponse.redirect(new URL('/', request.url))
+    // Force redirect to landing page in production
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
   }
 
   return NextResponse.next()
