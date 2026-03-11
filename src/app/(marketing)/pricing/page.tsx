@@ -26,6 +26,17 @@ export default function PricingPage() {
                         V1 uses a file-upload workflow: upload Zerodha exports, review exceptions, then export Tally-importable XML.
                         No direct broker or Tally integration required.
                     </p>
+                    <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs">
+                        {[
+                            "Upload-first onboarding",
+                            "No broker credentials needed",
+                            "Tally Prime / ERP 9 XML ready",
+                        ].map((chip) => (
+                            <span key={chip} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">
+                                {chip}
+                            </span>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Pricing Cards */}
@@ -46,7 +57,7 @@ export default function PricingPage() {
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Standard Support</li>
                         </ul>
                         <Link href="/upload" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
-                            Get Started Free
+                            Start Free Upload
                         </Link>
                     </div>
 
@@ -69,7 +80,7 @@ export default function PricingPage() {
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Priority Support</li>
                         </ul>
                         <Link href="/upload" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-400 transition-colors">
-                            Get Started Free
+                            Start Free Upload
                         </Link>
                     </div>
 
@@ -88,7 +99,7 @@ export default function PricingPage() {
                             <li className="flex gap-x-3"><CheckCircleIcon className="h-5 w-5 text-indigo-500" /> Dedicated Account Manager</li>
                         </ul>
                         <Link href="mailto:sales@tradebooks.ai" className="mt-8 block rounded-lg px-3 py-3 text-center text-sm font-semibold bg-white border border-slate-300 text-slate-900 hover:bg-slate-50 transition-colors">
-                            Contact Sales
+                            Talk to Sales
                         </Link>
                     </div>
                 </div>
@@ -130,9 +141,12 @@ export default function PricingPage() {
                 <div className="mx-auto max-w-4xl text-center px-4">
                     <h2 className="text-3xl font-bold text-white">Ready to eliminate manual posting?</h2>
                     <p className="mt-4 text-indigo-100 text-lg">See the reconciliation engine in action today.</p>
-                    <div className="mt-8">
+                    <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                         <Link href="/upload" className="inline-flex items-center justify-center rounded-lg px-8 h-12 text-base font-semibold bg-white text-indigo-700 hover:bg-indigo-50 transition-colors">
-                            Get Started Free
+                            Start Free Upload
+                        </Link>
+                        <Link href="/#how-it-works" className="inline-flex items-center justify-center rounded-lg px-8 h-12 text-base font-semibold border border-indigo-300 text-white hover:bg-indigo-700 transition-colors">
+                            Review Workflow
                         </Link>
                     </div>
                 </div>
