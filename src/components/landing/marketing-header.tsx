@@ -53,7 +53,7 @@ export function MarketingHeader() {
                 </nav>
 
                 <Link
-                    href="/upload"
+                    href="#"
                     className="inline-flex h-10 items-center justify-center rounded-lg bg-[#387ED1] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#2f6db7]"
                 >
                     Get Started Free
