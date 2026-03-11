@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -116,26 +114,27 @@ export default function DashboardPage() {
             Welcome to TradeBooks AI — your broker-to-Tally accounting bridge.
           </p>
         </div>
-        <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white">
-          <Link href="/upload">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mr-2"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            New Import
-          </Link>
-        </Button>
+        <Link
+          href="/upload"
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mr-2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          New Import
+        </Link>
       </div>
 
       {/* Stats */}
@@ -169,14 +168,12 @@ export default function DashboardPage() {
               Your latest Zerodha data imports and their status.
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="text-gray-600 border-gray-200"
+          <Link
+            href="/batches"
+            className="inline-flex h-7 items-center justify-center rounded-lg border border-gray-200 bg-white px-2.5 text-[0.8rem] font-medium text-gray-600 transition-colors hover:bg-gray-50"
           >
-            <Link href="/batches">View all</Link>
-          </Button>
+            View all
+          </Link>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -234,13 +231,12 @@ export default function DashboardPage() {
                         Upload your first Zerodha files to get started.
                       </p>
                     </div>
-                    <Button
-                      asChild
-                      size="sm"
-                      className="mt-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    <Link
+                      href="/upload"
+                      className="mt-1 inline-flex h-7 items-center justify-center rounded-lg bg-indigo-600 px-2.5 text-[0.8rem] font-medium text-white transition-colors hover:bg-indigo-700"
                     >
-                      <Link href="/upload">Start your first import</Link>
-                    </Button>
+                      Start your first import
+                    </Link>
                   </div>
                 </TableCell>
               </TableRow>

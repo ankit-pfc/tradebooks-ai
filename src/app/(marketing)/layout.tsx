@@ -49,7 +49,7 @@ export default function MarketingLayout({
               Features
             </Link>
             <Link
-              href="#pricing"
+              href="/pricing"
               className="text-sm text-slate-300 hover:text-white transition-colors"
             >
               Pricing
@@ -120,7 +120,7 @@ export default function MarketingLayout({
                   </Link>
                 </li>
                 <li>
-                  <Link href="#pricing" className="hover:text-white transition-colors">
+                  <Link href="/pricing" className="hover:text-white transition-colors">
                     Pricing
                   </Link>
                 </li>

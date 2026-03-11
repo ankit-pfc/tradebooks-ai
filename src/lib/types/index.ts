@@ -13,3 +13,4 @@ export * from './accounting';
 export * from './vouchers';
 export * from './reconciliation';
 export * from './export';
+export * from './domain';
