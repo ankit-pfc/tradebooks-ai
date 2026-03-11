@@ -37,16 +37,22 @@ export default function MarketingLayout({
           {/* Nav Links */}
           <nav className="hidden md:flex items-center gap-6">
             <Link
-              href="#how-it-works"
+              href="/#how-it-works"
               className="text-sm text-slate-300 hover:text-white transition-colors"
             >
               How it Works
             </Link>
             <Link
-              href="#features"
+              href="/#mechanism"
               className="text-sm text-slate-300 hover:text-white transition-colors"
             >
-              Features
+              Why It Works
+            </Link>
+            <Link
+              href="/#comparison"
+              className="text-sm text-slate-300 hover:text-white transition-colors"
+            >
+              Comparison
             </Link>
             <Link
               href="/pricing"
@@ -68,7 +74,7 @@ export default function MarketingLayout({
               href="/upload"
               className="inline-flex items-center justify-center rounded-lg px-3 h-7 text-[0.8rem] font-medium bg-indigo-500 hover:bg-indigo-400 text-white transition-colors"
             >
-              Get Started Free
+              Start Free Upload
             </Link>
           </div>
         </div>
@@ -110,13 +116,18 @@ export default function MarketingLayout({
               <h3 className="text-sm font-semibold text-white mb-3">Product</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="#how-it-works" className="hover:text-white transition-colors">
+                  <Link href="/#how-it-works" className="hover:text-white transition-colors">
                     How it Works
                   </Link>
                 </li>
                 <li>
-                  <Link href="#features" className="hover:text-white transition-colors">
-                    Features
+                  <Link href="/#proof" className="hover:text-white transition-colors">
+                    Product Proof
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#comparison" className="hover:text-white transition-colors">
+                    Comparison
                   </Link>
                 </li>
                 <li>
@@ -140,6 +151,23 @@ export default function MarketingLayout({
                   </Link>
                 </li>
               </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white mb-3">Get Started</h3>
+              <div className="space-y-2 text-sm">
+                <Link
+                  href="/upload"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-indigo-500 px-4 py-2 font-medium text-white transition-colors hover:bg-indigo-400"
+                >
+                  Start Free Upload
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-700 px-4 py-2 font-medium text-slate-200 transition-colors hover:border-slate-500 hover:text-white"
+                >
+                  View Plans
+                </Link>
+              </div>
             </div>
           </div>
           <Separator className="my-8 bg-slate-800" />
