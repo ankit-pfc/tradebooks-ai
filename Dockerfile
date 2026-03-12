@@ -46,6 +46,12 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Compatibility shim: some hosts override start command to
+# `node .next/standalone/server.js`. Our runtime server lives at /app/server.js,
+# so create a proxy file at the overridden path.
+RUN mkdir -p .next/standalone \
+    && printf "process.chdir('/app');require('/app/server.js');\n" > .next/standalone/server.js
+
 USER nextjs
 
 EXPOSE 3000
