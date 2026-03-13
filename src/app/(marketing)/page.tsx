@@ -298,35 +298,35 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    <div className="relative flex items-center lg:justify-end">
-                        <div className="relative w-full max-w-[640px]">
+                    <div className="relative flex items-start lg:justify-end">
+                        <div className="relative w-full max-w-[640px] space-y-4 sm:space-y-5">
                             <div className="absolute -left-8 -top-8 h-40 w-40 rounded-full bg-[#387ED1]/15 blur-2xl" />
                             <div className="absolute -bottom-10 right-4 h-44 w-44 rounded-full bg-[#2D9D78]/15 blur-2xl" />
 
-                            <div className="relative overflow-hidden rounded-[28px] border border-[#D6E3F3] bg-white p-2 shadow-[0_22px_56px_rgba(15,23,42,0.14)] sm:p-3">
+                            <div className="relative ml-auto w-[88%] overflow-hidden rounded-[24px] border border-[#D6E3F3] bg-white p-2 shadow-[0_22px_56px_rgba(15,23,42,0.14)] sm:w-[84%] sm:p-2.5">
                                 <Image
                                     src="/hero-workspace.avif"
                                     alt="TradeBooks AI workspace showing upload, voucher review, and Tally export flow"
                                     width={1200}
                                     height={800}
                                     priority
-                                    sizes="(min-width: 1280px) 42vw, (min-width: 1024px) 48vw, 100vw"
-                                    className="h-auto w-full rounded-[20px] object-cover"
+                                    sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 90vw"
+                                    className="h-auto w-full rounded-[16px] object-cover"
                                 />
+
+                                <div className="absolute left-4 top-4 rounded-full border border-[#1E4FD8]/30 bg-white/90 px-3 py-1 text-[11px] font-semibold tracking-[0.03em] text-[#1E4FD8] shadow-sm backdrop-blur">
+                                    Exception-first reconciliation
+                                </div>
                             </div>
 
-                            <div className="absolute left-4 top-4 rounded-full border border-[#1E4FD8]/30 bg-white/90 px-3 py-1 text-[11px] font-semibold tracking-[0.03em] text-[#1E4FD8] shadow-sm backdrop-blur">
-                                Exception-first reconciliation
-                            </div>
-
-                            <div className="absolute -bottom-8 -right-2 hidden w-[44%] overflow-hidden rounded-2xl border border-[#D6E3F3] bg-white p-1.5 shadow-[0_18px_34px_rgba(15,23,42,0.16)] sm:block">
+                            <div className="relative mr-auto w-[90%] overflow-hidden rounded-[24px] border border-[#D6E3F3] bg-white p-2 shadow-[0_18px_36px_rgba(15,23,42,0.12)] sm:w-[86%] sm:p-2.5">
                                 <Image
                                     src="/hero-advisor.avif"
                                     alt="Accountant reviewing TradeBooks AI output"
-                                    width={900}
-                                    height={600}
-                                    sizes="(min-width: 1280px) 18vw, (min-width: 1024px) 22vw, 0vw"
-                                    className="h-auto w-full rounded-xl object-cover"
+                                    width={1100}
+                                    height={733}
+                                    sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 92vw"
+                                    className="h-auto w-full rounded-[16px] object-cover"
                                 />
                             </div>
                         </div>
