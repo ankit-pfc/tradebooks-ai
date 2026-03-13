@@ -16,7 +16,7 @@ const navLinks = [
     { href: "/#features", label: "Features", hasDropdownCue: true },
     { href: "/#who-its-for", label: "Who It’s For", hasDropdownCue: true },
     { href: "/#proof", label: "Proof" },
-    { href: "/#pricing", label: "Pricing" },
+    { href: "/pricing", label: "Pricing" },
     { href: "/#faq", label: "FAQ" },
 ];
 
@@ -65,10 +65,10 @@ export function MarketingHeader() {
 
                 <div className="hidden md:block">
                     <Link
-                        href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
+                        href="/upload"
                         className="inline-flex h-10 items-center justify-center rounded-full border border-[#1E4FD8]/30 bg-white px-5 text-sm font-semibold text-[#1E4FD8] transition-colors hover:bg-[#EFF4FF]"
                     >
-                        Get Started
+                        Get Started Free
                     </Link>
                 </div>
 
@@ -105,7 +105,7 @@ export function MarketingHeader() {
                             ))}
 
                             <Link
-                                href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
+                                href="/upload"
                                 className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#1E4FD8] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#1944BB]"
                             >
                                 Get Started Free

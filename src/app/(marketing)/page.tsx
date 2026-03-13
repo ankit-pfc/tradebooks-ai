@@ -8,21 +8,20 @@ import {
     Radar,
     Send,
     ShieldCheck,
-    Sparkles,
     Workflow,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const heroStats = [
-    { value: "500+", label: "CA firms streamlining closes" },
-    { value: "70%", label: "less manual posting time on repeat cycles" },
-    { value: "100%", label: "Tally-ready XML aligned to Indian workflows" },
+    { value: "Zerodha-first", label: "Built around the Console exports you already use" },
+    { value: "Exception-first", label: "Review mismatches before they reach Tally" },
+    { value: "Tally-native", label: "Output formatted for Tally Prime and ERP 9" },
 ];
 
 const trustBarItems = [
-    "500+ CA firms onboarded",
-    "₹0 setup cost",
-    "Tally XML guaranteed or we fix it",
+    "Built for Indian Tax/Audit workflows",
+    "Secure processing (No AI training on your data)",
+    "Compatible with Tally Prime & ERP 9",
 ];
 
 const ecosystemMarks = [
@@ -34,12 +33,36 @@ const ecosystemMarks = [
     { name: "Compliance", sub: "Close Controls", logo: "C" },
 ];
 
+const outputFlow = [
+    {
+        title: "Zerodha CSV",
+        text: "Tradebook, funds, holdings, and contract note exports from Console.",
+        tone: "border-[#D6E3F3] bg-[#F8FBFF] text-[#38506F]",
+    },
+    {
+        title: "TradeBooks AI Engine",
+        text: "Investor/Trader logic + exception-first reconciliation + voucher mapping.",
+        tone: "border-[#CFE3D7] bg-[#F4FBF7] text-[#2f4f43]",
+    },
+    {
+        title: "Tally XML",
+        text: "Import-ready output with row-level traceability for Prime and ERP 9.",
+        tone: "border-[#F4D7B5] bg-[#FFF8F1] text-[#8A4B19]",
+    },
+];
+
 const processSteps = [
     {
         title: "Upload Zerodha exports",
         text: "Import tradebook, funds, holdings, and contract files from Console in minutes.",
         eta: "~5 mins",
         outcome: "All source files validated and ready",
+    },
+    {
+        title: "Configure accounting mode",
+        text: "Set Investor or Trader treatment and map Tally company context once for the batch.",
+        eta: "~3 mins",
+        outcome: "Tax treatment and ledgers aligned",
     },
     {
         title: "Review reconciliation",
@@ -146,8 +169,8 @@ const pricingPlans = [
         period: "/month",
         description: "Best for trying your first Zerodha-to-Tally workflow.",
         points: ["1 active entity", "Upload + exception preview", "Sample export package"],
-        cta: "Start Free Workflow",
-        href: process.env.NODE_ENV === "production" ? "#" : "/upload",
+        cta: "Get Started Free",
+        href: "/upload",
     },
     {
         name: "Pro",
@@ -156,7 +179,7 @@ const pricingPlans = [
         description: "For CA teams closing client books every cycle.",
         points: ["Unlimited monthly batches", "Full Tally XML export", "Priority onboarding support"],
         cta: "Upgrade to Pro",
-        href: process.env.NODE_ENV === "production" ? "#" : "/pricing",
+        href: "/pricing",
         featured: true,
     },
 ];
@@ -167,6 +190,25 @@ const comparisonRows = [
     ["Investor / Trader modes", "Manual split", "Flat logic", "Configurable treatment"],
     ["Tally XML quality", "Manual cleanup", "Needs rework", "Native import format"],
     ["Price", "Hidden team-hour cost", "Tool fee + rework overhead", "₹2,999/mo with guided onboarding"],
+];
+
+const featureCards = [
+    {
+        title: "Reconcile before import",
+        text: "Catch and review mismatches before they enter Tally so downstream books stay cleaner.",
+    },
+    {
+        title: "Investor & Trader accounting modes",
+        text: "Apply the right treatment based on client profile without forcing one flat rule set.",
+    },
+    {
+        title: "Traceable audit trail",
+        text: "Every generated voucher links back to a specific source export row for faster verification.",
+    },
+    {
+        title: "Tally-native XML output",
+        text: "Generate import-ready files for Tally Prime and ERP 9 with less post-export cleanup.",
+    },
 ];
 
 const faqs = [
@@ -202,6 +244,14 @@ const faqs = [
         q: "How is data privacy handled?",
         a: "Processing is secure, scoped to your workflow, and we do not need broker or Tally credentials to generate exports.",
     },
+    {
+        q: "Will this work with brokers other than Zerodha?",
+        a: "Not in V1. TradeBooks AI is currently optimized for Zerodha exports to ensure higher parsing and reconciliation quality.",
+    },
+    {
+        q: "Do I need to map ledgers manually every time?",
+        a: "No. You set Tally company context and mappings once, then reuse that setup across recurring exports.",
+    },
 ];
 
 export default function LandingPage() {
@@ -214,24 +264,25 @@ export default function LandingPage() {
                             Built for Indian CAs & Accountants
                         </Badge>
                         <h1 className="font-sans text-[44px] font-extrabold leading-[1.1] tracking-tight text-[#0F1C2E] sm:text-[56px]">
-                            Close Zerodha books faster with Tally-ready exports your team can trust.
+                            Stop posting Zerodha trades manually.
                         </h1>
                         <p className="lead mt-6 max-w-xl text-[20px] font-normal leading-[1.6] text-[#374151]">
-                            Stop losing hours in manual posting and spreadsheet back-and-forth. Upload broker files, review exceptions first, and export clean XML in a repeatable CA-ready workflow.
+                            Upload Zerodha exports, apply Investor or Trader tax treatment, review reconciled exceptions, and generate Tally-importable XML in minutes.
                         </p>
                         <div className="mt-9">
                             <Link
-                                href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
+                                href="/upload"
                                 className="inline-flex items-center justify-center rounded-lg bg-[#1E4FD8] px-7 py-[14px] text-base font-semibold text-white transition-colors hover:bg-[#1944bb]"
                             >
-                                Start Free Workflow
+                                Get Started Free
                             </Link>
+                            <p className="mt-3 text-sm text-[#4B5563]">No credit card required. Import your first file free.</p>
                             <div className="mt-3">
                                 <Link
                                     href="#how-it-works"
                                     className="inline-flex items-center text-sm font-medium text-[#555] hover:text-[#1A1A2E]"
                                 >
-                                    See 3-Step Process <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                    See How It Works <ArrowRight className="ml-1 h-3.5 w-3.5" />
                                 </Link>
                             </div>
                         </div>
@@ -247,33 +298,67 @@ export default function LandingPage() {
                     </div>
 
                     <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.08)] sm:p-6">
-                        <div className="flex items-center gap-1.5 pb-4">
-                            <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                            <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                            <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                        <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5f6f87]">Batch Review Workspace</p>
+                            <span className="rounded-full border border-[#1E4FD8]/25 bg-[#1E4FD8]/10 px-2.5 py-1 text-[11px] font-semibold text-[#1E4FD8]">Mode: Investor (STCG/LTCG)</span>
                         </div>
-                        <div className="space-y-3 rounded-xl border border-[#E2E8F0] bg-[#F3F6FB] p-4 text-sm">
-                            <div className="flex items-center justify-between rounded-lg bg-white p-3">
-                                <span className="font-medium text-[#1A1A2E]">RELIANCE EQ · CNC</span>
-                                <span className="text-[#2D9D78]">Matched</span>
+
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div className="rounded-xl border border-[#D6E3F3] bg-[#F8FBFF] p-4">
+                                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#5f6f87]">Source row · tradebook.csv #248</p>
+                                <div className="mt-3 space-y-2 text-sm text-[#334155]">
+                                    <p><span className="font-medium text-[#1A1A2E]">Instrument:</span> RELIANCE EQ · CNC</p>
+                                    <p><span className="font-medium text-[#1A1A2E]">Trade date:</span> 05 Mar 2026</p>
+                                    <p><span className="font-medium text-[#1A1A2E]">Quantity:</span> 25 @ ₹983.20</p>
+                                    <p><span className="font-medium text-[#1A1A2E]">Gross amount:</span> ₹24,580</p>
+                                </div>
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-white p-3">
-                                <span className="font-medium text-[#1A1A2E]">HDFCBANK EQ · MIS</span>
-                                <span className="text-[#2D9D78]">Matched</span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg bg-white p-3">
-                                <span className="font-medium text-[#1A1A2E]">INFY EQ · CNC</span>
-                                <span className="text-amber-600">Needs review</span>
-                            </div>
-                            <div className="rounded-lg border border-dashed border-[#C7D7EC] bg-white/70 p-3 text-xs text-[#617188]">
-                                Batch quality checks complete. Ready for final export review.
+
+                            <div className="rounded-xl border border-[#CFE3D7] bg-[#F4FBF7] p-4">
+                                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#4b6d5e]">Generated voucher · Tally XML</p>
+                                <div className="mt-3 space-y-2 text-sm text-[#2f4f43]">
+                                    <p><span className="font-medium text-[#1A1A2E]">Voucher type:</span> Journal (Capital Gains)</p>
+                                    <p><span className="font-medium text-[#1A1A2E]">Tax bucket:</span> STCG - Equity</p>
+                                    <p><span className="font-medium text-[#1A1A2E]">Net posting:</span> ₹24,580</p>
+                                    <p><span className="font-medium text-[#1A1A2E]">Traceability:</span> Linked to source row #248</p>
+                                </div>
                             </div>
                         </div>
+
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                            Exception flagged: INFY EQ · CNC has funds mismatch in `funds.csv` row 36. Review required before export.
+                        </div>
+
                         <div className="mt-4 flex items-center justify-between rounded-xl border border-[#D6E3F3] bg-[#F8FBFF] px-3 py-2 text-xs font-semibold text-[#38506F]">
                             <span className="inline-flex items-center gap-1.5 text-[#2D9D78]"><BadgeCheck className="h-3.5 w-3.5" /> 42 vouchers ready</span>
                             <span className="text-amber-700">2 flagged</span>
-                            <span className="inline-flex items-center gap-1 text-[#1E4FD8]"><Sparkles className="h-3.5 w-3.5" /> Export ready</span>
+                            <span className="inline-flex items-center gap-1 text-[#1E4FD8]"><ArrowRight className="h-3.5 w-3.5" /> Export to Tally XML</span>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="output-flow" className="border-b border-[#E2E8F0] bg-white py-14 sm:py-16">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#5f6f87]">The output, at a glance</p>
+                    <h2 className="mt-3 text-center font-sans text-2xl font-bold tracking-tight text-[#1A1A2E] sm:text-3xl">
+                        From broker export to Tally-importable XML
+                    </h2>
+                    <div className="mt-8 grid gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+                        {outputFlow.map((step, idx) => (
+                            <>
+                                <article key={step.title} className={`rounded-2xl border p-5 ${step.tone}`}>
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.1em]">Step 0{idx + 1}</p>
+                                    <h3 className="mt-2 text-lg font-semibold text-[#1A1A2E]">{step.title}</h3>
+                                    <p className="mt-2 text-sm leading-7">{step.text}</p>
+                                </article>
+                                {idx < outputFlow.length - 1 && (
+                                    <div className="mx-auto hidden h-8 w-8 items-center justify-center rounded-full border border-[#D6E3F3] bg-[#F8FBFF] text-[#1E4FD8] md:flex">
+                                        <ArrowRight className="h-4 w-4" />
+                                    </div>
+                                )}
+                            </>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -361,15 +446,16 @@ export default function LandingPage() {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">How it works</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center text-base font-normal leading-[1.7] text-[#4B5563]">
-                        A controlled 3-step workflow designed for faster closes and cleaner downstream posting.
+                        A controlled 4-step workflow designed for faster closes and cleaner downstream posting.
                     </p>
-                    <div className="mt-10 grid gap-5 md:grid-cols-3">
+                    <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
                         {processSteps.map((step, idx) => (
                             <div key={step.title} className="rounded-2xl border border-[#E2E8F0] bg-[#F7F8FA] p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                                 <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#1E4FD8]/15 text-[#1E4FD8]">
                                     {idx === 0 && <FileSpreadsheet className="h-5 w-5" />}
-                                    {idx === 1 && <ShieldCheck className="h-5 w-5" />}
-                                    {idx === 2 && <Send className="h-5 w-5" />}
+                                    {idx === 1 && <Workflow className="h-5 w-5" />}
+                                    {idx === 2 && <ShieldCheck className="h-5 w-5" />}
+                                    {idx === 3 && <Send className="h-5 w-5" />}
                                 </div>
                                 <p className="mt-4 text-[11px] font-bold tracking-[0.14em] text-[#1E4FD8]">STEP 0{idx + 1}</p>
                                 <h3 className="mt-2 text-lg font-semibold text-[#1A1A2E]">{step.title}</h3>
@@ -383,7 +469,7 @@ export default function LandingPage() {
                     </div>
                     <div className="mt-8 flex justify-center">
                         <Link
-                            href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
+                            href="/upload"
                             className="inline-flex h-11 items-center justify-center rounded-lg border border-[#1E4FD8]/30 bg-[#1E4FD8]/10 px-5 text-sm font-semibold text-[#1E4FD8] transition-colors hover:bg-[#1E4FD8]/15"
                         >
                             Try this workflow on your next close <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -416,7 +502,7 @@ export default function LandingPage() {
                                 <h3 className="text-lg font-semibold text-[#1A1A2E]">{persona.title}</h3>
                                 <p className="mt-3 text-sm leading-7 text-[#4A5568]">{persona.text}</p>
                                 <p className="mt-3 text-sm leading-7 text-[#334155]">{persona.outcome}</p>
-                                <Link href={process.env.NODE_ENV === "production" ? "#" : "/upload"} className="mt-5 inline-flex items-center text-sm font-semibold text-[#1E4FD8] group-hover:text-[#1944bb]">
+                                <Link href="/upload" className="mt-5 inline-flex items-center text-sm font-semibold text-[#1E4FD8] group-hover:text-[#1944bb]">
                                     Know more <ArrowRight className="ml-1.5 h-4 w-4" />
                                 </Link>
                             </div>
@@ -487,7 +573,27 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section id="comparison" className="bg-white py-20">
+            <section id="features" className="bg-white py-20">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Built for accounting precision, not just parsing</h2>
+                    <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#4A5568]">
+                        These are the workflow safeguards that reduce manual rework and improve close confidence.
+                    </p>
+                    <div className="mt-10 grid gap-5 md:grid-cols-2">
+                        {featureCards.map((feature) => (
+                            <article key={feature.title} className="rounded-2xl border border-[#D6E3F3] bg-[#F8FBFF] p-6">
+                                <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.08em] text-[#387ED1]">
+                                    <BadgeCheck className="h-4 w-4" /> Core capability
+                                </p>
+                                <h3 className="mt-3 text-xl font-semibold text-[#1A1A2E]">{feature.title}</h3>
+                                <p className="mt-3 text-sm leading-7 text-[#4A5568]">{feature.text}</p>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <section id="comparison" className="bg-white pb-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Compared to alternatives</h2>
                     <div className="mt-8 overflow-hidden rounded-2xl border border-[#E2E8F0]">
@@ -588,13 +694,13 @@ export default function LandingPage() {
                     <p className="mt-4 text-[#4B5563]">Move from manual posting to exception-first review and export ready XML your team can trust each cycle.</p>
                     <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                         <Link
-                            href={process.env.NODE_ENV === "production" ? "#" : "/upload"}
+                            href="/upload"
                             className="inline-flex h-12 items-center justify-center rounded-lg bg-[#1E4FD8] px-7 text-sm font-semibold text-white hover:bg-[#1944bb]"
                         >
                             Get Started Free
                         </Link>
                         <Link
-                            href={process.env.NODE_ENV === "production" ? "#" : "#pricing"}
+                            href="/pricing"
                             className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-7 text-sm font-medium text-[#1A1A2E] hover:bg-[#F9FAFB]"
                         >
                             View Pricing
