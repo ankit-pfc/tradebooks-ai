@@ -323,18 +323,18 @@ export default function LandingPage() {
                         {/* Advisor photo — main visual */}
                         <div className="relative h-[400px] overflow-hidden rounded-2xl border border-[#D6E3F3] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.10)] lg:h-[520px]">
                             <Image
-                                src="/hero-advisor.avif"
+                                src="/hero-advisor.jpg"
                                 alt="Accountant reviewing TradeBooks AI output"
-                                width={1100}
-                                height={733}
+                                width={700}
+                                height={1050}
                                 priority
                                 sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 92vw"
-                                className="h-full w-full rounded-xl object-cover object-[center_2%]"
+                                className="h-full w-full rounded-xl object-cover object-[center_15%]"
                             />
                         </div>
 
                         {/* Floating product UI card — bottom-left, not covering the advisor */}
-                        <div className="absolute -bottom-6 -left-10 z-10 w-[240px] overflow-hidden rounded-xl border border-[#D6E3F3] bg-white/95 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
+                        <div className="absolute -bottom-6 -left-10 z-10 w-[200px] overflow-hidden rounded-xl border border-[#D6E3F3] bg-white/95 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
                             <div className="mb-2 flex items-center justify-between">
                                 <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#5f6f87]">Batch Preview</p>
                                 <span className="inline-flex items-center gap-1 rounded-full border border-[#2D9D78]/30 bg-[#2D9D78]/10 px-1.5 py-0.5 text-[8px] font-bold text-[#2D9D78]">
