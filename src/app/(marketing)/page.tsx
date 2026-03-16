@@ -1,12 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
+    AlertTriangle,
+    ArrowLeftRight,
     ArrowRight,
     BadgeCheck,
     Clock3,
     FileSpreadsheet,
     FileText,
+    Hourglass,
+    Lock,
+    Plug,
     Radar,
+    Scale,
     Send,
     ShieldCheck,
     Workflow,
@@ -84,16 +90,19 @@ const painCards = [
         metric: "18+ hrs",
         label: "lost per client each close",
         text: "Manual posting and reconciliation consume team capacity that should go into advisory and review.",
+        icon: "hourglass",
     },
     {
         metric: "3x",
         label: "more handoffs per cycle",
         text: "CSV → Excel → reviewer loops create avoidable friction and break accountability across teams.",
+        icon: "arrows",
     },
     {
         metric: "87%",
         label: "errors discovered late",
         text: "Mismatches surface at peak filing pressure when client windows are already closed.",
+        icon: "alert",
     },
 ];
 
@@ -258,79 +267,112 @@ const faqs = [
 export default function LandingPage() {
     return (
         <>
-            <section id="hero" className="bg-[#F7F8FA] py-20 sm:py-24">
-                <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+            <section id="hero" className="bg-[#F7F8FA] py-20 sm:py-28">
+                <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:gap-16 lg:px-8">
+                    {/* ── Left: Copy ── */}
                     <div>
                         <Badge className="mb-5 border-[1.5px] border-[#93C5FD] bg-[#1E4FD8]/10 text-[#255FA0] hover:bg-[#1E4FD8]/10">
                             Built for Indian CAs & Accountants
                         </Badge>
-                        <h1 className="font-sans text-[44px] font-extrabold leading-[1.1] tracking-tight text-[#0F1C2E] sm:text-[56px]">
+                        <h1 className="font-sans text-[44px] font-extrabold leading-[1.08] tracking-tight text-[#0F1C2E] sm:text-[56px]">
                             Stop posting Zerodha trades manually.
                         </h1>
-                        <p className="lead mt-6 max-w-xl text-[20px] font-normal leading-[1.6] text-[#374151]">
+                        <p className="mt-6 max-w-xl text-[20px] font-normal leading-[1.6] text-[#374151]">
                             Upload Zerodha exports, apply Investor or Trader tax treatment, review reconciled exceptions, and generate Tally-importable XML in minutes.
                         </p>
-                        <div className="mt-9">
+
+                        <div className="mt-9 flex flex-wrap gap-3">
                             <Link
                                 href="/upload"
                                 className="inline-flex items-center justify-center rounded-lg bg-[#1E4FD8] px-7 py-[14px] text-base font-semibold text-white transition-colors hover:bg-[#1944bb]"
                             >
                                 Get Started Free
                             </Link>
-                            <p className="mt-3 text-sm text-[#4B5563]">No credit card required. Import your first file free.</p>
-                            <div className="mt-3">
-                                <Link
-                                    href="#how-it-works"
-                                    className="inline-flex items-center text-sm font-medium text-[#555] hover:text-[#1A1A2E]"
-                                >
-                                    See How It Works <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                                </Link>
-                            </div>
+                            <Link
+                                href="#how-it-works"
+                                className="inline-flex items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-6 py-[13px] text-base font-medium text-[#1A1A2E] transition-colors hover:bg-white"
+                            >
+                                See How It Works <ArrowRight className="ml-1.5 h-4 w-4" />
+                            </Link>
                         </div>
+                        <p className="mt-3 text-sm text-[#4B5563]">No credit card required. Import your first file free.</p>
 
-                        <div className="mt-8 flex max-w-xl flex-wrap items-center gap-y-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-6 py-3">
-                            {trustBarItems.map((item, idx) => (
-                                <div key={item} className="flex items-center">
-                                    <span className="text-[13px] font-medium text-[#374151]">{item}</span>
-                                    {idx < trustBarItems.length - 1 && <span className="mx-3 h-4 w-px bg-[#D1D5DB]" />}
-                                </div>
-                            ))}
+                        <div className="mt-8 flex max-w-xl flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3.5">
+                            <div className="flex items-center gap-1.5">
+                                <Scale className="h-3.5 w-3.5 shrink-0 text-[#1E4FD8]" />
+                                <span className="text-[13px] font-medium text-[#374151]">{trustBarItems[0]}</span>
+                                <span className="ml-2.5 h-4 w-px bg-[#D1D5DB]" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Lock className="h-3.5 w-3.5 shrink-0 text-[#1E4FD8]" />
+                                <span className="text-[13px] font-medium text-[#374151]">{trustBarItems[1]}</span>
+                                <span className="ml-2.5 h-4 w-px bg-[#D1D5DB]" />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Plug className="h-3.5 w-3.5 shrink-0 text-[#1E4FD8]" />
+                                <span className="text-[13px] font-medium text-[#374151]">{trustBarItems[2]}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="relative flex items-start lg:justify-end">
-                        <div className="relative w-full max-w-[640px] overflow-hidden rounded-[28px] p-1 sm:p-2">
-                            <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-[#387ED1]/12 blur-2xl" />
-                            <div className="pointer-events-none absolute -bottom-8 right-0 h-36 w-36 rounded-full bg-[#2D9D78]/12 blur-2xl" />
+                    {/* ── Right: Advisor photo with floating product UI card ── */}
+                    <div className="relative hidden md:block">
+                        <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-[#387ED1]/10 blur-3xl" />
+                        <div className="pointer-events-none absolute -bottom-8 right-4 h-36 w-36 rounded-full bg-[#2D9D78]/10 blur-3xl" />
 
-                            <div className="relative flex flex-col gap-4 sm:gap-5">
-                                <div className="ml-auto w-[78%] overflow-hidden rounded-[22px] border border-[#D6E3F3] bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.16)] sm:w-[74%]">
-                                    <div className="relative">
-                                        <Image
-                                            src="/hero-workspace.avif"
-                                            alt="TradeBooks AI workspace showing upload, voucher review, and Tally export flow"
-                                            width={1200}
-                                            height={800}
-                                            priority
-                                            sizes="(min-width: 1280px) 30vw, (min-width: 1024px) 36vw, 88vw"
-                                            className="h-auto w-full rounded-[14px] object-cover"
-                                        />
-                                        <div className="absolute left-3 top-3 rounded-full border border-[#1E4FD8]/30 bg-white/90 px-2.5 py-1 text-[10px] font-semibold tracking-[0.03em] text-[#1E4FD8] shadow-sm backdrop-blur sm:left-4 sm:top-4 sm:text-[11px]">
-                                            Exception-first reconciliation
+                        {/* Advisor photo — main visual */}
+                        <div className="relative h-[400px] overflow-hidden rounded-2xl border border-[#D6E3F3] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.10)] lg:h-[520px]">
+                            <Image
+                                src="/hero-advisor.avif"
+                                alt="Accountant reviewing TradeBooks AI output"
+                                width={1100}
+                                height={733}
+                                priority
+                                sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 92vw"
+                                className="h-full w-full rounded-xl object-cover object-[center_2%]"
+                            />
+                        </div>
+
+                        {/* Floating product UI card — bottom-left, not covering the advisor */}
+                        <div className="absolute -bottom-6 -left-10 z-10 w-[240px] overflow-hidden rounded-xl border border-[#D6E3F3] bg-white/95 p-3 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
+                            <div className="mb-2 flex items-center justify-between">
+                                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#5f6f87]">Batch Preview</p>
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#2D9D78]/30 bg-[#2D9D78]/10 px-1.5 py-0.5 text-[8px] font-bold text-[#2D9D78]">
+                                    <BadgeCheck className="h-2.5 w-2.5" /> 42 ready
+                                </span>
+                            </div>
+
+                            {/* Mini workflow */}
+                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FBFF] px-2 py-1.5">
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8] text-[8px] font-bold text-white">Z</div>
+                                <div className="h-px flex-1 bg-[#D6E3F3]" />
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8]/15 text-[8px] font-bold text-[#1E4FD8]">AI</div>
+                                <div className="h-px flex-1 bg-[#D6E3F3]" />
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#2D9D78]/15 text-[8px] font-bold text-[#2D9D78]">T</div>
+                            </div>
+
+                            {/* Compact voucher rows */}
+                            <div className="mt-1.5 space-y-1">
+                                {[
+                                    { symbol: "RELIANCE · CNC", amount: "₹24,580", ok: true },
+                                    { symbol: "HDFCBANK · MIS", amount: "₹8,120", ok: true },
+                                    { symbol: "INFY · CNC", amount: "₹12,040", ok: false },
+                                ].map((row) => (
+                                    <div key={row.symbol} className="flex items-center justify-between rounded-md border border-[#E2E8F0] bg-white px-2 py-1">
+                                        <p className="text-[9px] font-semibold text-[#1A1A2E]">{row.symbol}</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="text-[9px] font-semibold text-[#1A1A2E]">{row.amount}</p>
+                                            <span className={`inline-flex rounded-full px-1 py-px text-[7px] font-bold ${row.ok ? "bg-[#2D9D78]/10 text-[#2D9D78]" : "bg-amber-50 text-amber-600"}`}>
+                                                {row.ok ? "Ready" : "Review"}
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
+                                ))}
+                            </div>
 
-                                <div className="mr-auto w-[92%] overflow-hidden rounded-[22px] border border-[#D6E3F3] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.12)] sm:w-[88%]">
-                                    <Image
-                                        src="/hero-advisor.avif"
-                                        alt="Accountant reviewing TradeBooks AI output"
-                                        width={1100}
-                                        height={733}
-                                        sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 92vw"
-                                        className="h-auto w-full rounded-[14px] object-cover"
-                                    />
-                                </div>
+                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-[#F3F6FB] px-2 py-1">
+                                <p className="text-[8px] font-medium text-[#5f6f87]">Exceptions: 2</p>
+                                <p className="text-[8px] font-semibold text-[#1E4FD8]">Export XML →</p>
                             </div>
                         </div>
                     </div>
@@ -407,6 +449,11 @@ export default function LandingPage() {
                     <div className="mt-10 grid gap-5 md:grid-cols-3">
                         {painCards.map((card) => (
                             <div key={card.label} className="rounded-2xl border border-slate-700/70 bg-slate-900/60 p-6">
+                                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 ring-1 ring-slate-700">
+                                    {card.icon === "hourglass" && <Hourglass className="h-5 w-5 text-[#7fb0e5]" />}
+                                    {card.icon === "arrows" && <ArrowLeftRight className="h-5 w-5 text-[#7fb0e5]" />}
+                                    {card.icon === "alert" && <AlertTriangle className="h-5 w-5 text-[#7fb0e5]" />}
+                                </div>
                                 <p className="text-[56px] font-bold leading-none tracking-tight text-white">{card.metric}</p>
                                 <p className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-[#7fb0e5]">{card.label}</p>
                                 <p className="mt-4 text-sm leading-7 text-slate-100">{card.text}</p>
