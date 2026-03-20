@@ -10,6 +10,8 @@ export type BatchFileType =
     | 'funds_statement'
     | 'holdings'
     | 'contract_note'
+    | 'taxpnl'
+    | 'agts'
     | 'unknown';
 
 export type AppExceptionSeverity = 'error' | 'warning' | 'info';

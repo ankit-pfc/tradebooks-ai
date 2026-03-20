@@ -42,6 +42,103 @@ export interface ZerodhaTradebookRow {
   trade_id: string;
   order_id: string;
   order_execution_time: string;
+  /** Series code (e.g. "EQ", "T") — present in XLSX exports, absent in CSV */
+  series?: string;
+  /** Auction flag (e.g. "False") — present in XLSX exports, absent in CSV */
+  auction?: string;
+  /** Pre-calculated amount (Quantity × Price) as numeric string — present in XLSX exports, absent in CSV */
+  amount?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Zerodha Tax P&L
+// ---------------------------------------------------------------------------
+
+export interface ZerodhaTaxPnlExitRow {
+  symbol: string;
+  isin: string;
+  entry_date: string;
+  exit_date: string;
+  /** Numeric string */
+  quantity: string;
+  /** Numeric string */
+  buy_value: string;
+  /** Numeric string */
+  sell_value: string;
+  /** Numeric string */
+  profit: string;
+  /** Period of holding in days as string */
+  period_of_holding: string;
+  /** Numeric string — fair market value for grandfathering */
+  fair_market_value: string;
+  /** Numeric string */
+  taxable_profit: string;
+  /** Numeric string */
+  turnover: string;
+}
+
+export interface ZerodhaTaxPnlChargeRow {
+  particulars: string;
+  posting_date: string;
+  /** Numeric string */
+  debit: string;
+  /** Numeric string */
+  credit: string;
+}
+
+export interface ZerodhaTaxPnlDividendRow {
+  symbol: string;
+  isin: string;
+  date: string;
+  /** Numeric string */
+  quantity: string;
+  /** Numeric string */
+  dividend_per_share: string;
+  /** Numeric string */
+  net_dividend_amount: string;
+}
+
+export interface ZerodhaTaxPnlEquitySummaryRow {
+  symbol: string;
+  /** Numeric string */
+  quantity: string;
+  /** Numeric string */
+  buy_value: string;
+  /** Numeric string */
+  sell_value: string;
+  /** Numeric string */
+  realized_pnl: string;
+}
+
+export interface TaxPnlParseResult {
+  exits: ZerodhaTaxPnlExitRow[];
+  charges: ZerodhaTaxPnlChargeRow[];
+  dividends: ZerodhaTaxPnlDividendRow[];
+  equity_summary: ZerodhaTaxPnlEquitySummaryRow[];
+  metadata: ParseMetadata;
+}
+
+// ---------------------------------------------------------------------------
+// Zerodha AGTS (Aggregate Trade Summary)
+// ---------------------------------------------------------------------------
+
+export interface ZerodhaAgtsRow {
+  symbol: string;
+  exchange: string;
+  segment: string;
+  /** Numeric string */
+  buy_quantity: string;
+  /** Numeric string */
+  buy_value: string;
+  /** Numeric string */
+  sell_quantity: string;
+  /** Numeric string */
+  sell_value: string;
+}
+
+export interface AgtsParseResult {
+  rows: ZerodhaAgtsRow[];
+  metadata: ParseMetadata;
 }
 
 // ---------------------------------------------------------------------------

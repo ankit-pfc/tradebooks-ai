@@ -24,6 +24,13 @@ export type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
   ZerodhaHoldingsRow,
+  ZerodhaTaxPnlExitRow,
+  ZerodhaTaxPnlChargeRow,
+  ZerodhaTaxPnlDividendRow,
+  ZerodhaTaxPnlEquitySummaryRow,
+  ZerodhaAgtsRow,
+  TaxPnlParseResult,
+  AgtsParseResult,
   ParseMetadata,
 } from './types';
 
@@ -40,6 +47,10 @@ export type { FundsStatementParseResult } from './funds-statement';
 export { parseHoldings } from './holdings';
 export type { HoldingsParseResult } from './holdings';
 
+export { parseTaxPnl } from './taxpnl';
+
+export { parseAgts } from './agts';
+
 // ---------------------------------------------------------------------------
 // Re-export file-type detector
 // ---------------------------------------------------------------------------
@@ -54,6 +65,7 @@ export type { ZerodhaFileType } from './detect';
 import type { TradebookParseResult } from './tradebook';
 import type { FundsStatementParseResult } from './funds-statement';
 import type { HoldingsParseResult } from './holdings';
+import type { TaxPnlParseResult, AgtsParseResult } from './types';
 
 /**
  * Discriminated union returned by `parseZerodhaFile`.
@@ -63,7 +75,9 @@ import type { HoldingsParseResult } from './holdings';
 export type ZerodhaParseResult =
   | { type: 'tradebook'; data: TradebookParseResult }
   | { type: 'funds_statement'; data: FundsStatementParseResult }
-  | { type: 'holdings'; data: HoldingsParseResult };
+  | { type: 'holdings'; data: HoldingsParseResult }
+  | { type: 'taxpnl'; data: TaxPnlParseResult }
+  | { type: 'agts'; data: AgtsParseResult };
 
 // ---------------------------------------------------------------------------
 // Main entry point
@@ -73,6 +87,8 @@ import { detectFileType } from './detect';
 import { parseTradebook } from './tradebook';
 import { parseFundsStatement } from './funds-statement';
 import { parseHoldings } from './holdings';
+import { parseTaxPnl } from './taxpnl';
+import { parseAgts } from './agts';
 
 /**
  * Auto-detect the type of a Zerodha file and route it to the correct parser.
@@ -111,6 +127,12 @@ export function parseZerodhaFile(
     case 'holdings':
       return { type: 'holdings', data: parseHoldings(fileBuffer, fileName) };
 
+    case 'taxpnl':
+      return { type: 'taxpnl', data: parseTaxPnl(fileBuffer, fileName) };
+
+    case 'agts':
+      return { type: 'agts', data: parseAgts(fileBuffer, fileName) };
+
     case 'contract_note':
       throw new Error(
         `Contract note parsing is not yet implemented. ` +
@@ -121,7 +143,7 @@ export function parseZerodhaFile(
       throw new Error(
         `Unable to determine the file type for "${fileName}". ` +
           `Ensure the file is a valid Zerodha tradebook, funds statement, ` +
-          `holdings export, or contract note.`
+          `holdings export, tax P&L, AGTS, or contract note.`
       );
   }
 }
