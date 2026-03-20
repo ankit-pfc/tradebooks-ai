@@ -22,14 +22,15 @@ import type { ZerodhaTradebookRow, ParseMetadata } from './types';
 export const PARSER_VERSION = '1.0.0';
 
 /**
- * Canonical header names exactly as they appear in a Zerodha tradebook.
- * The parser searches for the row that contains all of these strings.
+ * Core header names required in a Zerodha tradebook.
+ * The parser searches for a row that contains all of these (case-insensitive).
+ * Note: "Symbol" and "Symbol/Scrip" are treated as equivalent — XLSX exports
+ * use "Symbol" while CSV exports use "Symbol/Scrip".
  */
-const EXPECTED_HEADERS = [
+const REQUIRED_HEADERS = [
   'Trade Date',
   'Exchange',
   'Segment',
-  'Symbol/Scrip',
   'ISIN',
   'Trade Type',
   'Quantity',
@@ -38,6 +39,9 @@ const EXPECTED_HEADERS = [
   'Order ID',
   'Order Execution Time',
 ] as const;
+
+/** Either form of the symbol column header is acceptable. */
+const SYMBOL_HEADERS = ['Symbol/Scrip', 'Symbol'] as const;
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -59,6 +63,7 @@ function normaliseHeader(raw: string): keyof ZerodhaTradebookRow | null {
     exchange: 'exchange',
     segment: 'segment',
     'symbol/scrip': 'symbol',
+    symbol: 'symbol',
     isin: 'isin',
     'trade type': 'trade_type',
     quantity: 'quantity',
@@ -66,6 +71,9 @@ function normaliseHeader(raw: string): keyof ZerodhaTradebookRow | null {
     'trade id': 'trade_id',
     'order id': 'order_id',
     'order execution time': 'order_execution_time',
+    series: 'series',
+    auction: 'auction',
+    amount: 'amount',
   };
   return map[raw.trim().toLowerCase()] ?? null;
 }
@@ -100,15 +108,19 @@ function parseTradeType(value: string, rowIndex: number): 'buy' | 'sell' {
 /**
  * Given a 2-D array of string rows (as returned by both PapaParse and XLSX),
  * find the index of the header row by scanning for a row that contains all
- * expected headers.  Returns -1 if not found.
+ * required headers plus at least one form of the symbol column.
+ * Returns -1 if not found.
  */
 function findHeaderRowIndex(rows: string[][]): number {
   for (let i = 0; i < rows.length; i++) {
-    const cells = rows[i].map((c) => c.trim());
-    const hasAllHeaders = EXPECTED_HEADERS.every((h) =>
-      cells.some((c) => c.toLowerCase() === h.toLowerCase())
+    const cells = rows[i].map((c) => c.trim().toLowerCase());
+    const hasRequired = REQUIRED_HEADERS.every((h) =>
+      cells.some((c) => c === h.toLowerCase())
     );
-    if (hasAllHeaders) return i;
+    const hasSymbol = SYMBOL_HEADERS.some((h) =>
+      cells.some((c) => c === h.toLowerCase())
+    );
+    if (hasRequired && hasSymbol) return i;
   }
   return -1;
 }
@@ -138,6 +150,9 @@ function buildRows(headerRow: string[], dataRows: string[][]): ZerodhaTradebookR
 
       if (field === 'quantity' || field === 'price') {
         raw[field] = parseNumeric(cellValue, field, i);
+      } else if (field === 'amount') {
+        // amount is optional and may be empty
+        if (cellValue) raw[field] = parseNumeric(cellValue, field, i);
       } else if (field === 'trade_type') {
         raw[field] = parseTradeType(cellValue, i);
       } else {
@@ -145,12 +160,15 @@ function buildRows(headerRow: string[], dataRows: string[][]): ZerodhaTradebookR
       }
     }
 
-    // Verify all required fields are present
-    const missing = (Object.keys(raw) as Array<keyof ZerodhaTradebookRow>).length < EXPECTED_HEADERS.length
-      ? EXPECTED_HEADERS.map((h) => normaliseHeader(h)).filter(
-          (k) => k !== null && raw[k as keyof ZerodhaTradebookRow] === undefined
-        )
-      : [];
+    // Verify all required fields are present (excludes optional series/auction/amount)
+    const REQUIRED_FIELDS: Array<keyof ZerodhaTradebookRow> = [
+      'trade_date', 'exchange', 'segment', 'symbol', 'isin',
+      'trade_type', 'quantity', 'price', 'trade_id', 'order_id',
+      'order_execution_time',
+    ];
+    const missing = REQUIRED_FIELDS.filter(
+      (k) => raw[k] === undefined
+    );
 
     if (missing.length > 0) {
       throw new Error(
@@ -207,7 +225,7 @@ function parseCsv(buffer: Buffer): ZerodhaTradebookRow[] {
   if (headerIdx === -1) {
     throw new Error(
       'Could not locate the tradebook header row. ' +
-        `Expected columns: ${EXPECTED_HEADERS.join(', ')}`
+        `Expected columns: ${[...REQUIRED_HEADERS, 'Symbol/Scrip or Symbol'].join(', ')}`
     );
   }
 
@@ -249,7 +267,7 @@ function parseXlsx(buffer: Buffer): ZerodhaTradebookRow[] {
   if (headerIdx === -1) {
     throw new Error(
       'Could not locate the tradebook header row in XLSX. ' +
-        `Expected columns: ${EXPECTED_HEADERS.join(', ')}`
+        `Expected columns: ${[...REQUIRED_HEADERS, 'Symbol/Scrip or Symbol'].join(', ')}`
     );
   }
 
