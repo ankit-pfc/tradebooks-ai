@@ -10,9 +10,13 @@ import { cookies } from 'next/headers';
 export async function createClient() {
   const cookieStore = await cookies();
 
+  // Dynamic access prevents Next.js from inlining empty strings at build time
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL']!;
+  const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!;
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {
