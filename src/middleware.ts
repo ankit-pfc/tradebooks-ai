@@ -16,18 +16,13 @@ function isPublicPath(pathname: string): boolean {
     );
 }
 
-// Dynamic access prevents Next.js from inlining these as empty strings at build time.
-// Railway sets them at runtime, but Next.js replaces static process.env.NEXT_PUBLIC_*
-// references with their build-time values.
-function getEnv(key: string): string | undefined {
-    return process.env[key];
-}
-
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    const supabaseUrl = getEnv('NEXT_PUBLIC_SUPABASE_URL');
-    const supabaseAnonKey = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    // Use SUPABASE_URL (server-only, not inlined by Next.js at build time)
+    // with NEXT_PUBLIC_* as fallback for local dev.
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     // Skip Supabase session refresh if env vars are not configured
     if (!supabaseUrl || !supabaseAnonKey) {
