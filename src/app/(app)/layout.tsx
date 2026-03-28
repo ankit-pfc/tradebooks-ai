@@ -1,7 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   {
@@ -69,6 +77,26 @@ const navItems = [
     ),
   },
   {
+    label: "Exceptions",
+    href: "/exceptions",
+    icon: (
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    ),
+  },
+  {
     label: "Settings",
     href: "/settings",
     icon: (
@@ -95,6 +123,21 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string>("Accountant");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -151,17 +194,41 @@ export default function AppLayout({
 
         {/* Footer */}
         <div className="px-4 py-4 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span className="text-xs font-semibold text-indigo-700">CA</span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-900 truncate">
-                Accountant
-              </p>
-              <p className="text-xs text-gray-500 truncate">Free Plan</p>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-gray-100 transition-colors cursor-pointer">
+                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-semibold text-indigo-700">
+                    {userEmail[0].toUpperCase()}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-900 truncate">
+                    {userEmail}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">Free Plan</p>
+                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-48">
+              <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-2"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 

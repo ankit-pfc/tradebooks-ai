@@ -7,24 +7,17 @@
  * the accounting profile to produce a de-duplicated list of LedgerMasterInput
  * records that can be fed directly to generateMastersXml().
  *
- * Ledger-group mapping rationale
- * ─────────────────────────────
- * Broker / settlement ledger  → "Sundry Debtors"
- * Bank clearing ledger        → "Bank Accounts"
- * Transaction charges         → "Indirect Expenses"  (STT, stamp duty, DP charges, SEBI, GST)
- * Brokerage (direct cost)     → "Direct Expenses"    (directly attributable to trades)
- * Securities — investor mode  → "Investments"        (held as capital assets)
- * Securities — trader mode    → "Stock-in-Hand"      (treated as trading inventory)
- * Realised P&L — investor     → "Indirect Incomes"   (capital gains classified as other income)
- * Realised P&L — trader       → "Direct Incomes"     (business income from trading)
- * Dividend income             → "Indirect Incomes"
+ * All ledger names are imported from `constants/ledger-names.ts` — the single
+ * source of truth shared with voucher-builder.ts.
  */
 
 import type { CanonicalEvent } from '../types/events';
 import { EventType } from '../types/events';
-import type { AccountingProfile } from '../types/accounting';
+import type { AccountingProfile, TallyProfile } from '../types/accounting';
 import { AccountingMode, LedgerStrategy } from '../types/accounting';
 import type { LedgerMasterInput } from './tally-xml';
+import * as L from '../constants/ledger-names';
+import { collectProfileLedgers } from '../engine/ledger-resolver';
 
 // ---------------------------------------------------------------------------
 // Fixed ledger catalogue
@@ -32,188 +25,32 @@ import type { LedgerMasterInput } from './tally-xml';
 
 /** Broker settlement account — always required. */
 const BROKER_LEDGER: LedgerMasterInput = {
-  name: 'Zerodha Broking',
-  parent_group: 'Sundry Debtors',
+  name: L.BROKER.name,
+  parent_group: L.BROKER.group,
   affects_stock: false,
 };
 
 /** Bank placeholder — always required as the contra for fund movements. */
 const BANK_LEDGER: LedgerMasterInput = {
-  name: 'Bank Account',
-  parent_group: 'Bank Accounts',
+  name: L.BANK.name,
+  parent_group: L.BANK.group,
   affects_stock: false,
 };
 
 /**
- * Standard charge ledgers that appear on virtually every Zerodha contract
- * note.  These are always included so the XML can never fail on a missing
- * ledger when a charge line is present.
+ * Standard charge ledgers derived from the unified constants.
+ * Always included so the XML can never fail on a missing ledger.
  */
-const CHARGE_LEDGERS: LedgerMasterInput[] = [
-  {
-    name: 'Brokerage',
-    parent_group: 'Direct Expenses',
-    affects_stock: false,
-  },
-  {
-    name: 'Securities Transaction Tax (STT)',
-    parent_group: 'Indirect Expenses',
-    affects_stock: false,
-  },
-  {
-    name: 'Exchange Transaction Charges',
-    parent_group: 'Indirect Expenses',
-    affects_stock: false,
-  },
-  {
-    name: 'SEBI Turnover Charges',
-    parent_group: 'Indirect Expenses',
-    affects_stock: false,
-  },
-  {
-    name: 'GST on Brokerage & Charges',
-    parent_group: 'Indirect Expenses',
-    affects_stock: false,
-  },
-  {
-    name: 'Stamp Duty',
-    parent_group: 'Indirect Expenses',
-    affects_stock: false,
-  },
-  {
-    name: 'Depository (DP) Charges',
-    parent_group: 'Indirect Expenses',
-    affects_stock: false,
-  },
-];
-
-// ---------------------------------------------------------------------------
-// EventType → charge ledger name mapping
-// ---------------------------------------------------------------------------
-
-/**
- * Maps charge EventTypes to their canonical Tally ledger name.
- * Used when scanning events to confirm which charge ledgers are actually needed
- * (though we include all charge ledgers unconditionally for safety).
- */
-/*
-const CHARGE_EVENT_TO_LEDGER: Partial<Record<EventType, string>> = {
-  [EventType.BROKERAGE]: 'Brokerage',
-  [EventType.STT]: 'Securities Transaction Tax (STT)',
-  [EventType.EXCHANGE_CHARGE]: 'Exchange Transaction Charges',
-  [EventType.SEBI_CHARGE]: 'SEBI Turnover Charges',
-  [EventType.GST_ON_CHARGES]: 'GST on Brokerage & Charges',
-  [EventType.STAMP_DUTY]: 'Stamp Duty',
-  [EventType.DP_CHARGE]: 'Depository (DP) Charges',
-};
-*/
-
-// ---------------------------------------------------------------------------
-// Security ledger name builders
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the Tally ledger name for a security in INVESTOR mode.
- * Format: "Investment in Equity Shares - {SYMBOL}"
- */
-function investmentLedgerName(symbol: string): string {
-  return `Investment in Equity Shares - ${symbol}`;
-}
-
-/**
- * Returns the Tally ledger name for a security in TRADER mode.
- * Format: "Shares-in-Trade - {SYMBOL}"
- */
-function tradingStockLedgerName(symbol: string): string {
-  return `Shares-in-Trade - ${symbol}`;
-}
-
-// ---------------------------------------------------------------------------
-// Pooled (non-script-level) fallback ledgers
-// ---------------------------------------------------------------------------
-
-const POOLED_INVESTMENT_LEDGER: LedgerMasterInput = {
-  name: 'Investment in Equity Shares',
-  parent_group: 'Investments',
+const CHARGE_LEDGERS: LedgerMasterInput[] = L.ALL_CHARGE_LEDGERS.map((def) => ({
+  name: def.name,
+  parent_group: def.group,
   affects_stock: false,
-};
-
-const POOLED_TRADING_STOCK_LEDGER: LedgerMasterInput = {
-  name: 'Shares-in-Trade',
-  parent_group: 'Stock-in-Hand',
-  affects_stock: true,
-};
-
-// ---------------------------------------------------------------------------
-// P&L ledgers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns P&L ledgers appropriate for the accounting mode.
- *
- * Investor: short-term and long-term capital gains are "Indirect Incomes"
- *   (outside the scope of business income on the P&L).
- * Trader: realised trading profit/loss is "Direct Incomes" / "Direct Expenses"
- *   (forms part of business income).
- */
-function getPnlLedgers(mode: AccountingMode): LedgerMasterInput[] {
-  if (mode === AccountingMode.INVESTOR) {
-    return [
-      {
-        name: 'Short Term Capital Gains on Shares',
-        parent_group: 'Indirect Incomes',
-        affects_stock: false,
-      },
-      {
-        name: 'Long Term Capital Gains on Shares',
-        parent_group: 'Indirect Incomes',
-        affects_stock: false,
-      },
-      {
-        name: 'Dividend Income',
-        parent_group: 'Indirect Incomes',
-        affects_stock: false,
-      },
-    ];
-  }
-
-  // TRADER mode
-  return [
-    {
-      name: 'Profit on Sale of Shares-in-Trade',
-      parent_group: 'Direct Incomes',
-      affects_stock: false,
-    },
-    {
-      name: 'Loss on Sale of Shares-in-Trade',
-      parent_group: 'Direct Expenses',
-      affects_stock: false,
-    },
-    {
-      name: 'Dividend Income',
-      parent_group: 'Indirect Incomes',
-      affects_stock: false,
-    },
-  ];
-}
+}));
 
 // ---------------------------------------------------------------------------
 // Security symbol extraction helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Extracts the set of unique security symbols touched by trade events.
- *
- * The CanonicalEvent type stores security_id (a FK), not the symbol directly.
- * In practice the calling context either:
- *   (a) Joins events with SecurityMaster records before calling this function,
- *       storing the symbol in a synthetic field, OR
- *   (b) Uses the security_id itself as a stand-in symbol (UUID, not ideal).
- *
- * To bridge this gap without coupling the exporter to the database layer, we
- * accept an optional symbol resolver map.  When absent, we fall back to
- * security_id so the function remains independently usable.
- */
 function extractUniqueSymbols(
   events: CanonicalEvent[],
   symbolMap?: Map<string, string>,
@@ -235,38 +72,109 @@ function extractUniqueSymbols(
 }
 
 // ---------------------------------------------------------------------------
+// P&L ledgers
+// ---------------------------------------------------------------------------
+
+function getPnlLedgers(mode: AccountingMode): LedgerMasterInput[] {
+  if (mode === AccountingMode.INVESTOR) {
+    return [
+      { name: L.STCG_PROFIT.name, parent_group: L.STCG_PROFIT.group, affects_stock: false },
+      { name: L.STCG_LOSS.name, parent_group: L.STCG_LOSS.group, affects_stock: false },
+      { name: L.LTCG_PROFIT.name, parent_group: L.LTCG_PROFIT.group, affects_stock: false },
+      { name: L.LTCG_LOSS.name, parent_group: L.LTCG_LOSS.group, affects_stock: false },
+      { name: L.SPECULATIVE_PROFIT.name, parent_group: L.SPECULATIVE_PROFIT.group, affects_stock: false },
+      { name: L.SPECULATIVE_LOSS.name, parent_group: L.SPECULATIVE_LOSS.group, affects_stock: false },
+      { name: L.DIVIDEND_INCOME.name, parent_group: L.DIVIDEND_INCOME.group, affects_stock: false },
+    ];
+  }
+
+  // TRADER mode
+  return [
+    { name: L.TRADING_SALES.name, parent_group: L.TRADING_SALES.group, affects_stock: false },
+    { name: L.COST_OF_SHARES_SOLD.name, parent_group: L.COST_OF_SHARES_SOLD.group, affects_stock: false },
+    { name: L.DIVIDEND_INCOME.name, parent_group: L.DIVIDEND_INCOME.group, affects_stock: false },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// TallyProfile-based ledger collection
+// ---------------------------------------------------------------------------
+
+/** Extract the security symbol from a composite security_id ("EXCHANGE:SYMBOL"). */
+function extractSymbol(securityId: string): string {
+  const parts = securityId.split(':');
+  return parts.length > 1 ? parts[1] : securityId;
+}
+
+function collectLedgersFromProfile(
+  events: CanonicalEvent[],
+  tallyProfile: TallyProfile,
+  symbolMap?: Map<string, string>,
+): LedgerMasterInput[] {
+  const tradeSymbols = new Set<string>();
+  const sellSymbols = new Set<string>();
+  const dividendSymbols = new Set<string>();
+
+  for (const event of events) {
+    if (!event.security_id) continue;
+    const resolved = symbolMap?.get(event.security_id) ?? event.security_id;
+    const symbol = extractSymbol(resolved);
+
+    if (event.event_type === EventType.BUY_TRADE || event.event_type === EventType.SELL_TRADE) {
+      tradeSymbols.add(symbol);
+    }
+    if (event.event_type === EventType.SELL_TRADE) {
+      sellSymbols.add(symbol);
+    }
+    if (event.event_type === EventType.DIVIDEND) {
+      dividendSymbols.add(symbol);
+    }
+  }
+
+  // For ledger master collection, generate all gain type variants per sold symbol
+  // since we don't know holding period at this stage. Unused masters are harmless.
+  const sellEntries: Array<{ symbol: string; gainType: 'STCG' | 'LTCG' | 'STCL' | 'LTCL' | 'SPECULATION' }> = [];
+  for (const symbol of sellSymbols) {
+    sellEntries.push({ symbol, gainType: 'STCG' });
+    sellEntries.push({ symbol, gainType: 'LTCG' });
+    sellEntries.push({ symbol, gainType: 'STCL' });
+    sellEntries.push({ symbol, gainType: 'LTCL' });
+    sellEntries.push({ symbol, gainType: 'SPECULATION' });
+  }
+
+  const collected = collectProfileLedgers(
+    tallyProfile,
+    Array.from(tradeSymbols),
+    sellEntries,
+    Array.from(dividendSymbols),
+  );
+
+  return collected.ledgers.map((def) => ({
+    name: def.name,
+    parent_group: def.group,
+    affects_stock: false,
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
 export interface CollectLedgersOptions {
-  /**
-   * Optional map of security_id → trading symbol for generating human-readable
-   * per-script ledger names.  When omitted, security_id is used as the symbol.
-   */
   symbolMap?: Map<string, string>;
+  tallyProfile?: TallyProfile;
 }
 
-/**
- * Derives all Tally ledger masters required to import the supplied canonical
- * events under the given accounting profile.
- *
- * The returned array is de-duplicated and deterministically ordered:
- *   1. Broker settlement ledger
- *   2. Bank account ledger
- *   3. Charge ledgers (always included)
- *   4. Security ledgers (per-script or pooled, depending on LedgerStrategy)
- *   5. P&L ledgers (investor or trader, depending on AccountingMode)
- *
- * @param events   Canonical events from the parsed broker tradebook.
- * @param profile  Accounting profile controlling mode and ledger strategy.
- * @param options  Optional resolver map for security symbols.
- * @returns        De-duplicated list of ledger master descriptors.
- */
 export function collectRequiredLedgers(
   events: CanonicalEvent[],
   profile: AccountingProfile,
   options: CollectLedgersOptions = {},
 ): LedgerMasterInput[] {
+  // When a TallyProfile is provided, delegate to the resolver's collector
+  if (options.tallyProfile) {
+    return collectLedgersFromProfile(events, options.tallyProfile, options.symbolMap);
+  }
+
   const seen = new Set<string>();
   const result: LedgerMasterInput[] = [];
 
@@ -281,42 +189,38 @@ export function collectRequiredLedgers(
   add(BROKER_LEDGER);
   add(BANK_LEDGER);
 
-  // 2. Charge ledgers — included unconditionally so the XML never fails due to
-  //    a missing ledger when an unexpected charge type appears in the data.
+  // 2. Charge ledgers — included unconditionally.
   for (const chargeLedger of CHARGE_LEDGERS) {
     add(chargeLedger);
   }
 
-  // 3. Security (investment / stock-in-trade) ledgers.
+  // 3. Misc charge ledgers.
+  add({ name: L.AMC_CHARGES.name, parent_group: L.AMC_CHARGES.group, affects_stock: false });
+  add({ name: L.MISC_CHARGES.name, parent_group: L.MISC_CHARGES.group, affects_stock: false });
+
+  // 4. Security (investment / stock-in-trade) ledgers.
   if (profile.ledger_strategy === LedgerStrategy.SCRIPT_LEVEL) {
     const symbols = extractUniqueSymbols(events, options.symbolMap);
 
     for (const symbol of symbols) {
       if (profile.mode === AccountingMode.INVESTOR) {
-        add({
-          name: investmentLedgerName(symbol),
-          parent_group: 'Investments',
-          affects_stock: false,
-        });
+        const def = L.investmentLedger(symbol);
+        add({ name: def.name, parent_group: def.group, affects_stock: false });
       } else {
-        // TRADER
-        add({
-          name: tradingStockLedgerName(symbol),
-          parent_group: 'Stock-in-Hand',
-          affects_stock: true,
-        });
+        const def = L.stockInTradeLedger(symbol);
+        add({ name: def.name, parent_group: def.group, affects_stock: true });
       }
     }
   } else {
-    // POOLED — single ledger for all securities under this asset class.
+    // POOLED — single ledger for all securities.
     if (profile.mode === AccountingMode.INVESTOR) {
-      add(POOLED_INVESTMENT_LEDGER);
+      add({ name: L.POOLED_INVESTMENT.name, parent_group: L.POOLED_INVESTMENT.group, affects_stock: false });
     } else {
-      add(POOLED_TRADING_STOCK_LEDGER);
+      add({ name: L.POOLED_STOCK_IN_TRADE.name, parent_group: L.POOLED_STOCK_IN_TRADE.group, affects_stock: true });
     }
   }
 
-  // 4. P&L ledgers (mode-dependent).
+  // 5. P&L ledgers (mode-dependent).
   for (const pnlLedger of getPnlLedgers(profile.mode)) {
     add(pnlLedger);
   }
@@ -324,7 +228,4 @@ export function collectRequiredLedgers(
   return result;
 }
 
-// ---------------------------------------------------------------------------
-// Re-export LedgerMasterInput so callers only need to import from this module.
-// ---------------------------------------------------------------------------
 export type { LedgerMasterInput };

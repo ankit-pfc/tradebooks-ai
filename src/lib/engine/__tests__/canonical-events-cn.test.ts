@@ -1,0 +1,323 @@
+import { describe, expect, it } from 'vitest';
+import {
+  contractNoteToEvents,
+  buildCanonicalEvents,
+  pairContractNoteData,
+  buildSecurityIdFromDescription,
+} from '../canonical-events';
+import { EventType } from '../../types/events';
+import type {
+  ZerodhaContractNoteTradeRow,
+  ZerodhaContractNoteCharges,
+  ZerodhaTradebookRow,
+} from '../../parsers/zerodha/types';
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+function makeCnTrade(overrides: Partial<ZerodhaContractNoteTradeRow> = {}): ZerodhaContractNoteTradeRow {
+  return {
+    order_no: '1001',
+    order_time: '10:00:00',
+    trade_no: '2001',
+    trade_time: '10:00:01',
+    security_description: 'RELIANCE INDUSTRIES LTD',
+    buy_sell: 'B',
+    quantity: '10',
+    exchange: 'NSE',
+    gross_rate: '2500.00',
+    brokerage_per_unit: '0.05',
+    net_rate: '2500.05',
+    net_total: '25000.50',
+    segment: 'Equity',
+    ...overrides,
+  };
+}
+
+function makeCnCharges(overrides: Partial<ZerodhaContractNoteCharges> = {}): ZerodhaContractNoteCharges {
+  return {
+    contract_note_no: 'CN-001',
+    trade_date: '15-01-2024',
+    settlement_no: 'S-001',
+    pay_in_pay_out: '25000.00',
+    brokerage: '10.00',
+    exchange_charges: '5.00',
+    clearing_charges: '1.00',
+    cgst: '0.90',
+    sgst: '0.90',
+    igst: '0',
+    stt: '25.00',
+    sebi_fees: '0.25',
+    stamp_duty: '3.75',
+    net_amount: '24953.20',
+    ...overrides,
+  };
+}
+
+function makeTradebookRow(overrides: Partial<ZerodhaTradebookRow> = {}): ZerodhaTradebookRow {
+  return {
+    trade_date: '2024-01-15',
+    exchange: 'NSE',
+    segment: 'EQ',
+    symbol: 'RELIANCE',
+    isin: 'INE002A01018',
+    trade_type: 'buy',
+    quantity: '10',
+    price: '2500.00',
+    trade_id: '2001',
+    order_id: '1001',
+    order_execution_time: '10:00:01',
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildSecurityIdFromDescription
+// ---------------------------------------------------------------------------
+
+describe('buildSecurityIdFromDescription', () => {
+  it('extracts first word as symbol', () => {
+    expect(buildSecurityIdFromDescription('NSE', 'RELIANCE INDUSTRIES LTD'))
+      .toBe('NSE:RELIANCE');
+  });
+
+  it('handles single-word descriptions', () => {
+    expect(buildSecurityIdFromDescription('BSE', 'INFY'))
+      .toBe('BSE:INFY');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// contractNoteToEvents
+// ---------------------------------------------------------------------------
+
+describe('contractNoteToEvents', () => {
+  it('produces one trade event and charge events for a single trade', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade()],
+      makeCnCharges(),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    const chargeEvents = events.filter(
+      (e) => e.event_type !== EventType.BUY_TRADE && e.event_type !== EventType.SELL_TRADE,
+    );
+
+    expect(tradeEvents).toHaveLength(1);
+    expect(tradeEvents[0].event_type).toBe(EventType.BUY_TRADE);
+    expect(tradeEvents[0].security_id).toBe('NSE:RELIANCE');
+    expect(tradeEvents[0].quantity).toBe('10');
+    expect(tradeEvents[0].rate).toBe('2500');
+    expect(tradeEvents[0].gross_amount).toBe('25000.00');
+    expect(tradeEvents[0].contract_note_ref).toBe('CN-001');
+    expect(tradeEvents[0].external_ref).toBe('2001');
+
+    // Should have: BROKERAGE, STT, EXCHANGE_CHARGE, CLEARING_CHARGE, SEBI_CHARGE, STAMP_DUTY, GST_ON_CHARGES
+    expect(chargeEvents.length).toBeGreaterThanOrEqual(5);
+
+    const brokerage = chargeEvents.find((e) => e.charge_type === 'BROKERAGE');
+    expect(brokerage).toBeDefined();
+    expect(brokerage!.charge_amount).toBe('0.50'); // 0.05 * 10
+
+    const stt = chargeEvents.find((e) => e.charge_type === 'STT');
+    expect(stt).toBeDefined();
+    expect(stt!.charge_amount).toBe('25.00');
+  });
+
+  it('produces sell trade events correctly', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade({ buy_sell: 'S' })],
+      makeCnCharges(),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(1);
+    expect(tradeEvents[0].quantity).toBe('-10'); // negative for sells
+  });
+
+  it('consolidates GST (CGST + SGST + IGST) into one event', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade()],
+      makeCnCharges({ cgst: '0.90', sgst: '0.90', igst: '0' }),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    const gstEvents = events.filter((e) => e.event_type === EventType.GST_ON_CHARGES);
+    expect(gstEvents).toHaveLength(1);
+    expect(gstEvents[0].charge_amount).toBe('1.80'); // 0.90 + 0.90
+  });
+
+  it('handles IGST-only GST (interstate)', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade()],
+      makeCnCharges({ cgst: '0', sgst: '0', igst: '1.80' }),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    const gstEvents = events.filter((e) => e.event_type === EventType.GST_ON_CHARGES);
+    expect(gstEvents).toHaveLength(1);
+    expect(gstEvents[0].charge_amount).toBe('1.80');
+  });
+
+  it('allocates charges proportionally across multiple trades', () => {
+    const trades = [
+      makeCnTrade({ trade_no: '2001', quantity: '10', gross_rate: '100.00' }),
+      makeCnTrade({ trade_no: '2002', quantity: '30', gross_rate: '100.00', security_description: 'TCS LTD' }),
+    ];
+    // STT=40 should split 25% / 75%
+    const charges = makeCnCharges({ stt: '40.00' });
+    const events = contractNoteToEvents(trades, charges, 'batch-1', 'file-cn-1');
+
+    const sttEvents = events.filter((e) => e.charge_type === 'STT');
+    expect(sttEvents).toHaveLength(2);
+
+    const sttAmounts = sttEvents.map((e) => e.charge_amount).sort();
+    expect(sttAmounts).toEqual(['10.00', '30.00']);
+  });
+
+  it('returns empty array for empty trades', () => {
+    expect(contractNoteToEvents([], makeCnCharges(), 'b', 'f')).toHaveLength(0);
+  });
+
+  it('skips zero-amount charge events', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade({ brokerage_per_unit: '0' })],
+      makeCnCharges({
+        brokerage: '0', stt: '0', exchange_charges: '0', clearing_charges: '0',
+        cgst: '0', sgst: '0', igst: '0', sebi_fees: '0', stamp_duty: '0',
+      }),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    // Only the trade event, no charge events
+    expect(events).toHaveLength(1);
+    expect(events[0].event_type).toBe(EventType.BUY_TRADE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pairContractNoteData
+// ---------------------------------------------------------------------------
+
+describe('pairContractNoteData', () => {
+  it('pairs trades with charges using tradesPerSheet', () => {
+    const trades = [
+      makeCnTrade({ trade_no: 'T1' }),
+      makeCnTrade({ trade_no: 'T2' }),
+      makeCnTrade({ trade_no: 'T3' }),
+    ];
+    const charges = [
+      makeCnCharges({ trade_date: '15-01-2024' }),
+      makeCnCharges({ trade_date: '16-01-2024' }),
+    ];
+    const sheets = pairContractNoteData(trades, charges, [2, 1]);
+
+    expect(sheets).toHaveLength(2);
+    expect(sheets[0].trades).toHaveLength(2);
+    expect(sheets[0].trades[0].trade_no).toBe('T1');
+    expect(sheets[0].trades[1].trade_no).toBe('T2');
+    expect(sheets[1].trades).toHaveLength(1);
+    expect(sheets[1].trades[0].trade_no).toBe('T3');
+  });
+
+  it('assigns all trades to single charge entry when no tradesPerSheet', () => {
+    const trades = [makeCnTrade(), makeCnTrade()];
+    const charges = [makeCnCharges()];
+    const sheets = pairContractNoteData(trades, charges);
+
+    expect(sheets).toHaveLength(1);
+    expect(sheets[0].trades).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildCanonicalEvents (integrated)
+// ---------------------------------------------------------------------------
+
+describe('buildCanonicalEvents', () => {
+  it('handles tradebook-only (backward compatible)', () => {
+    const events = buildCanonicalEvents({
+      tradebookRows: [makeTradebookRow()],
+      batchId: 'batch-1',
+      fileIds: { tradebook: 'file-tb' },
+    });
+
+    expect(events).toHaveLength(1);
+    expect(events[0].event_type).toBe(EventType.BUY_TRADE);
+  });
+
+  it('handles contract notes only', () => {
+    const sheets = [{ charges: makeCnCharges(), trades: [makeCnTrade()] }];
+    const events = buildCanonicalEvents({
+      contractNoteSheets: sheets,
+      batchId: 'batch-1',
+      fileIds: { contractNote: 'file-cn' },
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    const chargeEvents = events.filter(
+      (e) => e.event_type !== EventType.BUY_TRADE && e.event_type !== EventType.SELL_TRADE,
+    );
+
+    expect(tradeEvents).toHaveLength(1);
+    expect(chargeEvents.length).toBeGreaterThan(0);
+  });
+
+  it('deduplicates tradebook events when contract notes cover same trades', () => {
+    // Same trade from both sources — CN should win, tradebook event should be dropped
+    const cnTrade = makeCnTrade({ trade_no: '2001' });
+    const tbRow = makeTradebookRow({ trade_id: '2001' });
+
+    const events = buildCanonicalEvents({
+      tradebookRows: [tbRow],
+      contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnTrade] }],
+      batchId: 'batch-1',
+      fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+    });
+
+    // Should have CN trade + CN charges, but NOT a duplicate tradebook trade
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(1);
+    expect(tradeEvents[0].contract_note_ref).toBe('CN-001'); // from CN, not tradebook
+  });
+
+  it('keeps tradebook events for dates not covered by contract notes', () => {
+    // Tradebook has trades on Jan 15 and Jan 20; CN only covers Jan 15
+    const tbRow15 = makeTradebookRow({ trade_id: '2001', trade_date: '2024-01-15' });
+    const tbRow20 = makeTradebookRow({ trade_id: '3001', trade_date: '2024-01-20', symbol: 'TCS' });
+    const cnTrade = makeCnTrade({ trade_no: '2001' });
+
+    const events = buildCanonicalEvents({
+      tradebookRows: [tbRow15, tbRow20],
+      contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnTrade] }],
+      batchId: 'batch-1',
+      fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    // CN trade (Jan 15) + tradebook trade (Jan 20) = 2
+    expect(tradeEvents).toHaveLength(2);
+
+    const jan20Trade = tradeEvents.find((e) => e.security_id?.includes('TCS'));
+    expect(jan20Trade).toBeDefined();
+    expect(jan20Trade!.contract_note_ref).toBeNull(); // from tradebook
+  });
+});

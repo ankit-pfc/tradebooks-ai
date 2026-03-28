@@ -1,0 +1,6071 @@
+{
+  "metadata": {
+    "generatedAt": "2026-03-28T08:18:01.414Z",
+    "sources": [
+      {
+        "file": "XML Tally from Ankit.xml",
+        "groups": 104,
+        "ledgers": 1006,
+        "vouchers": 0
+      },
+      {
+        "file": "Transactions.xml",
+        "groups": 22,
+        "ledgers": 49,
+        "vouchers": 43
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Bank Accounts",
+      "parent": "Current Assets"
+    },
+    {
+      "name": "Bank OD A/c",
+      "parent": "Loans (Liability)"
+    },
+    {
+      "name": "Branch / Divisions",
+      "parent": null
+    },
+    {
+      "name": "Brokerage",
+      "parent": "Indirect Incomes"
+    },
+    {
+      "name": "Capital Account",
+      "parent": null
+    },
+    {
+      "name": "CAPITAL GAIN",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "Cash-in-hand",
+      "parent": "Current Assets"
+    },
+    {
+      "name": "Current Assets",
+      "parent": null
+    },
+    {
+      "name": "Current Liabilities",
+      "parent": null
+    },
+    {
+      "name": "Deposits (Asset)",
+      "parent": "Current Assets"
+    },
+    {
+      "name": "Direct Expenses",
+      "parent": null
+    },
+    {
+      "name": "Direct Incomes",
+      "parent": null
+    },
+    {
+      "name": "Div on Shares",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "DIVIDEND ON MUTAL FUND",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "Duties & Taxes",
+      "parent": "Current Liabilities"
+    },
+    {
+      "name": "FDR WITH BANKS",
+      "parent": "Investments"
+    },
+    {
+      "name": "FDR WITH COMPANIES",
+      "parent": "Investments"
+    },
+    {
+      "name": "Fixed Assets",
+      "parent": null
+    },
+    {
+      "name": "GOLD",
+      "parent": "JEWELLERY"
+    },
+    {
+      "name": "Indirect Expenses",
+      "parent": null
+    },
+    {
+      "name": "Indirect Incomes",
+      "parent": null
+    },
+    {
+      "name": "Interest",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "INTEREST ON FDR WITH COMPANIES & GOVT",
+      "parent": "Indirect Incomes"
+    },
+    {
+      "name": "INVESTMENT IN FD/RD",
+      "parent": "Investments"
+    },
+    {
+      "name": "INVESTMENT IN MUTUAL FUNDS",
+      "parent": "Investments"
+    },
+    {
+      "name": "INVESTMENT IN SHARES-ICICI",
+      "parent": "Investments"
+    },
+    {
+      "name": "INVESTMENT IN SHARES-RCSPL",
+      "parent": "Investments"
+    },
+    {
+      "name": "INVESTMENT IN SHARES-ZERODHA",
+      "parent": "Investments"
+    },
+    {
+      "name": "Investments",
+      "parent": null
+    },
+    {
+      "name": "JEWELLERY",
+      "parent": "Investments"
+    },
+    {
+      "name": "Loans (Liability)",
+      "parent": null
+    },
+    {
+      "name": "Loans & Advances (Asset)",
+      "parent": "Current Assets"
+    },
+    {
+      "name": "LTCG",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "LTCL",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "MF SIP",
+      "parent": "INVESTMENT IN MUTUAL FUNDS"
+    },
+    {
+      "name": "Misc. Expenses (ASSET)",
+      "parent": null
+    },
+    {
+      "name": "NSC",
+      "parent": "Investments"
+    },
+    {
+      "name": "OLD GOLD",
+      "parent": "JEWELLERY"
+    },
+    {
+      "name": "PERSONAL ASSET",
+      "parent": "Fixed Assets"
+    },
+    {
+      "name": "Provisions",
+      "parent": "Current Liabilities"
+    },
+    {
+      "name": "Purchase Accounts",
+      "parent": null
+    },
+    {
+      "name": "Reserves & Surplus",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "SALARY",
+      "parent": "Indirect Expenses"
+    },
+    {
+      "name": "SALARY RECD",
+      "parent": "Indirect Incomes"
+    },
+    {
+      "name": "Sales Accounts",
+      "parent": null
+    },
+    {
+      "name": "SAVINGS BANK INT",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "Secured Loans",
+      "parent": "Loans (Liability)"
+    },
+    {
+      "name": "SHARE APPLICATION MONEY",
+      "parent": "Investments"
+    },
+    {
+      "name": "SILVER",
+      "parent": "JEWELLERY"
+    },
+    {
+      "name": "Speculation Business",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "STCG",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "STCL",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "Stock-in-hand",
+      "parent": "Current Assets"
+    },
+    {
+      "name": "Sundry Creditors",
+      "parent": "Current Liabilities"
+    },
+    {
+      "name": "Sundry Debtors",
+      "parent": "Current Assets"
+    },
+    {
+      "name": "Suspense A/c",
+      "parent": null
+    },
+    {
+      "name": "TDS",
+      "parent": "Capital Account"
+    },
+    {
+      "name": "Unsecured Loans",
+      "parent": "Loans (Liability)"
+    }
+  ],
+  "ledgers": [
+    {
+      "name": "!Andhra Bank (1338)",
+      "parent": "Bank Accounts",
+      "openingBalance": null
+    },
+    {
+      "name": "63 MOON TECHNOLOGY      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "63MOONS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "8% BLA ICIRB",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "AARTIIND&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ABB&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ADANIPORTS&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ADITYA BIRLA CAPITAL LTD       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ADITYA BIRLA FASHION & RETAIL LTD      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Aditya Birla NUVO Ltd      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Aditya Birla Sun Life Small Cap Fund Direct Plan Gw-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -62000
+    },
+    {
+      "name": "ADLABS FILMS",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ADSL SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Advance Tax",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Aiaengineer",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "AJAY SHALIGRAM SHIM",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "Aksh Optifib    Okk",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Allied Computers",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "AMARJOTHI SPINNING MILLS       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Ambalal Sarabhai   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "AMC CHARGES-ZERODHA",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Andhra Bank     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -3000
+    },
+    {
+      "name": "ANUJ SOMANI",
+      "parent": "Unsecured Loans",
+      "openingBalance": -450655
+    },
+    {
+      "name": "APOLLO HOSPITAL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "APOLLO TRICOAT TUBES",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -13226
+    },
+    {
+      "name": "APSON ASSO",
+      "parent": "SALARY RECD",
+      "openingBalance": null
+    },
+    {
+      "name": "ASHAPURA INTIMATES FASHION        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -152258.1
+    },
+    {
+      "name": "Asian Paints        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -20938.65
+    },
+    {
+      "name": "ASIAN PAINTS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "AUCTION CHARGES",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "AUCTION COMMISS     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -180
+    },
+    {
+      "name": "AUSTRAL COKE & PROJECT      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -3998
+    },
+    {
+      "name": "AXIS BANK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Axis Bluechip Fund - Direct Growth (Folio No: 910130179375",
+      "parent": "MF SIP",
+      "openingBalance": -21000
+    },
+    {
+      "name": "Bafna Jewellers",
+      "parent": "OLD GOLD",
+      "openingBalance": -44000
+    },
+    {
+      "name": "Bag Film",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BAG FILMS",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BAJAJ ALLIANZ LIC MATURITY",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Bajaj Finance Ltd       Okk",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BAJFINANCE&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Bal Pharma     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Ballarpur Ind.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BANK CHARGES",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "BANK INT - ANDHRA BANK",
+      "parent": "SAVINGS BANK INT",
+      "openingBalance": null
+    },
+    {
+      "name": "BANK INT - ICICI BANK",
+      "parent": "SAVINGS BANK INT",
+      "openingBalance": null
+    },
+    {
+      "name": "Bank Interest",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "Bank of Baroda",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BANK OF INDIA",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BANK OF INDIA A/C 116      31.03.18 A",
+      "parent": "Bank Accounts",
+      "openingBalance": -342139.06
+    },
+    {
+      "name": "BATA INDIA SHARE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Bell Ceramic",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Bellary Steel   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -2500
+    },
+    {
+      "name": "BEML LTD.         Okk",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BHARAT 22 ETF MUTUAL FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": -99996.6
+    },
+    {
+      "name": "BHARTI AIRTEL",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "BHARTI AIRTEL     OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Bhel",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Bherumal Shamandas",
+      "parent": "OLD GOLD",
+      "openingBalance": -11575
+    },
+    {
+      "name": "BILPOWER LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BIOCON LIMITED",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Birla Vxl",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BK SHARMA",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "Bodal Chemicals Ltd     OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BOMBAY DYEING",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BOSCH LIMITED&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -47604.35
+    },
+    {
+      "name": "BOSCHLTD-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "BRITANNIA INDUSTRIES",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "BT SHIMBRE",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "Canara Robeco Blue Chip Equity Fund - DG(Folio No: 17732665254",
+      "parent": "MF SIP",
+      "openingBalance": -11000
+    },
+    {
+      "name": "Canara Robeco Flexi Cap Fund Direct Plan Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -64000
+    },
+    {
+      "name": "Cash",
+      "parent": "Cash-in-hand",
+      "openingBalance": -33758.48
+    },
+    {
+      "name": "Castrol   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -20853.22
+    },
+    {
+      "name": "Ceat Ltd      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Central Bank",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Century Textile     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "CENTURYTEX",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Cg-Vak Software     Okk",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "CHAMBAL FERTILIZER",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Chandni Textile",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Chintamani",
+      "parent": "OLD GOLD",
+      "openingBalance": -14854
+    },
+    {
+      "name": "CLEAN SCIENCE",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Coal India R Issue",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -23275
+    },
+    {
+      "name": "Cochin Min R",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "COCHIN SHIPYARD    OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -12330
+    },
+    {
+      "name": "COLGATE PALM",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "COMMISION RECEIVABLE",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "Commission (Expenses)",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "Commission Income",
+      "parent": "Direct Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "Commission Payable",
+      "parent": "Sundry Creditors",
+      "openingBalance": null
+    },
+    {
+      "name": "Corporation Bank",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Cummins India",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "D KASHAP",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "Dabur Ph.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "DABUR-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "DBL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "DBREALTY-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "DEEPAK NITRATE-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "DEEPAK NITRITE LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "DEMAT CHARGES",
+      "parent": "Capital Account",
+      "openingBalance": -13503.42
+    },
+    {
+      "name": "Dentist",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "DEPO @ JAMNAGAR",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "DEPOSITARY",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Depreciation",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "DEWAN HOUSING FIN CORP LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -10382
+    },
+    {
+      "name": "Dewan Housing Finance Ltd.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -169550.31
+    },
+    {
+      "name": "DIGJAM LTD     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -780
+    },
+    {
+      "name": "DILIGENT MEDIA CORP   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Discount",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "DISH TV INDIA LTD          OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Div  Hindustan Aeronautics",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV - SOBHA LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV AARTI IND.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ABNLMRGR WITH GRASIM",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Adani Port",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Aditya Birla",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV AKSH OPTIFIBRE LTD.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ALLIED DIGITAL SERVICE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV AMARJYOTHI",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Andhra Bank",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV APL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV APOLLO HOSPITAL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ASIAN PAINTS LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV BAL PHARMA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Bank of India",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV BATA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Bell Ceramics",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV BHARTI AIRTEL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV BIOCON LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV BODAL CHEMICAL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV BRITANNIA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV CANARA BANK",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV CASTROL FIN",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Castrol India",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV CASTROL INDIA LTD.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Ceat Ltd.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV CENTRAL BANK OF INDIA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Century Textiles",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV CLEAN SCI",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Coal India",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV COCHIN SHIPYARD LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Corp Ltd.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV CSTL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Deepak Nitrate",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV DISHTV",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Dixon",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV EASY TRIP PLANNER",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV EICHER",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ERIS LIFESCI",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Essel Propack- EPL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Ester Ind",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV FIEM INDUS.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Financial Technology",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV FIRST SOURCE LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Garware Marin",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Geomatric Ltd.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Globalbev",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV GM BREWERIES",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV GODREJ & BOYCE MFG.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Grasim Ind.Ltd.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV GUJARAT NARMADA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV GUJNAR VEL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV GUJRAT NARMADA VALLY",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV GUJRAT NRE C",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HCL TECHNOLOGIES LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div HDFC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HDFC AMC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HDFC BANK",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HDFC LIFE INSURANCE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HIMACHAL FUTURISTIC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Hindalco Ind",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HINDUSTAN MEDIA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV HINDUSTAN UNILEVER",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Hopusing Finance",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Hotel Leelave",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div HUL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ICICI BANK",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ICICI LOMBARD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ICICI SEC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Icsa India Li",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div IDFC LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV IEX - INDIAN ENERGY EXCH.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV IFCI  LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV INDIAMART",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Indian Hotel Co",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV INDIGO",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Infosys",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV IOCL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div ITC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ITC LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV JAI CORP LTD.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV JAIPRAKASH CORP.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV JINDAL POLYFILMS LTD.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV JSW STEEL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Kajaria Ceram",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Larsen & Turbo",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV LIC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV LIC HOUSING FINANCE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Magma Fincorp",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV MAHINDRA LIFESPACE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV MARUTI",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV MMTC LTD.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Moser Bear India Ltd.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV MTNL LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV NIPPON INDIA MF",
+      "parent": "DIVIDEND ON MUTAL FUND",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV NIRMA LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV NMDC LTD.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV NTPC LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div of SEBI IPOREAL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ON PRINCIPAL MUTUAL FUND",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ORIENT BELL LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ORIENT CARBON",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV PANAMA PETROCHEM",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Patni Computer",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Peninsula Lan",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Piramal Ent",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Plm Software Solutions",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV POWER FIN",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV POWERGRID C",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV PRAJ IND",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV PRATAP SNACKS",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Puravankara Pr",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV PXC",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Rathi Steel",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RAYMOND LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELAINCE COMMUNICATION",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE CAPITAL LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE EQUITY TAX ADVANTAGE",
+      "parent": "DIVIDEND ON MUTAL FUND",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE HOME FIN",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE INDUSTRIAL INFRASTRUCTURE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Reliance Industries",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE INFRA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE MF",
+      "parent": "DIVIDEND ON MUTAL FUND",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV RELIANCE POWER",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Rermond Ltd",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Samruddhi Cem",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div SBI",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SBI LIFE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Shobha Development",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SHRIRAM TRANSPORT",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SHRIRAMCITY",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SIEMENS LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SIGNET IND",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SIRPUR",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SONA BLW",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV STANDARD LIFE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV SUN PHARMA INDUSTRIES",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Supreme Petro",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Syndicate Bank",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TATA CAPITAL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Tata Chemical",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TATA ELXSI",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Tata Global Beverages",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TATA POWER",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Tata Steel",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div TCL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TCPL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Tcs",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Tech Mahindra",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TGBL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV THE INDIAN HOTELS CO.",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Titan Ind",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TML INT",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TPNTCP LTD",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TPPOWER FINANCE CORP",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div TPVWL",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TPZEE ENTERTAINMENT",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV TREND ELECTROM",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Uco Bank",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Ultratech Cement Ltd",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV UNIVERSUS PHOTO IMAGINGS",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV VAKRANGEE",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Videocon Indu",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Vijaya Bank",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Div Vrinchi Technology",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV WIPRO",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ZEE ENTERTAINMENT",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV ZEE LEARN",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV-BANK OF BARODA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV-BOSCH",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV-CG-VAK SOFTWARE & EX",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIV-UNION BANK OF INDIA",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIVI'S LABORATORIES LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Dividend",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "DIVIDEND ON PRINCIPAL MUTUAL FUND",
+      "parent": "DIVIDEND ON MUTAL FUND",
+      "openingBalance": null
+    },
+    {
+      "name": "DIVIDEND ON SHARES",
+      "parent": "Capital Account",
+      "openingBalance": 138695.19
+    },
+    {
+      "name": "Dividend Receivable",
+      "parent": "Current Assets",
+      "openingBalance": -17868
+    },
+    {
+      "name": "DIWAKAR",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "DIXON-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "DLF Ltd.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "DMART-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "DP Charges-ICICI Demate",
+      "parent": "Capital Account",
+      "openingBalance": -1012.2
+    },
+    {
+      "name": "DP Charges-Zerodha",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Drawing",
+      "parent": "Capital Account",
+      "openingBalance": -474750
+    },
+    {
+      "name": "DSP Equity Opportunities Fund Direct Plan Gw-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -38000
+    },
+    {
+      "name": "DSP Large & Mid Cap Fund Direct Plan Growth",
+      "parent": "MF SIP",
+      "openingBalance": -24000
+    },
+    {
+      "name": "DSP Mid Cap Fund - Direct Plan - Growth (Folio No: 7050410 / 08",
+      "parent": "MF SIP",
+      "openingBalance": -21000
+    },
+    {
+      "name": "DVL",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "EASEMYTRIP-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "EICHER MOTORS LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -77303
+    },
+    {
+      "name": "ELETRICITY EXP",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "EQUITAS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ERIS LIFESCIENCES        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Ess Dee Aluminium",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Essar Shipping Co.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ESSEL PROPACK LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Ester Industries",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Everonn System",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Expenses",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "Expenses Payable",
+      "parent": "Current Liabilities",
+      "openingBalance": null
+    },
+    {
+      "name": "FD  BANK OF INDIA",
+      "parent": "Investments",
+      "openingBalance": -568958
+    },
+    {
+      "name": "FD 009545110014239 BOI",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": null
+    },
+    {
+      "name": "FD HDFC",
+      "parent": "Investments",
+      "openingBalance": -584035
+    },
+    {
+      "name": "FD-BOI 21/3/23",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": -913979
+    },
+    {
+      "name": "FD-ICICI BANK",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": -251105
+    },
+    {
+      "name": "FDR with Godrej & BOYCE MFG",
+      "parent": "FDR WITH COMPANIES",
+      "openingBalance": null
+    },
+    {
+      "name": "FDR WITH IND SWIFT LTD",
+      "parent": "FDR WITH COMPANIES",
+      "openingBalance": null
+    },
+    {
+      "name": "FDR WITH JAIPRAKASH ASSOCIATES",
+      "parent": "FDR WITH COMPANIES",
+      "openingBalance": null
+    },
+    {
+      "name": "FDR WITH UNITECH LTD",
+      "parent": "FDR WITH COMPANIES",
+      "openingBalance": null
+    },
+    {
+      "name": "FDR WITH UNITED SPIRITS LTD (12.4.10 TO 11.4.12)",
+      "parent": "FDR WITH COMPANIES",
+      "openingBalance": null
+    },
+    {
+      "name": "Federal Bank",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "FIEMIND-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Finance Technology",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -51160.7
+    },
+    {
+      "name": "First Call",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "FIRST SOURCE LTD-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "FIRSTSOURCES SOLUTION      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "FORTIS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Franklin India Bluechip Fund Direct Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -64000
+    },
+    {
+      "name": "FRIDGE",
+      "parent": "PERSONAL ASSET",
+      "openingBalance": -20340
+    },
+    {
+      "name": "GAIL INDIA",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Garware Marines     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "GAUTAM KUMAR",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "GEMENVIRO-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": -1686400
+    },
+    {
+      "name": "Geomet Sofso",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "GEPIL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "GFL",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -14178.3
+    },
+    {
+      "name": "GIFT FROM FAMILY",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "GIFT FROM HUSBAND",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Gift From in Laws",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Gift From Mother in Law",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "GIFT TO FAMILY",
+      "parent": "Capital Account",
+      "openingBalance": -1000000
+    },
+    {
+      "name": "Gitanjali Ge",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Glenmark Pharma",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "GM BREWERIES      OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "GMR INFRA-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "GODREJ BOYCE",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Gold Jewellery",
+      "parent": "GOLD",
+      "openingBalance": -261000
+    },
+    {
+      "name": "Goldston Tec",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Govind Rubbe      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -3449
+    },
+    {
+      "name": "Granules Ind.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "GRAPHITE-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Grasim Industries   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Great Eastern",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Great Estate",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Guj.Ambuja",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Gujarat Nre   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -2540
+    },
+    {
+      "name": "GUJRAT NARMADA VALLEY   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -660
+    },
+    {
+      "name": "Harig Cranks     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -9920
+    },
+    {
+      "name": "HAVELLS INDIA LIMITED",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HCL TECHNOLOGIES LTD         OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HDFC AMC-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "HDFC ASSET MNGT",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -72179.71
+    },
+    {
+      "name": "HDFC BANK LTD SHARES",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -31517
+    },
+    {
+      "name": "HDFC Flexi Cap Fund -Direct Plan - Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -64000
+    },
+    {
+      "name": "HDFC LIFE LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HDFC LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HDFC Top 100 Fund - DG-(Folio No: 14254194 / 62)",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "HDFC TOP 200 FUND GROWTH",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "HDFC-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "HEG SHARE",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "HERANBA-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "HERO MOTOCORP LIMITED",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HERO MOTOR CORP-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "HFCL",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HIMALAYA FOOD          OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HIMALAYA FUTURISTIC         OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -11500
+    },
+    {
+      "name": "Hindalco India",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -672
+    },
+    {
+      "name": "Hindalco INDUSTRIES LTD      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HINDUSTAN AERONA       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HINDUSTAN MEDIA VENTURES        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HINDUSTAN MOTORS LTD         OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Hindustan Unilever Ltd.           OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Hitesh",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "HOTEL LEELA       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "HOUSING DEVELOPMENT FINANCE   Okk",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -258979
+    },
+    {
+      "name": "HUDCO TAX FREE  BONDS",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "I.C.S.A. IND     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -48733
+    },
+    {
+      "name": "I.F.C.I",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "I.T.REFUND A.Y.06-07",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "ICICI Bank (1671)       31.03.18  A",
+      "parent": "Bank Accounts",
+      "openingBalance": -41920.2
+    },
+    {
+      "name": "ICICI BANK LTD.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ICICI BANK-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ICICI DIRECT",
+      "parent": "INVESTMENT IN SHARES-ICICI",
+      "openingBalance": -7804.54
+    },
+    {
+      "name": "ICICI LOMBARD      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ICICI Pru FMCG Fund",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "ICICI Prudential FMCG Fund - DG (Folio No: 7495897 / 13",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "ICICI Prudential Focused Eq Fund Direct Plan Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -64000
+    },
+    {
+      "name": "ICRA",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -25544.7
+    },
+    {
+      "name": "IDBI Bonds",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "IDBI DEEP DISCOUNT BONDS",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "IDBI Ltd.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "IDFC FIRST BANK-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "IDFC INFRA BONDS",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "INCOME TAX DEMAND",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "INCOME TAX FY 2023-24",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "Income Tax Refund A.Y 2013-14",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Income Tax Refund A.Y. 2012-13",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Income Tax Refund AY 1718",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Income Tax Refund AY 1819",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "INCOME TAX REFUND FY 20-21",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "INCOME TAX REFUND FY 22-23",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Ind. Petro Chemical",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "India Cement",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "INDIA MART-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "INDIAN ENERGY        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -14850
+    },
+    {
+      "name": "INDIAN ENERGY EXCHANGE (IEX)-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "INDIAN HOTEL CO.   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -8615.1
+    },
+    {
+      "name": "Indian Oil Corp.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -15320.25
+    },
+    {
+      "name": "INDIGO-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "INDMONEY",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "Indo Gulf Fertilizers & Chemicals",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "INDUSINDBK-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Infosys      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "INFOSYS BONUS SHARE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "INT GODREJ  FD",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INT HUDCO-TAX FREE",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INT IDFC",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "INT JP ASSOCIATES",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "INT ON FDR (ICICI HOME FINANACE)",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INT ON IDFC BONDS",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "Int on Investment",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INT ON IT REFUND",
+      "parent": "Capital Account",
+      "openingBalance": -810
+    },
+    {
+      "name": "INT ON PPF",
+      "parent": "Interest",
+      "openingBalance": 467268
+    },
+    {
+      "name": "INT ON SCSS",
+      "parent": "Capital Account",
+      "openingBalance": 174146
+    },
+    {
+      "name": "INT ON UNITECH LTD",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "INT UNITECH LTD.",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "INT UNITED SPIRITS LTD.",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Int. on FDR",
+      "parent": "Interest",
+      "openingBalance": 244271
+    },
+    {
+      "name": "Int. on IDBI Bonds",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "Int. on Loan (Rekha Somani)",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "Int. on Savings Bank",
+      "parent": "Interest",
+      "openingBalance": 5055
+    },
+    {
+      "name": "INTEREST",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ACCRUED ON NSC",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON BOI FD",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON DEPOSIT @JAMNAGAR",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON FDR WITH  INDSWIFT LAB",
+      "parent": "INTEREST ON FDR WITH COMPANIES & GOVT",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON GODREJ BOYCE",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON GOI 8%TAX FREE RELIEF BOND",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Interest on HDFC Fd",
+      "parent": "Interest",
+      "openingBalance": 40774
+    },
+    {
+      "name": "INTEREST ON I.T. REFUND",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON IDBI INVESTMENTS",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON IDFC BOND",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON LOAN GIVEN",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON LOAN TO NARANIDEI SOMANI",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Interest on MIS",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "Interest on Nsc",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INTEREST ON POST OFFICE DEPOSIT",
+      "parent": "Interest",
+      "openingBalance": 76616
+    },
+    {
+      "name": "Interest on RD of Post",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Interest on Sweep In FD",
+      "parent": "Interest",
+      "openingBalance": 29432
+    },
+    {
+      "name": "Interest Warrant",
+      "parent": "Interest",
+      "openingBalance": null
+    },
+    {
+      "name": "INTERGLOBE AVIATION LTD (INDIGO)",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Intraday Charges",
+      "parent": "Speculation Business",
+      "openingBalance": null
+    },
+    {
+      "name": "Intraday Gain on Sale of Shares - ZERODHA",
+      "parent": "Speculation Business",
+      "openingBalance": 11835.1
+    },
+    {
+      "name": "Intraday Gain on Sale of Shares-RCSPL",
+      "parent": "Speculation Business",
+      "openingBalance": null
+    },
+    {
+      "name": "Intraday Loss on Sale of Shares-RCSPL",
+      "parent": "Speculation Business",
+      "openingBalance": null
+    },
+    {
+      "name": "Intraday Loss on Sale of Shares-ZERODHA",
+      "parent": "Speculation Business",
+      "openingBalance": -1231.9
+    },
+    {
+      "name": "Invesco India Growth Opportunities Fund - DPG (Folio No: 31011238335 / 0",
+      "parent": "MF SIP",
+      "openingBalance": -11000
+    },
+    {
+      "name": "Invesco India Multicap Fund Direct Plan Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -20000
+    },
+    {
+      "name": "Investments",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -189791.04
+    },
+    {
+      "name": "IRCTC SHARE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "IRCTC-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ISEC-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "IT REFUND",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "ITC Ltd       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Jai Corp. Ltd        OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Jai Jalaram Trading",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "JAIPRAKASH POWER     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "JAMNAAUTO-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "JCT Ltd.                 OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Jewellery",
+      "parent": "GOLD",
+      "openingBalance": -264021
+    },
+    {
+      "name": "Jindal Polyfilms Ltd        OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "JINDALPOLY-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "JK FRIENDS",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "JM BASIC FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "JSW ISPAT     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -8267
+    },
+    {
+      "name": "JSW Preference Div",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Jyoti Resign",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Kajaria CERAMICS      OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "KORE FOOD     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -5000
+    },
+    {
+      "name": "KOTAK BANK SHARE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Kotak Emerging Equity Scheme Direct Growth",
+      "parent": "MF SIP",
+      "openingBalance": -40000
+    },
+    {
+      "name": "Kotak Equity Opportunities Fund - Dir- Growth (Folio No: 9182962 / 84",
+      "parent": "MF SIP",
+      "openingBalance": -12000
+    },
+    {
+      "name": "Kotak Midcap Fund Direct Growth",
+      "parent": "MF SIP",
+      "openingBalance": -24000
+    },
+    {
+      "name": "Kotak Small Cap Fund - Dir-Growth (Folio No: 9184318 / 90",
+      "parent": "MF SIP",
+      "openingBalance": -12000
+    },
+    {
+      "name": "KPIT TECHNOLOGIES LIMITED",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "KRIISHNA RAVI TEXTILES",
+      "parent": "Sundry Debtors",
+      "openingBalance": null
+    },
+    {
+      "name": "Krishna Processors",
+      "parent": "Sundry Debtors",
+      "openingBalance": -300997
+    },
+    {
+      "name": "KVP",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Lanco Infra",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -10320
+    },
+    {
+      "name": "Larsen & Toubro  OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -331898.6
+    },
+    {
+      "name": "LIC",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Lic Housing Finance      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC INDIA-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC MATURED",
+      "parent": "Capital Account",
+      "openingBalance": 351700
+    },
+    {
+      "name": "LIC POLICY NO:814545334",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC POLICY NO:815823815",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC POLICY NO:901782230",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC POLICY NO:923522448",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC POLICY No. 813969116",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC POLICY NO.816331563",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIC PREMIUM",
+      "parent": "Capital Account",
+      "openingBalance": -26921
+    },
+    {
+      "name": "LIC Survival Benefit",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LIFE INSURANCE CORPORATION",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Lloyd Electricals",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "LLOYDSME-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Loan From Jai Jalaram Trading",
+      "parent": "Unsecured Loans",
+      "openingBalance": null
+    },
+    {
+      "name": "Loan From N.D.Somani",
+      "parent": "Unsecured Loans",
+      "openingBalance": null
+    },
+    {
+      "name": "Loan From Shobha Enterprise",
+      "parent": "Unsecured Loans",
+      "openingBalance": 87925
+    },
+    {
+      "name": "Loan Given",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "LOAN TO NARANI DEVI SOMANI",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "Loan to Rekha Somani",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "LT-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON AKSH OPTIFIBRE LTD",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON BAG FILMS",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON BELLARY STEEL",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON BHARTI AIRTEL",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON BOB",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON CEAT",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "Ltcg on Century Textiles",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON DABUR PHARMA",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON ESSAR SHIPPING CO.",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG on First Source",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON GEOMET",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON GM BREWERIES LTD",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON GUJ.NRE",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON HDFC",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON HDFC ASSET MNGT",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON HIM FUT",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON HINDUSTAN LEVER",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON IND PETRO CHEMICAL",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON INTERGLOBE AVIATION",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON ISPAT",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON L & T",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON LANCO INFRA",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON LIC HSG.FINANCE",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON LLOYD ELECTRIC",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON MOSER BEAR",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON RELIANCE CAPITAL",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON RELIANCE IND.",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON ROLTA INDIA",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF ASIAN PAINT",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF SHARES",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": 2219643.92
+    },
+    {
+      "name": "LTCG ON SALE OF SHARES-ZERODHA",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": 2679.1
+    },
+    {
+      "name": "LTCG ON SALE OF UCO BANK",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF VIDEOCON",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF VIJAYA BANK",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF ZEE ENT",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF ZEE NEWS",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SALE OF ZEE TELEFILMS",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "Ltcg on Sbi",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SHARES",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SHRACHI SECURITIES",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SIEMENS",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON SOUTH IRON",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG on Spicejet",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON TATA CHEM",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "Ltcg on Tata Elxsi",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON TATA STEEL",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG ON TATA TELE",
+      "parent": "LTCG",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCG/L ON SALE OF MF",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCL ON INFO SYS",
+      "parent": "LTCL",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCL ON L&T",
+      "parent": "LTCL",
+      "openingBalance": null
+    },
+    {
+      "name": "LTCL ON SALE OF SHARES",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": -105858.4
+    },
+    {
+      "name": "LTCL ON SALE OF SHARES-ZERODHA",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": -92796.5
+    },
+    {
+      "name": "LTCL ON SUN PHARMA",
+      "parent": "LTCL",
+      "openingBalance": null
+    },
+    {
+      "name": "LTI-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "MAH TELEPHONE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Maheshwari Mairage Ser Ltd Pvt",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Mahila Pradhan Kshetriya Bachat Yojana",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "Mahila Pradhan Kshetriya Bachat Yojna 442369",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "Mahindra Lifespaces Ltd              OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -10261.3
+    },
+    {
+      "name": "MAKERS LABORATORIES LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Marson Ltd",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "MARUTI MISTAR BANDAR",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "MARUTI SUZUKI INDIA LTD.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -218039.65
+    },
+    {
+      "name": "MARUTI-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Mcx Public Offer",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "MCX-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "MECTOR LIFE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "MEDICAL EXPENSES",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Mehta Emporium Jewellers",
+      "parent": "GOLD",
+      "openingBalance": -126210
+    },
+    {
+      "name": "MF-PUR",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "Mirae Asset Emerging Bluechip Fund - DPG (Folio No: 77747513896 / 0",
+      "parent": "MF SIP",
+      "openingBalance": -11000
+    },
+    {
+      "name": "Mirae Asset Large Cap Fund - DPG (Folio No: 77747516786 / 0",
+      "parent": "MF SIP",
+      "openingBalance": -11000
+    },
+    {
+      "name": "MISC. INCOME (CAPITAL)",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "MMTC LTD           OkK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Mobile Expenses",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "MOBILE PHONE",
+      "parent": "Fixed Assets",
+      "openingBalance": -3096
+    },
+    {
+      "name": "MOREPEN LABORATORIES     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Moser Bear   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -15372
+    },
+    {
+      "name": "MOTILALOFS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "MRF Ltd",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "MSEDCL",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "MTNL         OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "MUNDRA PORT",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -6600
+    },
+    {
+      "name": "Music Broadcast Ltd",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "N.M JEWELLERS",
+      "parent": "OLD GOLD",
+      "openingBalance": -16000
+    },
+    {
+      "name": "NAMRATA PERIWAL",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Narmada Cements",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "NARRONDASS MANORDASS",
+      "parent": "SILVER",
+      "openingBalance": -9065
+    },
+    {
+      "name": "National Aluminium Co",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "NAUKRI-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "NAZARA-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "NDL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "NDTV LTD.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "NECTAR LIFE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "NIACL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "NIIT Technology",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "NILIMA SOMANI",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": 100000
+    },
+    {
+      "name": "NIPPON INDIA GILT SECURITIES FUND-DGPGO(Folio No: 404149854413 / 0",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": -17013.44
+    },
+    {
+      "name": "NIPPON INDIA GILT SECURITIES FUND-GPGP (Folio No: 404149854413)",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "NIPPON INDIA LARGE CAP FUND- PAYOUT(FN:40350455396)",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "NMDC LTD              OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC  58568   M.D 15.03.2018",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 10106288   M.D 14.12.20     10000 EACH",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 58568   M.D 15.03.18",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 58613 M.D 21.03.2018",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 58614  M.D 21.03.2018",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 58991 M.D 20.06.18",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 59510   M.D 15.03.18",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 59510  M.D 03.10.18",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 60479 M.D 28.03.2019     5000 EACH",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 60864 M.D 07.07.20019       5000 EACH",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC 62210 M.D 28.03.20",
+      "parent": "NSC",
+      "openingBalance": null
+    },
+    {
+      "name": "NSC INHERITED FROM FATHER",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "NTPC Ltd     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "OCCL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "ORIENT BELL LTD     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Other Charges",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "OTHER CHG.",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "Other Income",
+      "parent": "Indirect Incomes",
+      "openingBalance": null
+    },
+    {
+      "name": "Other Income1",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "PANAMAPET-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "PARDA",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "PEL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Peninsula Land Ltd.      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "PENLAND LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Pentame Grap",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "PIDILITE INDUSTRIES LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -6
+    },
+    {
+      "name": "PIRAMAL ENTERPRISES LTD.      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Plot",
+      "parent": "PERSONAL ASSET",
+      "openingBalance": null
+    },
+    {
+      "name": "PLOT AT RAMDEV B, BUI. & DEV. LTD",
+      "parent": "PERSONAL ASSET",
+      "openingBalance": -268950
+    },
+    {
+      "name": "PONDY OXIDES & CHEMICALS",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -314238.95
+    },
+    {
+      "name": "POONAM DAMANI",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "POST OFFICE",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "POST OFFICE DEPOSIT (4048171135)",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "POWER FINANCE           OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Power Grid",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "PPF DEPOSITS",
+      "parent": "Investments",
+      "openingBalance": -3664468
+    },
+    {
+      "name": "PPL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "PRADEEP KUMAR",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "PRAJIND-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "PRATAAP SNACKS LTD         OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -14070
+    },
+    {
+      "name": "Pref Div 3D PLM SOFTWARE SOLUTIONS",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "Prema Suresh Sanghai",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": -500000
+    },
+    {
+      "name": "PRIME FOCUS     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "PRINCIPAL MUTUAL FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": -50000
+    },
+    {
+      "name": "Prism Cement",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Profit & Loss A/c",
+      "parent": null,
+      "openingBalance": 310421.18
+    },
+    {
+      "name": "Punjab Tractor",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Puravankara      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "PVR LIMITED&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Quant Tax Plan - Direct Plan (Folio No: 5106774941 / 0",
+      "parent": "MF SIP",
+      "openingBalance": -11000
+    },
+    {
+      "name": "Quant Tax Plan - Direct Plan (Folio No: 5107060124 / 0",
+      "parent": "MF SIP",
+      "openingBalance": -12000
+    },
+    {
+      "name": "R YADAV",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "Rajchandra Capital Services",
+      "parent": "Sundry Debtors",
+      "openingBalance": null
+    },
+    {
+      "name": "Ranbaxy Laboratory",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Rap Media          OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -2750
+    },
+    {
+      "name": "Rathi STEELS & POWER LTD       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -8400
+    },
+    {
+      "name": "Raymond Ltd       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -33727
+    },
+    {
+      "name": "REC-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "RECL LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "RECURRING DEPOSIT-ICICI",
+      "parent": "INVESTMENT IN FD/RD",
+      "openingBalance": -154799
+    },
+    {
+      "name": "REFUND OF GOI BONDS",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "RELIANCE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Reliance Capital      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Reliance Communication Ltd           OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "RELIANCE EQUITY ADVANTAGE FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "Reliance Gilt Fund",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "RELIANCE HOME  FINANCE          OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "RELIANCE INDUS INFRA        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -12348.8
+    },
+    {
+      "name": "Reliance Industries           OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -123308.5
+    },
+    {
+      "name": "Reliance Infrastructure",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -2137.5
+    },
+    {
+      "name": "Reliance Natural Resources             OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -35379.5
+    },
+    {
+      "name": "RELIANCE PARTLY PAID (PP)",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -346627.5
+    },
+    {
+      "name": "Reliance Petroleum",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -22859
+    },
+    {
+      "name": "RELIANCE POWER            OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -13310
+    },
+    {
+      "name": "RELIANCEPP-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Right Issue",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "Rolta India",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ROOPMANGAL JEWELLER OLD GOLD",
+      "parent": "OLD GOLD",
+      "openingBalance": -102671
+    },
+    {
+      "name": "Roopmangal Jewellers",
+      "parent": "GOLD",
+      "openingBalance": -349056
+    },
+    {
+      "name": "ROOPMANGAL JWELLERS",
+      "parent": "GOLD",
+      "openingBalance": -40656
+    },
+    {
+      "name": "ROTO",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Roto Pumps Ltd",
+      "parent": "INVESTMENT IN SHARES-ICICI",
+      "openingBalance": -260891
+    },
+    {
+      "name": "RPOWER-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "RUPA-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "S SOMANI",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "SA TAX FY 20-21",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "SACHIN PANDEY",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "SADBHAVNA MUNCH",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Salary",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Salary Paid",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "Salary Payable",
+      "parent": "Provisions",
+      "openingBalance": null
+    },
+    {
+      "name": "Salary Receivable",
+      "parent": "Current Assets",
+      "openingBalance": null
+    },
+    {
+      "name": "SANDUMA-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "SANJAY  MAHESHWARI",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "SANJAY YADAV (SALARY)",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "Santosh Goud",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "SANWARIA CONSUMER LTD              OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -25390
+    },
+    {
+      "name": "SBI Contra Fund Direct Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -64000
+    },
+    {
+      "name": "SBI Focused Equity Fund Direct Plan Growth-SIP",
+      "parent": "MF SIP",
+      "openingBalance": -22000
+    },
+    {
+      "name": "SBI LIFE INSURANCE           OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -14700
+    },
+    {
+      "name": "SBI MUTUAL FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "SBI Pharma Fund",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "SBI SHARE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -14165
+    },
+    {
+      "name": "SBIN-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "SC SOMANI",
+      "parent": "Unsecured Loans",
+      "openingBalance": -3080552.39
+    },
+    {
+      "name": "Selan Export",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SENCO-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "SENIOR CITIZEN SAVINGS SCHEME SCSS",
+      "parent": "Investments",
+      "openingBalance": -3000000
+    },
+    {
+      "name": "Sesa Goa",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHAKTI PUMP-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Shankara Building",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL DLF",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL EVERONN SYSTEM",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL LANCO IPO",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL MUNDRA PORT",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL POWER FINANCE",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL REL PUBLIC ISSUE",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL RELIANCE POWER",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL RPL IPO",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE APPL SHOBHA DEVELOPERS",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "Share Application",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARE BROKERAGE",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARES APPL PURVANKARA",
+      "parent": "SHARE APPLICATION MONEY",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARES OF DLF",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARES OF LANCO INFRA",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHARES OF POWER FINANCE CORP",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHOBHA  LIMITED       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHOBHA DEV",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Shobha Somani's Capital A/c",
+      "parent": "Capital Account",
+      "openingBalance": 19752691.44
+    },
+    {
+      "name": "Shrachi Securities",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHRIPISTON-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "SHRIRAM CITYUNI FIN.LTD.",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SHRIRAMCITY-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Siemens Ltd           OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -248680.5
+    },
+    {
+      "name": "SIEMENS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "SIGNET INDUSTRIES LTD.            OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -17384.75
+    },
+    {
+      "name": "SIP INVESTMENT",
+      "parent": "MF SIP",
+      "openingBalance": null
+    },
+    {
+      "name": "Sirpur Pap       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -9668
+    },
+    {
+      "name": "SIS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "SITI NETWORK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SONA BLW PRECISION FORGING LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -181858
+    },
+    {
+      "name": "South Iron Steel",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Spice Jet",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SRTRANSFIN-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "STATE BANK OF INDIA            OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -3999
+    },
+    {
+      "name": "STCG CAPITAL GAINS G M BREWARIES",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG IN ICRA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON ADLABS FILMS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Aiaengineer",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON AKSH OPTIFIB",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Allied Computers",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON AXIS BANK",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "Stcg on Bajaj Finance",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Ballarpur",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BANK OF INDIA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BELL CERAMICS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BEML LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BHARTI AIRTEL",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BHEL",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BILPOWER LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BOB",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON BODAL CHEMICALS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "Stcg on Bombay Dyeing",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON CEAT LTD.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON CENTRAL BANK",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Century Textile",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Cochin Min R",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON COLGATE PALMOLIVE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON CUMMIN INDIA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON DABUR PH.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on DLF Ltd.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Ess Dee Aluminium",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON EVERON",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON FEDERAL BANK",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Finance Technology",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON Geomet",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON GITANJALI GE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Glenmark",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON GM BREWERIES LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Goldston",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Granules India",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON GREAT EASTERN",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON GREAT ESTATE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON GUJ.AMBUJA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON GUJ.NRE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HDFC",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HDFC AMC",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HDFC BANK LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HDFC LIFE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HIM FUT.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HIND MOTORS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HIND UNILEVER LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HINDALCO INDIA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON HOUSING DEVELOPMENT",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Hydropower",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON ICICI BANK",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON ICSA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON IDBI",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON IFCI",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON IFCI LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON IND PETROCHEM",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on India Cement",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON INDIAN HOTEL CO.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Indian Oil Corp.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON INFOSYS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON ITC LTD.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on JCT Ltd",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on JP Hydropower",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON L & T",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON LANCO INFRA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON LARSEN & TOUBRO",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON LIC HOUSING",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON LLOYD ELEC.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Marson Ltd.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON MECTOR LIFE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Moserbear",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON MRF LTD.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "Stcg on Music Broadcast Ltd",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON NDTV",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Nectar Life",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on NIIT Technology",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON PENLAND LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Power Finance",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Power Grid",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Prime Focus",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON PRISM CEMENT",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON PUN TRACTOR",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Puravankara",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Ranbaxy Laboratory",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON RAP MEDIA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Raymond Ltd",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON RECL LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON RELIANCE",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Reliance Capital",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Reliance Industries",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Reliance Natural Res",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON RELIANCE PETRO",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SALE OF ASIAN PAINT",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SALE OF SHARES -RCSPL",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SALE OF SHARES-ZERODHA",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": 532535.15
+    },
+    {
+      "name": "STCG ON SBI",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SELAN EXP.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SESA GOA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SHANKAR BUILDING",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Shobha Dev",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SIEMENS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SPICE JET",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON STATE BANK OF INDIA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON STEEL AUTHORITY",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON SUN PHARMA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON TATA CHEM.",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON TATA ELXSI",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON TATA STEEL",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Tata Tea",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Tata Teleservices",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON TCS",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON TECH MAHINDRA",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Timex Watches",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON TITAN IND",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG ON UNITECH LTD",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on UT Limited",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG on Yes Bank",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCG/L ON SALE OF MF",
+      "parent": "STCG",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON ADLABS FILMS",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON BALLARPUR",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON FINANCE TECHNOLOGY",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON GEOMET",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON GFL",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON GLENMARK",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON GUJ NRE",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON HDFC LTD",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON IND PETRO CHEMICAL",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON INDIAN HOTEL CO.",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON INDIAN OIL CO.",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON INFOSYS TECH",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON LARSEN & Toubro",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON LIC HOUSING FINANCE",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON MOSER BEAR",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON PRIME FOCUS",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON PRISM CEMENT",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON PUNJAB TRACTOR",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON RELIANCE",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "Stcl on Reliance Natural Resources",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON SALE OF SHARES - ZERODHA",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": -9473
+    },
+    {
+      "name": "STCL ON SALE OF SHARES-RCSPL",
+      "parent": "CAPITAL GAIN",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON STEEL AUTHORITY (SAIL)",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON STEEL EXCHANGE",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON TATA CHEMICAL",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON TATA CONSULTANCY SERVICES",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON TATA STEEL",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON TITAN INDUSTRIES",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON UNITECH LTD",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON VIP INDUSTRIES LTD",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "STCL ON YES BANK",
+      "parent": "STCL",
+      "openingBalance": null
+    },
+    {
+      "name": "Steel Autho (Sail)",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "STEEL EXCHANGE INDIA LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Stt",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "STT AND OTHER CHARGES-INTRADAY",
+      "parent": "Speculation Business",
+      "openingBalance": null
+    },
+    {
+      "name": "STT, SERVICE TAX & OTHER CHG",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "SUBHAG C SOMANI",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "SUN PHARMA        Ok",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "SUNDARAM RURAL CONSUMPTION",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "SUNTV-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Supreme Petro     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -1000
+    },
+    {
+      "name": "Suraksha Bima Yojana",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "Suspense",
+      "parent": "Suspense A/c",
+      "openingBalance": null
+    },
+    {
+      "name": "SUVEN PHARMACEUTICALS LTD&#13;&#10;",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Suzlon Energy     Ok",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Sweep In FD 008813006064",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": -9107.3
+    },
+    {
+      "name": "SWEEP IN FD ICICI 008810020918",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": null
+    },
+    {
+      "name": "SWEEP-IN FD",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": -119866.97
+    },
+    {
+      "name": "SWEEP-IN FD ICICI",
+      "parent": "FDR WITH BANKS",
+      "openingBalance": 25110
+    },
+    {
+      "name": "SWSOLAR-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Syndicate     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -12791
+    },
+    {
+      "name": "TANISHQ RD",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "Tata Chemical    Ok",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -80220.86
+    },
+    {
+      "name": "TATA CONSULTANCY SERVICES",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -8236.48
+    },
+    {
+      "name": "TATA ELXSI      OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "TATA EQUITY PE FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "TATA GLOBAL BEVERAGE  LTD    OK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -24782
+    },
+    {
+      "name": "TATA INDO GLOBAL INFRA FUND",
+      "parent": "INVESTMENT IN MUTUAL FUNDS",
+      "openingBalance": null
+    },
+    {
+      "name": "TATA METALIKS LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "TATA MOTORS LIMITED",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Tata Steel  Share",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -45178
+    },
+    {
+      "name": "Tata Tea",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Tata Teleservices      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -7485
+    },
+    {
+      "name": "TATACHEM-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TATACOMM-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TATAELXSI-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TATAMOTORS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TATAMTRDVR-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TATAPOWER-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TATASTEEL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TCS",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -121457
+    },
+    {
+      "name": "TCS (ZERODHA)",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TCS NCD",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "TCS-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "TDS on Comission",
+      "parent": "TDS",
+      "openingBalance": -14111
+    },
+    {
+      "name": "TDS ON DIVIDEND",
+      "parent": "TDS",
+      "openingBalance": -9122
+    },
+    {
+      "name": "TDS ON DIVIDEND FROM MF",
+      "parent": "TDS",
+      "openingBalance": null
+    },
+    {
+      "name": "TDS on FD Interest",
+      "parent": "TDS",
+      "openingBalance": -25052
+    },
+    {
+      "name": "TDS on Securities",
+      "parent": "TDS",
+      "openingBalance": null
+    },
+    {
+      "name": "TECH MAHINDRA   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -104314.2
+    },
+    {
+      "name": "Television Set",
+      "parent": "PERSONAL ASSET",
+      "openingBalance": -10133
+    },
+    {
+      "name": "The Dawn Mills",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "The Post Master FD",
+      "parent": "Investments",
+      "openingBalance": null
+    },
+    {
+      "name": "TIDEWATER-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Timex Watches",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Titan COMPANY LTS   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "TRAVELLING EXP",
+      "parent": "Capital Account",
+      "openingBalance": null
+    },
+    {
+      "name": "TRAVELLING EXPENSES",
+      "parent": "Indirect Expenses",
+      "openingBalance": null
+    },
+    {
+      "name": "Tribhuvandas Zaveri",
+      "parent": "OLD GOLD",
+      "openingBalance": -2488
+    },
+    {
+      "name": "UCO Bank    OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ULTRATECH CEMENT   OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -61152.6
+    },
+    {
+      "name": "UNITECH LTD    OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -555
+    },
+    {
+      "name": "V KHARWAR",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "V.M.NACHNE",
+      "parent": "PERSONAL ASSET",
+      "openingBalance": null
+    },
+    {
+      "name": "VAKRANGEE-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Vashisti Detergent",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Videocon Industries     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -54.6
+    },
+    {
+      "name": "Vijaya Bank     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -6677
+    },
+    {
+      "name": "Vikas Wsp",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "VINOD KHARWAR",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "VINOD KUMAR",
+      "parent": "SALARY",
+      "openingBalance": null
+    },
+    {
+      "name": "VIP INDUSTRIES LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "VIRINCHI LTD     OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "VISHAL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": -19410
+    },
+    {
+      "name": "VODAFONE SHARE",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -21421
+    },
+    {
+      "name": "VPRPL",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": -265875
+    },
+    {
+      "name": "VSSL-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "WEBELSOLAR-BE",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "WIPRO-SH",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    },
+    {
+      "name": "Wrner Mutimi      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -8000
+    },
+    {
+      "name": "Yes Bank",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -21082
+    },
+    {
+      "name": "Yogesh Periwal",
+      "parent": "Loans & Advances (Asset)",
+      "openingBalance": null
+    },
+    {
+      "name": "Zaggle",
+      "parent": "INVESTMENT IN SHARES-ICICI",
+      "openingBalance": -233798.76
+    },
+    {
+      "name": "ZEE ENTERTAINMENT      OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ZEE LEARN LTD        OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ZEE MEDIA CORP",
+      "parent": "Div on Shares",
+      "openingBalance": null
+    },
+    {
+      "name": "ZEE MEDIA CORP       OKK",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": -682.2
+    },
+    {
+      "name": "ZEE NEWS LTD",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "Zee Telefilms",
+      "parent": "INVESTMENT IN SHARES-RCSPL",
+      "openingBalance": null
+    },
+    {
+      "name": "ZERODHA - KITE",
+      "parent": "INVESTMENT IN SHARES-ZERODHA",
+      "openingBalance": null
+    }
+  ],
+  "vouchers": [
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-03",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "50",
+      "ledgerEntries": [
+        {
+          "ledgerName": "RECURRING DEPOSIT-ICICI",
+          "amount": -20000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": 20000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Contra",
+      "date": "2025-03-03",
+      "partyLedgerName": "BANK OF INDIA A/C 116      31.03.18 A",
+      "voucherNumber": "3",
+      "ledgerEntries": [
+        {
+          "ledgerName": "BANK OF INDIA A/C 116      31.03.18 A",
+          "amount": 100000,
+          "isDeemedPositive": "No"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": -100000,
+          "isDeemedPositive": "Yes"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-03",
+      "partyLedgerName": null,
+      "voucherNumber": "243",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DSP Mid Cap Fund - Direct Plan - Growth (Folio No: 7050410 / 08",
+          "amount": -1000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 1000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-05",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "51",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Salary Paid",
+          "amount": -60000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": 60000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Receipt",
+      "date": "2025-03-06",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "95",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 210,
+          "isDeemedPositive": "No"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": -210,
+          "isDeemedPositive": "Yes"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-17",
+      "partyLedgerName": "BANK OF INDIA A/C 116      31.03.18 A",
+      "voucherNumber": "52",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Prema Suresh Sanghai",
+          "amount": -500000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "BANK OF INDIA A/C 116      31.03.18 A",
+          "amount": 500000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-17",
+      "partyLedgerName": "BANK OF INDIA A/C 116      31.03.18 A",
+      "voucherNumber": "53",
+      "ledgerEntries": [
+        {
+          "ledgerName": "FD  BANK OF INDIA",
+          "amount": -500000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "BANK OF INDIA A/C 116      31.03.18 A",
+          "amount": 500000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-24",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "54",
+      "ledgerEntries": [
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": -16000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": 16000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Receipt",
+      "date": "2025-03-24",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "96",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 56.7,
+          "isDeemedPositive": "No"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": -56.7,
+          "isDeemedPositive": "Yes"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-24",
+      "partyLedgerName": null,
+      "voucherNumber": "244",
+      "ledgerEntries": [
+        {
+          "ledgerName": "FD-BOI 21/3/23",
+          "amount": -21675,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "TDS on FD Interest",
+          "amount": -2965,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Int. on FDR",
+          "amount": 24640,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-24",
+      "partyLedgerName": null,
+      "voucherNumber": "245",
+      "ledgerEntries": [
+        {
+          "ledgerName": "SWEEP-IN FD",
+          "amount": -1,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "TDS on FD Interest",
+          "amount": -136,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Int. on FDR",
+          "amount": 137,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Receipt",
+      "date": "2025-03-25",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "97",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 618.79,
+          "isDeemedPositive": "No"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": -618.79,
+          "isDeemedPositive": "Yes"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "246",
+      "ledgerEntries": [
+        {
+          "ledgerName": "SBI Contra Fund Direct Growth-SIP",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "247",
+      "ledgerEntries": [
+        {
+          "ledgerName": "HDFC Flexi Cap Fund -Direct Plan - Growth-SIP",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "248",
+      "ledgerEntries": [
+        {
+          "ledgerName": "ICICI Prudential Focused Eq Fund Direct Plan Growth-SIP",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "249",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Franklin India Bluechip Fund Direct Growth-SIP",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "250",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DSP Large & Mid Cap Fund Direct Plan Growth",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "251",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Canara Robeco Flexi Cap Fund Direct Plan Growth-SIP",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "252",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Kotak Midcap Fund Direct Growth",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "253",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Aditya Birla Sun Life Small Cap Fund Direct Plan Gw-SIP",
+          "amount": -2000,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "SIP INVESTMENT",
+          "amount": 2000,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-25",
+      "partyLedgerName": null,
+      "voucherNumber": "254",
+      "ledgerEntries": [
+        {
+          "ledgerName": "TDS ON DIVIDEND",
+          "amount": -1638,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 1638,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Receipt",
+      "date": "2025-03-28",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "98",
+      "ledgerEntries": [
+        {
+          "ledgerName": "LIC MATURED",
+          "amount": 5500,
+          "isDeemedPositive": "No"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": -5500,
+          "isDeemedPositive": "Yes"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Receipt",
+      "date": "2025-03-28",
+      "partyLedgerName": "ICICI Bank (1671)       31.03.18  A",
+      "voucherNumber": "99",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Int. on Savings Bank",
+          "amount": 404,
+          "isDeemedPositive": "No"
+        },
+        {
+          "ledgerName": "ICICI Bank (1671)       31.03.18  A",
+          "amount": -404,
+          "isDeemedPositive": "Yes"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "255",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DEMAT CHARGES",
+          "amount": -11111.58,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "ZERODHA - KITE",
+          "amount": 11111.58,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "256",
+      "ledgerEntries": [
+        {
+          "ledgerName": "DEMAT CHARGES",
+          "amount": -2391.84,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "ICICI DIRECT",
+          "amount": 2391.84,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": "Krishna Processors",
+      "voucherNumber": "257",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Krishna Processors",
+          "amount": -8743,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Commission Income",
+          "amount": 8743,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": "Krishna Processors",
+      "voucherNumber": "258",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Krishna Processors",
+          "amount": -145483,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Commission Income",
+          "amount": 145483,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "259",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Commission (Expenses)",
+          "amount": -208991,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Expenses",
+          "amount": 208991,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "260",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Salary Paid",
+          "amount": -82450,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Expenses",
+          "amount": 82450,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "261",
+      "ledgerEntries": [
+        {
+          "ledgerName": "TRAVELLING EXPENSES",
+          "amount": -34905,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Expenses",
+          "amount": 34905,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "262",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Depreciation",
+          "amount": -546,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "MOBILE PHONE",
+          "amount": 546,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "263",
+      "ledgerEntries": [
+        {
+          "ledgerName": "PPF DEPOSITS",
+          "amount": -242929,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "INT ON PPF",
+          "amount": 242929,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "264",
+      "ledgerEntries": [
+        {
+          "ledgerName": "SC SOMANI",
+          "amount": -322207,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "INTEREST ON LOAN GIVEN",
+          "amount": 322207,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-31",
+      "partyLedgerName": "Cash",
+      "voucherNumber": "55",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Mobile Expenses",
+          "amount": -12345,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Cash",
+          "amount": 12345,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Payment",
+      "date": "2025-03-31",
+      "partyLedgerName": "Cash",
+      "voucherNumber": "56",
+      "ledgerEntries": [
+        {
+          "ledgerName": "ELETRICITY EXP",
+          "amount": -10668,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Cash",
+          "amount": 10668,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": "Krishna Processors",
+      "voucherNumber": "265",
+      "ledgerEntries": [
+        {
+          "ledgerName": "TDS on Comission",
+          "amount": -2910,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Krishna Processors",
+          "amount": 2910,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": "Krishna Processors",
+      "voucherNumber": "266",
+      "ledgerEntries": [
+        {
+          "ledgerName": "TDS on Comission",
+          "amount": -175,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Krishna Processors",
+          "amount": 175,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": "Rajchandra Capital Services",
+      "voucherNumber": "267",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Investments",
+          "amount": -69792.8,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Rajchandra Capital Services",
+          "amount": 69792.8,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "268",
+      "ledgerEntries": [
+        {
+          "ledgerName": "FD HDFC",
+          "amount": -40774,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Interest on HDFC Fd",
+          "amount": 40774,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "269",
+      "ledgerEntries": [
+        {
+          "ledgerName": "SWEEP-IN FD ICICI",
+          "amount": -21919,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "Interest on Sweep In FD",
+          "amount": 21919,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "270",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Dividend Receivable",
+          "amount": -13516,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 13516,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "271",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Dividend Receivable",
+          "amount": -1226,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 1226,
+          "isDeemedPositive": "No"
+        }
+      ]
+    },
+    {
+      "voucherTypeName": "Journal",
+      "date": "2025-03-31",
+      "partyLedgerName": null,
+      "voucherNumber": "272",
+      "ledgerEntries": [
+        {
+          "ledgerName": "Dividend Receivable",
+          "amount": -3126,
+          "isDeemedPositive": "Yes"
+        },
+        {
+          "ledgerName": "DIVIDEND ON SHARES",
+          "amount": 3126,
+          "isDeemedPositive": "No"
+        }
+      ]
+    }
+  ]
+}

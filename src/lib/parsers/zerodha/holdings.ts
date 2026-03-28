@@ -1,284 +1,251 @@
 /**
  * holdings.ts
- * Parser for Zerodha holdings files (XLSX, occasionally CSV).
+ * Parser for Zerodha holdings files (XLSX).
  *
- * Zerodha quirks handled:
- *  - UTF-8 BOM at the start of CSV exports
- *  - Header row may not be the first row (branding / summary rows above)
- *  - Trailing "Total" row at the bottom of the sheet (skipped)
- *  - Numeric values may include commas or percentage signs (e.g. "1,234.56",
- *    "2.34%") — percentage signs are stripped before Decimal parsing
- *  - Column headers use abbreviations: "Qty.", "Avg. cost", "Cur. val",
- *    "P&L", "Net chg.", "Day chg."
+ * Zerodha Console holdings exports are multi-sheet XLSX files:
+ *  - Equity: per-stock holdings with quantity breakdowns
+ *  - Mutual Funds: MF holdings
+ *  - Combined: merged view (not parsed — redundant)
+ *
+ * File structure:
+ *  - Data starts in column B
+ *  - Rows 1-6: empty
+ *  - Row 7: Client ID
+ *  - Row 11: title ("Equity Holdings Statement as on YYYY-MM-DD")
+ *  - Rows 13-18: summary block (Invested Value, Present Value, etc.)
+ *  - Row 23 (approx): header row
+ *  - Data rows follow
  */
 
-import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import Decimal from 'decimal.js';
-import type { ZerodhaHoldingsRow, ParseMetadata } from './types';
+import type {
+  ZerodhaHoldingsRow,
+  ZerodhaMFHoldingsRow,
+  HoldingsParseResult,
+} from './types';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-export const PARSER_VERSION = '1.0.0';
-
-const REQUIRED_HEADERS = [
-  'Instrument',
-  'ISIN',
-  'Qty.',
-  'Avg. cost',
-  'LTP',
-  'Cur. val',
-  'P&L',
-  'Net chg.',
-  'Day chg.',
-] as const;
+export const PARSER_VERSION = '1.1.0';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function stripBom(text: string): string {
-  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+function toStringGrid(sheet: XLSX.WorkSheet): string[][] {
+  const allRows: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    defval: '',
+    blankrows: true,
+  });
+  return allRows.map((row) =>
+    (row as unknown[]).map((cell) => {
+      if (cell === null || cell === undefined) return '';
+      return String(cell);
+    }),
+  );
 }
 
-/**
- * Normalise a raw header label to the snake_case field name used in
- * ZerodhaHoldingsRow.  Returns null for unrecognised columns.
- */
-function normaliseHeader(raw: string): keyof ZerodhaHoldingsRow | null {
-  const map: Record<string, keyof ZerodhaHoldingsRow> = {
-    instrument: 'instrument',
-    isin: 'isin',
-    'qty.': 'quantity',
-    'avg. cost': 'avg_cost',
-    ltp: 'ltp',
-    'cur. val': 'current_value',
-    'p&l': 'pnl',
-    'net chg.': 'net_change',
-    'day chg.': 'day_change',
-  };
-  return map[raw.trim().toLowerCase()] ?? null;
-}
-
-/**
- * Validate and normalise a numeric string.
- * Handles commas (Indian number formatting) and trailing "%" characters.
- */
-function parseNumeric(value: string, fieldName: string, rowIndex: number): string {
-  const trimmed = value.trim();
-  if (trimmed === '' || trimmed === '-') return '0';
-  // Remove commas and optional trailing % (Net chg. / Day chg. are percentages)
-  const cleaned = trimmed.replace(/,/g, '').replace(/%$/, '');
-  try {
-    const d = new Decimal(cleaned);
-    if (!d.isFinite()) throw new Error('Non-finite');
-    return cleaned;
-  } catch {
-    throw new Error(
-      `Invalid numeric value "${value}" in field "${fieldName}" at data row ${rowIndex + 1}`
-    );
-  }
-}
-
-/** Find the header row index in a 2-D string grid. */
-function findHeaderRowIndex(rows: string[][]): number {
+function findHeaderRow(rows: string[][], headers: string[]): number {
   for (let i = 0; i < rows.length; i++) {
     const cells = rows[i].map((c) => c.trim().toLowerCase());
-    const hasAll = REQUIRED_HEADERS.every((h) => cells.includes(h.toLowerCase()));
-    if (hasAll) return i;
+    if (headers.every((h) => cells.includes(h.toLowerCase()))) return i;
   }
   return -1;
 }
 
-/**
- * Convert 2-D grid to ZerodhaHoldingsRow objects.
- * Automatically skips the final "Total" summary row if present.
- */
-function buildRows(headerRow: string[], dataRows: string[][]): ZerodhaHoldingsRow[] {
-  const colMap: Array<keyof ZerodhaHoldingsRow | null> = headerRow.map(normaliseHeader);
+function buildColMap(headerRow: string[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (let i = 0; i < headerRow.length; i++) {
+    const key = headerRow[i].trim().toLowerCase();
+    if (key) map.set(key, i);
+  }
+  return map;
+}
 
-  const numericFields = new Set<keyof ZerodhaHoldingsRow>([
-    'quantity',
-    'avg_cost',
-    'ltp',
-    'current_value',
-    'pnl',
-    'net_change',
-    'day_change',
-  ]);
+function cell(row: string[], colMap: Map<string, number>, name: string): string {
+  const idx = colMap.get(name.toLowerCase());
+  if (idx === undefined) return '';
+  return (row[idx] ?? '').trim();
+}
 
+function num(value: string): string {
+  const cleaned = value.replace(/,/g, '').replace(/%$/, '').trim();
+  if (!cleaned || cleaned === '-') return '0';
+  try {
+    const d = new Decimal(cleaned);
+    if (!d.isFinite()) return '0';
+    return cleaned;
+  } catch {
+    return '0';
+  }
+}
+
+function isEmptyRow(row: string[]): boolean {
+  return row.every((c) => c.trim() === '');
+}
+
+// ---------------------------------------------------------------------------
+// Equity sheet parser
+// ---------------------------------------------------------------------------
+
+const EQUITY_HEADERS = [
+  'Symbol',
+  'ISIN',
+  'Quantity Available',
+  'Average Price',
+  'Previous Closing Price',
+  'Unrealized P&L',
+];
+
+function parseEquitySheet(workbook: XLSX.WorkBook): ZerodhaHoldingsRow[] {
+  const sheetName = workbook.SheetNames.find((n) =>
+    n.toLowerCase() === 'equity',
+  );
+  if (!sheetName) return [];
+
+  const rows = toStringGrid(workbook.Sheets[sheetName]);
+  const headerIdx = findHeaderRow(rows, EQUITY_HEADERS);
+  if (headerIdx === -1) return [];
+
+  const colMap = buildColMap(rows[headerIdx]);
   const results: ZerodhaHoldingsRow[] = [];
 
-  for (let i = 0; i < dataRows.length; i++) {
-    const cells = dataRows[i];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (isEmptyRow(row)) continue;
 
-    // Skip completely empty rows
-    if (cells.every((c) => c.trim() === '')) continue;
+    const symbol = cell(row, colMap, 'symbol');
+    if (!symbol || symbol.toLowerCase() === 'symbol') continue;
+    if (symbol.toLowerCase().startsWith('total')) continue;
 
-    // Skip "Total" summary row — Zerodha appends one at the end of holdings exports
-    const firstCell = (cells[0] ?? '').trim().toLowerCase();
-    if (firstCell === 'total' || firstCell === 'totals') continue;
-
-    const raw: Partial<ZerodhaHoldingsRow> = {};
-
-    for (let col = 0; col < colMap.length; col++) {
-      const field = colMap[col];
-      if (field === null) continue;
-      const cellValue = (cells[col] ?? '').trim();
-
-      if (numericFields.has(field)) {
-        raw[field] = parseNumeric(cellValue, field, i);
-      } else {
-        (raw as Record<string, string>)[field] = cellValue;
-      }
-    }
-
-    // Validate all required fields are populated
-    const missing = (Object.keys(
-      Object.fromEntries(REQUIRED_HEADERS.map((h) => [normaliseHeader(h), true]))
-    ) as Array<keyof ZerodhaHoldingsRow>).filter(
-      (k) => k !== null && raw[k] === undefined
-    );
-
-    if (missing.length > 0) {
-      throw new Error(
-        `Data row ${i + 1} is missing required fields: ${missing.join(', ')}`
-      );
-    }
-
-    results.push(raw as ZerodhaHoldingsRow);
+    results.push({
+      symbol,
+      isin: cell(row, colMap, 'isin'),
+      sector: cell(row, colMap, 'sector'),
+      quantity_available: num(cell(row, colMap, 'quantity available')),
+      quantity_discrepant: num(cell(row, colMap, 'quantity discrepant')),
+      quantity_long_term: num(cell(row, colMap, 'quantity long term')),
+      quantity_pledged_margin: num(cell(row, colMap, 'quantity pledged (margin)')),
+      quantity_pledged_loan: num(cell(row, colMap, 'quantity pledged (loan)')),
+      average_price: num(cell(row, colMap, 'average price')),
+      previous_closing_price: num(cell(row, colMap, 'previous closing price')),
+      unrealized_pnl: num(cell(row, colMap, 'unrealized p&l')),
+      unrealized_pnl_pct: num(
+        cell(row, colMap, 'unrealized p&l pct.') ||
+        cell(row, colMap, 'unrealize p&l pct.'),
+      ),
+    });
   }
 
   return results;
 }
 
 // ---------------------------------------------------------------------------
-// CSV path (less common for holdings but supported)
+// Mutual Funds sheet parser
 // ---------------------------------------------------------------------------
 
-function parseCsv(buffer: Buffer): ZerodhaHoldingsRow[] {
-  const raw = stripBom(buffer.toString('utf-8'));
+const MF_HEADERS = [
+  'Symbol',
+  'ISIN',
+  'Instrument Type',
+  'Quantity Available',
+  'Average Price',
+];
 
-  const result = Papa.parse<string[]>(raw, {
-    header: false,
-    skipEmptyLines: false,
-    dynamicTyping: false,
-  });
-
-  if (result.errors.length > 0) {
-    const first = result.errors[0];
-    throw new Error(`CSV parse error at row ${first.row}: ${first.message}`);
-  }
-
-  const allRows = (result.data as string[][]).map((row) =>
-    row.map((cell) => (typeof cell === 'string' ? cell : String(cell ?? '')))
+function parseMFSheet(workbook: XLSX.WorkBook): ZerodhaMFHoldingsRow[] {
+  const sheetName = workbook.SheetNames.find((n) =>
+    n.toLowerCase() === 'mutual funds',
   );
+  if (!sheetName) return [];
 
-  const headerIdx = findHeaderRowIndex(allRows);
-  if (headerIdx === -1) {
-    throw new Error(
-      'Could not locate the holdings header row. ' +
-        `Expected columns: ${REQUIRED_HEADERS.join(', ')}`
-    );
+  const rows = toStringGrid(workbook.Sheets[sheetName]);
+  const headerIdx = findHeaderRow(rows, MF_HEADERS);
+  if (headerIdx === -1) return [];
+
+  const colMap = buildColMap(rows[headerIdx]);
+  const results: ZerodhaMFHoldingsRow[] = [];
+
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (isEmptyRow(row)) continue;
+
+    const symbol = cell(row, colMap, 'symbol');
+    if (!symbol || symbol.toLowerCase() === 'symbol') continue;
+    if (symbol.toLowerCase().startsWith('total')) continue;
+
+    results.push({
+      symbol,
+      isin: cell(row, colMap, 'isin'),
+      instrument_type: cell(row, colMap, 'instrument type'),
+      quantity_available: num(cell(row, colMap, 'quantity available')),
+      quantity_discrepant: num(cell(row, colMap, 'quantity discrepant')),
+      quantity_pledged_margin: num(cell(row, colMap, 'quantity pledged (margin)')),
+      quantity_pledged_loan: num(cell(row, colMap, 'quantity pledged (loan)')),
+      average_price: num(cell(row, colMap, 'average price')),
+      previous_closing_price: num(cell(row, colMap, 'previous closing price')),
+      unrealized_pnl: num(cell(row, colMap, 'unrealized p&l')),
+      unrealized_pnl_pct: num(
+        cell(row, colMap, 'unrealized p&l pct.') ||
+        cell(row, colMap, 'unrealize p&l pct.'),
+      ),
+    });
   }
 
-  return buildRows(allRows[headerIdx], allRows.slice(headerIdx + 1));
+  return results;
 }
 
 // ---------------------------------------------------------------------------
-// XLSX path (primary format for Zerodha holdings)
+// Statement date extraction
 // ---------------------------------------------------------------------------
 
-function parseXlsx(buffer: Buffer): ZerodhaHoldingsRow[] {
-  const workbook = XLSX.read(buffer, { type: 'buffer', cellText: true, cellDates: false });
+function extractStatementDate(workbook: XLSX.WorkBook): string | null {
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return null;
 
-  const firstSheetName = workbook.SheetNames[0];
-  if (!firstSheetName) {
-    throw new Error('XLSX file contains no sheets');
+  const rows = toStringGrid(workbook.Sheets[sheetName]);
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    for (const val of rows[i]) {
+      const match = val.match(/as on (\d{4}-\d{2}-\d{2})/);
+      if (match) return match[1];
+    }
   }
-
-  const sheet = workbook.Sheets[firstSheetName];
-  const allRows: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
-    header: 1,
-    defval: '',
-    blankrows: true,
-  });
-
-  const stringRows: string[][] = allRows.map((row) =>
-    (row as unknown[]).map((cell) => {
-      if (cell === null || cell === undefined) return '';
-      return String(cell);
-    })
-  );
-
-  const headerIdx = findHeaderRowIndex(stringRows);
-  if (headerIdx === -1) {
-    throw new Error(
-      'Could not locate the holdings header row in XLSX. ' +
-        `Expected columns: ${REQUIRED_HEADERS.join(', ')}`
-    );
-  }
-
-  return buildRows(stringRows[headerIdx], stringRows.slice(headerIdx + 1));
-}
-
-// ---------------------------------------------------------------------------
-// File-type detection helper
-// ---------------------------------------------------------------------------
-
-function isXlsxBuffer(buffer: Buffer): boolean {
-  return (
-    buffer.length >= 4 &&
-    buffer[0] === 0x50 &&
-    buffer[1] === 0x4b &&
-    buffer[2] === 0x03 &&
-    buffer[3] === 0x04
-  );
+  return null;
 }
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export interface HoldingsParseResult {
-  rows: ZerodhaHoldingsRow[];
-  metadata: ParseMetadata;
-}
-
-/**
- * Parse a Zerodha holdings file from a Buffer.
- *
- * Holdings are typically exported as XLSX; CSV is also accepted for
- * compatibility with manual exports.  File type is auto-detected from the
- * buffer's magic bytes, with the file extension used as a fallback.
- *
- * @param fileBuffer - Raw file bytes.
- * @param fileName   - Original filename used for error messages and format
- *                     detection fallback.
- */
 export function parseHoldings(
   fileBuffer: Buffer,
-  fileName: string
+  fileName: string,
 ): HoldingsParseResult {
   if (fileBuffer.length === 0) {
     throw new Error(`File "${fileName}" is empty`);
   }
 
-  const useXlsx =
-    isXlsxBuffer(fileBuffer) ||
-    fileName.toLowerCase().endsWith('.xlsx') ||
-    fileName.toLowerCase().endsWith('.xls');
+  const workbook = XLSX.read(fileBuffer, {
+    type: 'buffer',
+    cellText: true,
+    cellDates: false,
+  });
 
-  const rows = useXlsx ? parseXlsx(fileBuffer) : parseCsv(fileBuffer);
+  if (workbook.SheetNames.length === 0) {
+    throw new Error(`File "${fileName}" contains no sheets`);
+  }
 
-  // Holdings snapshots do not carry a date column, so date_range is null
+  const equity = parseEquitySheet(workbook);
+  const mutual_funds = parseMFSheet(workbook);
+  const statementDate = extractStatementDate(workbook);
+
   return {
-    rows,
+    equity,
+    mutual_funds,
     metadata: {
-      row_count: rows.length,
-      date_range: null,
+      row_count: equity.length + mutual_funds.length,
+      date_range: statementDate
+        ? { from: statementDate, to: statementDate }
+        : null,
       parser_version: PARSER_VERSION,
     },
   };

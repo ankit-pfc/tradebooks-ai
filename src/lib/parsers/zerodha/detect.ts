@@ -26,6 +26,8 @@ export type ZerodhaFileType =
   | 'contract_note'
   | 'taxpnl'
   | 'agts'
+  | 'ledger'
+  | 'dividends'
   | 'unknown';
 
 // ---------------------------------------------------------------------------
@@ -46,8 +48,8 @@ const FINGERPRINTS: Array<{ type: ZerodhaFileType; headers: string[] }> = [
   },
   {
     type: 'holdings',
-    // "qty." and "avg. cost" are distinctive — no other Zerodha report uses them
-    headers: ['qty.', 'avg. cost', 'cur. val', 'ltp'],
+    // Actual XLSX format uses these columns
+    headers: ['quantity available', 'average price', 'previous closing price'],
   },
   {
     type: 'contract_note',
@@ -78,6 +80,8 @@ const FILENAME_PATTERNS: Array<{ type: ZerodhaFileType; pattern: RegExp }> = [
   { type: 'contract_note', pattern: /contract[_\s-]*note/i },
   { type: 'taxpnl', pattern: /tax[_\s-]*p[&]?n[&]?l/i },
   { type: 'agts', pattern: /agts/i },
+  { type: 'ledger', pattern: /ledger/i },
+  { type: 'dividends', pattern: /dividend/i },
 ];
 
 function detectFromFilename(fileName: string): ZerodhaFileType | null {

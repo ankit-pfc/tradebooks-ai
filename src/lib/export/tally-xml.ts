@@ -28,6 +28,13 @@ export interface LedgerMasterInput {
   affects_stock?: boolean;
 }
 
+export interface GroupMasterInput {
+  /** Tally group name to create. */
+  name: string;
+  /** Parent group in the Tally group hierarchy. */
+  parent: string;
+}
+
 /**
  * VoucherDraft augmented with its resolved line items.
  * The core VoucherDraft type intentionally omits lines (they live in a
@@ -128,8 +135,31 @@ function buildEnvelope(reportName: string, companyName: string) {
 export function generateMastersXml(
   ledgerNames: LedgerMasterInput[],
   companyName: string,
+  groups?: GroupMasterInput[],
 ): string {
   const { root, requestData } = buildEnvelope('All Masters', companyName);
+
+  // Emit GROUP masters first — TallyPrime requires parent groups to exist
+  // before child ledgers that reference them.
+  if (groups && groups.length > 0) {
+    for (const group of groups) {
+      const msg = requestData.ele('TALLYMESSAGE', {
+        'xmlns:UDF': 'TallyUDF',
+      });
+
+      const groupEle = msg.ele('GROUP', {
+        NAME: group.name,
+        ACTION: 'Create',
+      });
+
+      groupEle
+        .ele('NAME.LIST')
+        .ele('NAME')
+        .txt(group.name);
+
+      groupEle.ele('PARENT').txt(group.parent);
+    }
+  }
 
   for (const ledger of ledgerNames) {
     const msg = requestData.ele('TALLYMESSAGE', {
@@ -277,9 +307,10 @@ export function generateFullExport(
   vouchers: VoucherDraftWithLines[],
   ledgers: LedgerMasterInput[],
   companyName: string,
+  groups?: GroupMasterInput[],
 ): FullExportResult {
   return {
-    mastersXml: generateMastersXml(ledgers, companyName),
+    mastersXml: generateMastersXml(ledgers, companyName, groups),
     transactionsXml: generateVouchersXml(vouchers, companyName),
   };
 }

@@ -25,7 +25,6 @@ import type {
   ZerodhaTaxPnlDividendRow,
   ZerodhaTaxPnlEquitySummaryRow,
   TaxPnlParseResult,
-  ParseMetadata,
 } from './types';
 
 export const PARSER_VERSION = '1.0.0';
@@ -220,7 +219,13 @@ function parseDividends(workbook: XLSX.WorkBook): ZerodhaTaxPnlDividendRow[] {
   if (!sheetName) return [];
 
   const rows = toStringGrid(workbook.Sheets[sheetName]);
-  const headerIdx = findHeaderRow(rows, ['Symbol', 'Date', 'Quantity', 'Dividend Per Share']);
+  // Try "Date" header first, fall back to "Ex-Date" (standalone dividends file)
+  let headerIdx = findHeaderRow(rows, ['Symbol', 'Date', 'Quantity', 'Dividend Per Share']);
+  let dateColName = 'date';
+  if (headerIdx === -1) {
+    headerIdx = findHeaderRow(rows, ['Symbol', 'Ex-Date', 'Quantity', 'Dividend Per Share']);
+    dateColName = 'ex-date';
+  }
   if (headerIdx === -1) return [];
 
   const colMap = buildColMap(rows[headerIdx]);
@@ -238,7 +243,7 @@ function parseDividends(workbook: XLSX.WorkBook): ZerodhaTaxPnlDividendRow[] {
     results.push({
       symbol,
       isin: cell(row, colMap, 'isin'),
-      date: normDate(cell(row, colMap, 'date')),
+      date: normDate(cell(row, colMap, dateColName)),
       quantity: num(cell(row, colMap, 'quantity')),
       dividend_per_share: num(cell(row, colMap, 'dividend per share')),
       net_dividend_amount: num(cell(row, colMap, 'net dividend amount')),
@@ -249,10 +254,11 @@ function parseDividends(workbook: XLSX.WorkBook): ZerodhaTaxPnlDividendRow[] {
 }
 
 function parseEquitySummary(workbook: XLSX.WorkBook): ZerodhaTaxPnlEquitySummaryRow[] {
-  // The "Equity" sheet has a simple structure: Symbol, Quantity, Buy Value, Sell Value, Realized P&L
-  const sheetName = workbook.SheetNames.find((n) =>
-    n.toLowerCase() === 'equity'
-  );
+  // The "Equity" sheet (or "Equity and Non Equity" in FY2122) has a simple structure
+  const sheetName = workbook.SheetNames.find((n) => {
+    const lower = n.toLowerCase();
+    return lower === 'equity' || lower.startsWith('equity and non');
+  });
   if (!sheetName) return [];
 
   const rows = toStringGrid(workbook.Sheets[sheetName]);

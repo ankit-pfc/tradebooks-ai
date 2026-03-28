@@ -18,13 +18,11 @@ describe('tradebook pipeline e2e', () => {
         const fileBuffer = readFileSync(fixturePath);
 
         const parsed = parseTradebook(fileBuffer, 'tradebook-sample.csv');
-        const events = buildCanonicalEvents(
-            parsed.rows,
-            [],
-            'batch-001',
-            'file-tradebook-001',
-            'file-funds-001',
-        );
+        const events = buildCanonicalEvents({
+            tradebookRows: parsed.rows,
+            batchId: 'batch-001',
+            fileIds: { tradebook: 'file-tradebook-001' },
+        });
 
         expect(events).toHaveLength(2);
 

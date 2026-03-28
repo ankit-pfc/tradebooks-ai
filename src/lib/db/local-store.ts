@@ -8,10 +8,12 @@ import type {
     BatchRecord,
     ExportArtifactRef,
 } from '@/lib/types';
+import type { CostLot } from '@/lib/types/events';
 
 type PersistedBatch = BatchDetail & {
     uploaded_file_paths: Record<string, string>;
     exported_file_paths: Record<string, string>;
+    closing_lots_snapshot?: Record<string, CostLot[]> | null;
 };
 
 interface AppState {
@@ -51,6 +53,8 @@ export async function createBatch(input: {
     accounting_mode: 'investor' | 'trader';
     period_from: string;
     period_to: string;
+    prior_batch_id?: string;
+    fy_label?: string;
 }): Promise<PersistedBatch> {
     const state = await readState();
     const now = new Date().toISOString();
@@ -67,12 +71,15 @@ export async function createBatch(input: {
         voucher_count: 0,
         created_at: now,
         updated_at: now,
+        prior_batch_id: input.prior_batch_id ?? null,
+        fy_label: input.fy_label ?? null,
         files: [],
         exceptions: [],
         exports: [],
         processing_result: null,
         uploaded_file_paths: {},
         exported_file_paths: {},
+        closing_lots_snapshot: null,
     };
     state.batches.unshift(batch);
     await writeState(state);
@@ -193,4 +200,41 @@ export function getUploadsDir(): string {
 
 export function getArtifactsDir(): string {
     return ARTIFACTS_DIR;
+}
+
+export async function saveClosingLots(
+    batchId: string,
+    snapshot: Record<string, CostLot[]>,
+): Promise<void> {
+    const state = await readState();
+    const batch = state.batches.find((b) => b.id === batchId);
+    if (!batch) return;
+    batch.closing_lots_snapshot = snapshot;
+    batch.updated_at = new Date().toISOString();
+    await writeState(state);
+}
+
+export async function getClosingLots(
+    batchId: string,
+): Promise<Record<string, CostLot[]> | null> {
+    const state = await readState();
+    const batch = state.batches.find((b) => b.id === batchId);
+    if (!batch) return null;
+    return batch.closing_lots_snapshot ?? null;
+}
+
+export async function listPriorBatches(
+    userId: string,
+    companyName: string,
+): Promise<BatchRecord[]> {
+    const state = await readState();
+    return state.batches
+        .filter(
+            (b) =>
+                b.user_id === userId &&
+                b.company_name === companyName &&
+                b.status === 'succeeded',
+        )
+        .sort((a, b) => b.period_to.localeCompare(a.period_to))
+        .map(({ uploaded_file_paths: _u, exported_file_paths: _e, closing_lots_snapshot: _c, ...rest }) => rest);
 }

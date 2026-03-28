@@ -12,6 +12,7 @@ export type BatchFileType =
     | 'contract_note'
     | 'taxpnl'
     | 'agts'
+    | 'dividends'
     | 'unknown';
 
 export type AppExceptionSeverity = 'error' | 'warning' | 'info';
@@ -73,6 +74,8 @@ export interface BatchRecord {
     voucher_count: number;
     created_at: string;
     updated_at: string;
+    prior_batch_id?: string | null;
+    fy_label?: string | null;
 }
 
 export interface BatchDetail extends BatchRecord {
@@ -111,6 +114,8 @@ export interface UploadBatchRequest {
     accounting_mode: 'investor' | 'trader';
     period_from: string;
     period_to: string;
+    prior_batch_id?: string;
+    fy_label?: string;
 }
 
 export interface UploadedFileSummary {
@@ -158,4 +163,19 @@ export type ExceptionListItem = BatchException;
 
 export interface ExceptionListResponse {
     exceptions: ExceptionListItem[];
+}
+
+// ---------------------------------------------------------------------------
+// User Settings
+// ---------------------------------------------------------------------------
+
+export interface UserSettings {
+    user_id: string;
+    company_name: string;
+    accounting_mode: 'INVESTOR' | 'TRADER';
+    cost_basis_method: 'FIFO' | 'WEIGHTED_AVERAGE';
+    charge_treatment: 'CAPITALIZE' | 'EXPENSE' | 'HYBRID';
+    voucher_granularity: 'TRADE_LEVEL' | 'CONTRACT_NOTE_LEVEL' | 'DAILY_SUMMARY_BY_SCRIPT' | 'DAILY_SUMMARY_POOLED';
+    ledger_strategy: 'SCRIPT_LEVEL' | 'POOLED';
+    updated_at: string;
 }
