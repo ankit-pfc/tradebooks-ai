@@ -124,14 +124,14 @@ const localBatchRepository: BatchRepository = {
  * otherwise falls back to the local file-based adapter.
  */
 export function getBatchRepository(): BatchRepository {
-    if (process.env['NEXT_PUBLIC_SUPABASE_URL']) {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
         return supabaseBatchRepository;
     }
     return localBatchRepository;
 }
 
 export function getSettingsRepository(): SettingsRepository {
-    if (process.env['NEXT_PUBLIC_SUPABASE_URL']) {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
         return supabaseSettingsRepository;
     }
     return localSettingsRepository;
