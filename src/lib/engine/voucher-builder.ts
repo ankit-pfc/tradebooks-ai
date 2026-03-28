@@ -16,6 +16,7 @@ import {
   AccountingMode,
   ChargeTreatment,
   type AccountingProfile,
+  type TallyProfile,
 } from '../types/accounting';
 import {
   VoucherStatus,
@@ -25,6 +26,13 @@ import {
 } from '../types/vouchers';
 import type { CostDisposal } from './cost-lots';
 import type { CostLotTracker } from './cost-lots';
+import * as L from '../constants/ledger-names';
+import {
+  resolveInvestmentLedger,
+  resolveCapitalGainLedger,
+  resolveChargeLedger,
+  resolveDividendLedger,
+} from './ledger-resolver';
 
 type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
 
@@ -37,11 +45,6 @@ function symbolFromSecurityId(securityId: string | null): string {
   if (!securityId) return 'UNKNOWN';
   const parts = securityId.split(':');
   return parts.length > 1 ? parts[1] : securityId;
-}
-
-/** Interpolate {script} placeholder in a ledger name template. */
-function resolveLedger(template: string, symbol: string): string {
-  return template.replace('{script}', symbol);
 }
 
 /** Build a VoucherLine with an auto-generated ID. */
@@ -106,13 +109,14 @@ function shouldCapitalizeBuyCharges(profile: AccountingProfile): boolean {
 
 /** Map a charge EventType to its canonical ledger name. */
 const CHARGE_LEDGER_NAMES: Partial<Record<EventType, string>> = {
-  [EventType.BROKERAGE]: 'Brokerage',
-  [EventType.STT]: 'STT',
-  [EventType.EXCHANGE_CHARGE]: 'Exchange Transaction Charges',
-  [EventType.SEBI_CHARGE]: 'SEBI Charges',
-  [EventType.GST_ON_CHARGES]: 'GST on Brokerage/Charges',
-  [EventType.STAMP_DUTY]: 'Stamp Duty',
-  [EventType.DP_CHARGE]: 'DP Charges',
+  [EventType.BROKERAGE]: L.BROKERAGE.name,
+  [EventType.STT]: L.STT.name,
+  [EventType.EXCHANGE_CHARGE]: L.EXCHANGE_CHARGES.name,
+  [EventType.SEBI_CHARGE]: L.SEBI_CHARGES.name,
+  [EventType.GST_ON_CHARGES]: L.GST_ON_CHARGES.name,
+  [EventType.STAMP_DUTY]: L.STAMP_DUTY.name,
+  [EventType.DP_CHARGE]: L.DP_CHARGES.name,
+  [EventType.TDS_ON_DIVIDEND]: L.TDS_ON_DIVIDEND.name,
 };
 
 const CHARGE_EVENT_TYPES = new Set<EventType>([
@@ -123,6 +127,7 @@ const CHARGE_EVENT_TYPES = new Set<EventType>([
   EventType.GST_ON_CHARGES,
   EventType.STAMP_DUTY,
   EventType.DP_CHARGE,
+  EventType.TDS_ON_DIVIDEND,
 ]);
 
 function isChargeEvent(e: CanonicalEvent): boolean {
@@ -149,18 +154,18 @@ export function buildBuyVoucher(
   event: CanonicalEvent,
   profile: AccountingProfile,
   chargeEvents: CanonicalEvent[],
+  tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
   const symbol = symbolFromSecurityId(event.security_id);
   const capitalize = shouldCapitalizeBuyCharges(profile);
 
   const isInvestor = profile.mode === AccountingMode.INVESTOR;
-  const assetLedger = resolveLedger(
-    isInvestor
-      ? 'Investment in Equity Shares - {script}'
-      : 'Shares-in-Trade - {script}',
-    symbol,
-  );
+  const assetLedger = tallyProfile
+    ? resolveInvestmentLedger(tallyProfile, symbol).name
+    : isInvestor
+      ? L.investmentLedger(symbol).name
+      : L.stockInTradeLedger(symbol).name;
 
   const grossAmount = new Decimal(event.gross_amount);
   const totalCharges = chargeEvents.reduce(
@@ -191,7 +196,9 @@ export function buildBuyVoucher(
     );
     // DR: each charge to its expense ledger
     for (const ce of chargeEvents) {
-      const chargeLedger = CHARGE_LEDGER_NAMES[ce.event_type] ?? 'Miscellaneous Charges';
+      const chargeLedger = tallyProfile
+        ? resolveChargeLedger(tallyProfile, ce.event_type).name
+        : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
       const chargeAmt = new Decimal(ce.charge_amount);
       if (chargeAmt.greaterThan(0)) {
         lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
@@ -199,9 +206,10 @@ export function buildBuyVoucher(
     }
   }
 
-  // CR: Zerodha Broking — total payable (gross + charges always)
+  // CR: Broker — total payable (gross + charges always)
+  const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
   const totalPayable = grossAmount.add(totalCharges);
-  lines.push(makeLine(draftId, lineNo++, 'Zerodha Broking', totalPayable, 'CR'));
+  lines.push(makeLine(draftId, lineNo++, brokerName, totalPayable, 'CR'));
 
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
@@ -254,6 +262,8 @@ export function buildSellVoucher(
   profile: AccountingProfile,
   chargeEvents: CanonicalEvent[],
   costDisposals: CostDisposal[],
+  holdingPeriodDays?: number,
+  tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
   const symbol = symbolFromSecurityId(event.security_id);
@@ -279,19 +289,20 @@ export function buildSellVoucher(
   let lineNo = 1;
 
   if (isInvestor) {
-    const assetLedger = resolveLedger(
-      'Investment in Equity Shares - {script}',
-      symbol,
-    );
+    const assetLedger = tallyProfile
+      ? resolveInvestmentLedger(tallyProfile, symbol).name
+      : L.investmentLedger(symbol).name;
+    const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
 
-    // DR: Zerodha Broking for the gross sale proceeds (net of charges — broker settles net)
+    // DR: Broker for the gross sale proceeds (net of charges — broker settles net)
     const netProceeds = grossAmount.sub(totalCharges);
-    lines.push(makeLine(draftId, lineNo++, 'Zerodha Broking', netProceeds, 'DR'));
+    lines.push(makeLine(draftId, lineNo++, brokerName, netProceeds, 'DR'));
 
     // DR: charge ledgers (expensed)
     for (const ce of chargeEvents) {
-      const chargeLedger =
-        CHARGE_LEDGER_NAMES[ce.event_type] ?? 'Miscellaneous Charges';
+      const chargeLedger = tallyProfile
+        ? resolveChargeLedger(tallyProfile, ce.event_type).name
+        : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
       const chargeAmt = new Decimal(ce.charge_amount);
       if (chargeAmt.greaterThan(0)) {
         lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
@@ -307,28 +318,43 @@ export function buildSellVoucher(
       }),
     );
 
-    // CR or DR: Gain / Loss
-    if (netGainLoss.greaterThanOrEqualTo(0)) {
-      lines.push(
-        makeLine(draftId, lineNo++, 'Profit on Sale of Investments', netGainLoss, 'CR'),
-      );
+    // CR or DR: Gain / Loss — resolved via TallyProfile or hardcoded
+    const isGain = netGainLoss.greaterThanOrEqualTo(0);
+    if (tallyProfile) {
+      const gainLossLedger = resolveCapitalGainLedger(
+        tallyProfile, symbol, holdingPeriodDays, isGain,
+      ).name;
+      if (isGain) {
+        lines.push(makeLine(draftId, lineNo++, gainLossLedger, netGainLoss, 'CR'));
+      } else {
+        lines.push(makeLine(draftId, lineNo++, gainLossLedger, netGainLoss.abs(), 'DR'));
+      }
     } else {
-      lines.push(
-        makeLine(draftId, lineNo++, 'Loss on Sale of Investments', netGainLoss.abs(), 'DR'),
-      );
+      const isLongTerm = holdingPeriodDays !== undefined && holdingPeriodDays > 365;
+      if (isGain) {
+        const gainLedger = isLongTerm ? L.LTCG_PROFIT.name : L.STCG_PROFIT.name;
+        lines.push(makeLine(draftId, lineNo++, gainLedger, netGainLoss, 'CR'));
+      } else {
+        const lossLedger = isLongTerm ? L.LTCG_LOSS.name : L.STCG_LOSS.name;
+        lines.push(makeLine(draftId, lineNo++, lossLedger, netGainLoss.abs(), 'DR'));
+      }
     }
   } else {
     // Trader mode
-    const stockLedger = resolveLedger('Shares-in-Trade - {script}', symbol);
+    const stockLedger = tallyProfile
+      ? resolveInvestmentLedger(tallyProfile, symbol).name
+      : L.stockInTradeLedger(symbol).name;
+    const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
 
-    // DR: Zerodha Broking for net sale proceeds
+    // DR: Broker for net sale proceeds
     const netProceeds = grossAmount.sub(totalCharges);
-    lines.push(makeLine(draftId, lineNo++, 'Zerodha Broking', netProceeds, 'DR'));
+    lines.push(makeLine(draftId, lineNo++, brokerName, netProceeds, 'DR'));
 
     // DR: charge ledgers
     for (const ce of chargeEvents) {
-      const chargeLedger =
-        CHARGE_LEDGER_NAMES[ce.event_type] ?? 'Miscellaneous Charges';
+      const chargeLedger = tallyProfile
+        ? resolveChargeLedger(tallyProfile, ce.event_type).name
+        : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
       const chargeAmt = new Decimal(ce.charge_amount);
       if (chargeAmt.greaterThan(0)) {
         lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
@@ -337,11 +363,11 @@ export function buildSellVoucher(
 
     // DR: Cost of Shares Sold
     lines.push(
-      makeLine(draftId, lineNo++, 'Cost of Shares Sold', totalCostBasis, 'DR'),
+      makeLine(draftId, lineNo++, L.COST_OF_SHARES_SOLD.name, totalCostBasis, 'DR'),
     );
 
     // CR: Trading Sales at gross
-    lines.push(makeLine(draftId, lineNo++, 'Trading Sales', grossAmount, 'CR'));
+    lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
 
     // CR: Shares-in-Trade at cost basis
     lines.push(
@@ -388,18 +414,23 @@ export function buildSellVoucher(
  *   DR  Zerodha Broking
  *   CR  Bank Account
  */
-export function buildSettlementVoucher(event: CanonicalEvent): BuiltVoucherDraft {
+export function buildSettlementVoucher(
+  event: CanonicalEvent,
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
   const amount = new Decimal(event.gross_amount);
   const lines: VoucherLine[] = [];
+  const bankName = tallyProfile?.bank.name ?? L.BANK.name;
+  const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
 
   if (event.event_type === EventType.BANK_RECEIPT) {
-    lines.push(makeLine(draftId, 1, 'Bank Account', amount, 'DR'));
-    lines.push(makeLine(draftId, 2, 'Zerodha Broking', amount, 'CR'));
+    lines.push(makeLine(draftId, 1, bankName, amount, 'DR'));
+    lines.push(makeLine(draftId, 2, brokerName, amount, 'CR'));
   } else {
     // BANK_PAYMENT
-    lines.push(makeLine(draftId, 1, 'Zerodha Broking', amount, 'DR'));
-    lines.push(makeLine(draftId, 2, 'Bank Account', amount, 'CR'));
+    lines.push(makeLine(draftId, 1, brokerName, amount, 'DR'));
+    lines.push(makeLine(draftId, 2, bankName, amount, 'CR'));
   }
 
   const isReceipt = event.event_type === EventType.BANK_RECEIPT;
@@ -426,13 +457,39 @@ export function buildSettlementVoucher(event: CanonicalEvent): BuiltVoucherDraft
 // buildDividendVoucher
 // ---------------------------------------------------------------------------
 
-function buildDividendVoucher(event: CanonicalEvent): BuiltVoucherDraft {
+export function buildDividendVoucher(
+  event: CanonicalEvent,
+  tdsChargeEvents: CanonicalEvent[] = [],
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
-  const amount = new Decimal(event.gross_amount);
-  const lines: VoucherLine[] = [
-    makeLine(draftId, 1, 'Bank Account', amount, 'DR'),
-    makeLine(draftId, 2, 'Dividend Income', amount, 'CR'),
-  ];
+  const symbol = symbolFromSecurityId(event.security_id);
+  const grossAmount = new Decimal(event.gross_amount);
+  const bankName = tallyProfile?.bank.name ?? L.BANK.name;
+  const dividendLedger = tallyProfile
+    ? resolveDividendLedger(tallyProfile, symbol).name
+    : L.DIVIDEND_INCOME.name;
+
+  const tdsTotal = tdsChargeEvents.reduce(
+    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
+    new Decimal(0),
+  );
+  const netAmount = grossAmount.sub(tdsTotal);
+
+  const lines: VoucherLine[] = [];
+  let lineNo = 1;
+
+  // DR: Bank receives the net amount (gross minus TDS)
+  lines.push(makeLine(draftId, lineNo++, bankName, netAmount, 'DR'));
+
+  // DR: TDS deducted at source (when TDS > 0)
+  if (tdsTotal.greaterThan(0)) {
+    const tdsLedger = tallyProfile?.tdsOnDividend.name ?? L.TDS_ON_DIVIDEND.name;
+    lines.push(makeLine(draftId, lineNo++, tdsLedger, tdsTotal, 'DR'));
+  }
+
+  // CR: Dividend income at gross
+  lines.push(makeLine(draftId, lineNo++, dividendLedger, grossAmount, 'CR'));
 
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
@@ -440,7 +497,239 @@ function buildDividendVoucher(event: CanonicalEvent): BuiltVoucherDraft {
     voucher_type: VoucherType.RECEIPT,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? null,
-    narrative: event.external_ref ?? 'Dividend received',
+    narrative: `Dividend received - ${symbol}`,
+    total_debit: '0',
+    total_credit: '0',
+    draft_status: VoucherStatus.DRAFT,
+    source_event_ids: [event.event_id, ...tdsChargeEvents.map((ce) => ce.event_id)],
+    created_at: new Date().toISOString(),
+    lines,
+  };
+
+  assertBalanced(draft);
+  return draft;
+}
+
+// ---------------------------------------------------------------------------
+// buildCorporateActionVoucher
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a voucher for a corporate action event.
+ *
+ * - BONUS_SHARES / STOCK_SPLIT: No journal entry needed (lot adjustment only).
+ *   Returns null — the lot adjustment happens in buildVouchers before this call.
+ * - MERGER_DEMERGER: Journal entry transferring cost basis from old to new security.
+ * - RIGHTS_ISSUE: Purchase voucher — DR investment at issue price, CR Bank.
+ */
+export function buildCorporateActionVoucher(
+  event: CanonicalEvent,
+  costBasis: Decimal,
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft | null {
+  const symbol = symbolFromSecurityId(event.security_id);
+
+  // BONUS / SPLIT: No accounting entry — lot adjustment is the effect
+  if (
+    event.event_type === EventType.BONUS_SHARES ||
+    event.event_type === EventType.STOCK_SPLIT
+  ) {
+    return null;
+  }
+
+  const draftId = crypto.randomUUID();
+
+  if (event.event_type === EventType.MERGER_DEMERGER) {
+    // Journal: DR new security at cost, CR old security at cost
+    const newSecurityId = event.external_ref;
+    const newSymbol = newSecurityId
+      ? symbolFromSecurityId(newSecurityId)
+      : 'NEW_SECURITY';
+
+    const oldInvestmentLedger = tallyProfile
+      ? resolveInvestmentLedger(tallyProfile, symbol).name
+      : L.investmentLedger(symbol).name;
+    const newInvestmentLedger = tallyProfile
+      ? resolveInvestmentLedger(tallyProfile, newSymbol).name
+      : L.investmentLedger(newSymbol).name;
+
+    const lines: VoucherLine[] = [
+      makeLine(draftId, 1, newInvestmentLedger, costBasis, 'DR', {
+        security_id: newSecurityId,
+      }),
+      makeLine(draftId, 2, oldInvestmentLedger, costBasis, 'CR', {
+        security_id: event.security_id,
+      }),
+    ];
+
+    const draft: BuiltVoucherDraft = {
+      voucher_draft_id: draftId,
+      import_batch_id: event.import_batch_id,
+      voucher_type: VoucherType.JOURNAL,
+      voucher_date: event.event_date,
+      external_reference: event.external_ref ?? null,
+      narrative: `Merger/Demerger: ${symbol} → ${newSymbol}`,
+      total_debit: '0',
+      total_credit: '0',
+      draft_status: VoucherStatus.DRAFT,
+      source_event_ids: [event.event_id],
+      created_at: new Date().toISOString(),
+      lines,
+    };
+
+    assertBalanced(draft);
+    return draft;
+  }
+
+  if (event.event_type === EventType.RIGHTS_ISSUE) {
+    // Purchase: DR investment at issue price, CR bank
+    const issuePrice = new Decimal(event.gross_amount);
+    const investmentLedger = tallyProfile
+      ? resolveInvestmentLedger(tallyProfile, symbol).name
+      : L.investmentLedger(symbol).name;
+    const bankName = tallyProfile?.bank.name ?? L.BANK.name;
+
+    const lines: VoucherLine[] = [
+      makeLine(draftId, 1, investmentLedger, issuePrice, 'DR', {
+        security_id: event.security_id,
+      }),
+      makeLine(draftId, 2, bankName, issuePrice, 'CR'),
+    ];
+
+    const draft: BuiltVoucherDraft = {
+      voucher_draft_id: draftId,
+      import_batch_id: event.import_batch_id,
+      voucher_type: VoucherType.PURCHASE,
+      voucher_date: event.event_date,
+      external_reference: event.external_ref ?? null,
+      narrative: `Rights issue subscription - ${symbol} @ ${event.rate}`,
+      total_debit: '0',
+      total_credit: '0',
+      draft_status: VoucherStatus.DRAFT,
+      source_event_ids: [event.event_id],
+      created_at: new Date().toISOString(),
+      lines,
+    };
+
+    assertBalanced(draft);
+    return draft;
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// buildOffMarketTransferVoucher
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a DRAFT template voucher for an off-market transfer.
+ *
+ * Off-market transfers cannot be fully automated — the consideration (price,
+ * counterparty, tax treatment) is unknown from broker data alone. The voucher
+ * is created as DRAFT with a suspense account for manual review.
+ */
+export function buildOffMarketTransferVoucher(
+  event: CanonicalEvent,
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft {
+  const draftId = crypto.randomUUID();
+  const symbol = symbolFromSecurityId(event.security_id);
+  const amount = new Decimal(event.gross_amount || '0');
+  const effectiveAmount = amount.isZero() ? new Decimal('1') : amount;
+
+  const investmentLedger = tallyProfile
+    ? resolveInvestmentLedger(tallyProfile, symbol).name
+    : L.investmentLedger(symbol).name;
+
+  const lines: VoucherLine[] = [
+    makeLine(draftId, 1, L.OFF_MARKET_SUSPENSE.name, effectiveAmount, 'DR'),
+    makeLine(draftId, 2, investmentLedger, effectiveAmount, 'CR', {
+      security_id: event.security_id,
+    }),
+  ];
+
+  const draft: BuiltVoucherDraft = {
+    voucher_draft_id: draftId,
+    import_batch_id: event.import_batch_id,
+    voucher_type: VoucherType.JOURNAL,
+    voucher_date: event.event_date,
+    external_reference: event.external_ref ?? null,
+    narrative: `Off-market transfer of ${symbol} - REQUIRES MANUAL REVIEW`,
+    total_debit: '0',
+    total_credit: '0',
+    draft_status: VoucherStatus.DRAFT,
+    source_event_ids: [event.event_id],
+    created_at: new Date().toISOString(),
+    lines,
+  };
+
+  assertBalanced(draft);
+  return draft;
+}
+
+// ---------------------------------------------------------------------------
+// buildAuctionAdjustmentVoucher
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a voucher for an auction settlement.
+ *
+ * Accounting: DR Broker (proceeds), CR Investment (cost basis),
+ * DR/CR Capital Gain/Loss (difference).
+ */
+export function buildAuctionAdjustmentVoucher(
+  event: CanonicalEvent,
+  costDisposals: CostDisposal[],
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft {
+  const draftId = crypto.randomUUID();
+  const symbol = symbolFromSecurityId(event.security_id);
+  const proceeds = new Decimal(event.gross_amount);
+
+  const totalCostBasis = costDisposals.reduce(
+    (sum, d) => sum.add(new Decimal(d.total_cost)),
+    new Decimal(0),
+  );
+  const gainOrLoss = proceeds.sub(totalCostBasis);
+
+  const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
+  const investmentLedger = tallyProfile
+    ? resolveInvestmentLedger(tallyProfile, symbol).name
+    : L.investmentLedger(symbol).name;
+
+  const lines: VoucherLine[] = [];
+  let lineNo = 1;
+
+  // DR: Broker for auction proceeds
+  lines.push(makeLine(draftId, lineNo++, brokerName, proceeds, 'DR'));
+
+  // CR: Investment at cost basis
+  lines.push(makeLine(draftId, lineNo++, investmentLedger, totalCostBasis, 'CR', {
+    security_id: event.security_id,
+  }));
+
+  // DR/CR: Capital gain/loss
+  const isGain = gainOrLoss.greaterThanOrEqualTo(0);
+  if (isGain) {
+    const gainLedger = tallyProfile
+      ? resolveCapitalGainLedger(tallyProfile, symbol, undefined, true).name
+      : L.STCG_PROFIT.name;
+    lines.push(makeLine(draftId, lineNo++, gainLedger, gainOrLoss, 'CR'));
+  } else {
+    const lossLedger = tallyProfile
+      ? resolveCapitalGainLedger(tallyProfile, symbol, undefined, false).name
+      : L.STCG_LOSS.name;
+    lines.push(makeLine(draftId, lineNo++, lossLedger, gainOrLoss.abs(), 'DR'));
+  }
+
+  const draft: BuiltVoucherDraft = {
+    voucher_draft_id: draftId,
+    import_batch_id: event.import_batch_id,
+    voucher_type: VoucherType.JOURNAL,
+    voucher_date: event.event_date,
+    external_reference: event.external_ref ?? null,
+    narrative: `Auction settlement of ${symbol}`,
     total_debit: '0',
     total_credit: '0',
     draft_status: VoucherStatus.DRAFT,
@@ -477,6 +766,7 @@ export function buildVouchers(
   events: CanonicalEvent[],
   profile: AccountingProfile,
   costTracker: CostLotTracker,
+  tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft[] {
   // Sort by date ascending, then by event type (BUY before SELL on same day)
   const sorted = [...events].sort((a, b) => {
@@ -490,11 +780,16 @@ export function buildVouchers(
 
   const vouchers: BuiltVoucherDraft[] = [];
 
-  // Build an index of charge events keyed by "date|security_id"
+  // Build an index of charge events.
+  // When external_ref (trade_no) is present, key by "date|security|trade_no"
+  // for trade-level precision (contract-note flow). Otherwise fall back to
+  // "date|security" (tradebook-only flow).
   const chargeIndex = new Map<string, CanonicalEvent[]>();
   for (const e of sorted) {
     if (isChargeEvent(e)) {
-      const key = `${e.event_date}|${e.security_id ?? 'NONE'}`;
+      const key = e.external_ref
+        ? `${e.event_date}|${e.security_id ?? 'NONE'}|${e.external_ref}`
+        : `${e.event_date}|${e.security_id ?? 'NONE'}`;
       if (!chargeIndex.has(key)) chargeIndex.set(key, []);
       chargeIndex.get(key)!.push(e);
     }
@@ -507,7 +802,9 @@ export function buildVouchers(
 
     switch (event.event_type) {
       case EventType.BUY_TRADE: {
-        const chargeKey = `${event.event_date}|${event.security_id ?? 'NONE'}`;
+        const chargeKey = event.external_ref
+          ? `${event.event_date}|${event.security_id ?? 'NONE'}|${event.external_ref}`
+          : `${event.event_date}|${event.security_id ?? 'NONE'}`;
         const chargeEvents = chargeIndex.get(chargeKey) ?? [];
         chargeEvents.forEach((ce) => handledChargeIds.add(ce.event_id));
 
@@ -526,12 +823,14 @@ export function buildVouchers(
         // Add lot to the tracker before building the voucher
         costTracker.addLot(event, additionalCost);
 
-        vouchers.push(buildBuyVoucher(event, profile, chargeEvents));
+        vouchers.push(buildBuyVoucher(event, profile, chargeEvents, tallyProfile));
         break;
       }
 
       case EventType.SELL_TRADE: {
-        const chargeKey = `${event.event_date}|${event.security_id ?? 'NONE'}`;
+        const chargeKey = event.external_ref
+          ? `${event.event_date}|${event.security_id ?? 'NONE'}|${event.external_ref}`
+          : `${event.event_date}|${event.security_id ?? 'NONE'}`;
         const chargeEvents = chargeIndex.get(chargeKey) ?? [];
         chargeEvents.forEach((ce) => handledChargeIds.add(ce.event_id));
 
@@ -556,21 +855,98 @@ export function buildVouchers(
           ];
         }
 
-        vouchers.push(buildSellVoucher(event, profile, chargeEvents, disposals));
+        vouchers.push(buildSellVoucher(event, profile, chargeEvents, disposals, undefined, tallyProfile));
         break;
       }
 
       case EventType.BANK_RECEIPT:
       case EventType.BANK_PAYMENT:
-        vouchers.push(buildSettlementVoucher(event));
+        vouchers.push(buildSettlementVoucher(event, tallyProfile));
         break;
 
-      case EventType.DIVIDEND:
-        vouchers.push(buildDividendVoucher(event));
+      case EventType.DIVIDEND: {
+        // Look up TDS charge events using date|security key
+        const tdsKey = `${event.event_date}|${event.security_id ?? 'NONE'}`;
+        const allDivCharges = chargeIndex.get(tdsKey) ?? [];
+        const tdsCharges = allDivCharges.filter(
+          (ce) => ce.event_type === EventType.TDS_ON_DIVIDEND,
+        );
+        tdsCharges.forEach((ce) => handledChargeIds.add(ce.event_id));
+        vouchers.push(buildDividendVoucher(event, tdsCharges, tallyProfile));
+        break;
+      }
+
+      case EventType.BONUS_SHARES:
+      case EventType.STOCK_SPLIT: {
+        // Lot adjustment only — no journal entry.
+        // Both bonus and split preserve total cost: qty multiplied, unit cost divided
+        // by the same factor. costDivisor defaults to quantityMultiplier.
+        const ratio = new Decimal(event.rate);
+        if (event.security_id) {
+          costTracker.adjustLots({
+            securityId: event.security_id,
+            quantityMultiplier: ratio,
+            // costDivisor defaults to ratio → total cost preserved
+            preserveAcquisitionDate: true,
+          });
+        }
+        break;
+      }
+
+      case EventType.MERGER_DEMERGER: {
+        // Compute total cost basis of old lots before adjustment
+        const oldLots = event.security_id ? costTracker.getOpenLots(event.security_id) : [];
+        const costBasis = oldLots.reduce(
+          (sum, lot) => sum.add(new Decimal(lot.open_quantity).mul(new Decimal(lot.effective_unit_cost))),
+          new Decimal(0),
+        );
+        // Adjust lots (transfer to new security)
+        const ratio = new Decimal(event.rate);
+        if (event.security_id) {
+          costTracker.adjustLots({
+            securityId: event.security_id,
+            quantityMultiplier: ratio,
+            newSecurityId: event.external_ref ?? undefined,
+            preserveAcquisitionDate: false,
+            actionDate: event.event_date,
+          });
+        }
+        const v = buildCorporateActionVoucher(event, costBasis, tallyProfile);
+        if (v) vouchers.push(v);
+        break;
+      }
+
+      case EventType.RIGHTS_ISSUE: {
+        const v = buildCorporateActionVoucher(event, new Decimal(0), tallyProfile);
+        if (v) vouchers.push(v);
+        break;
+      }
+
+      case EventType.OFF_MARKET_TRANSFER:
+        vouchers.push(buildOffMarketTransferVoucher(event, tallyProfile));
         break;
 
-      // All other event types (CORPORATE_ACTION, OFF_MARKET_TRANSFER, etc.)
-      // are passed through as unhandled; a future builder can be added here.
+      case EventType.AUCTION_ADJUSTMENT: {
+        let auctionDisposals: CostDisposal[] = [];
+        try {
+          auctionDisposals = costTracker.disposeLots(
+            { ...event, event_type: EventType.SELL_TRADE } as CanonicalEvent,
+            profile.cost_basis_method as 'FIFO' | 'WEIGHTED_AVERAGE',
+          );
+        } catch {
+          const qty = new Decimal(event.quantity).abs();
+          auctionDisposals = [{
+            lot_id: 'UNKNOWN',
+            quantity_sold: qty.isZero() ? '1' : qty.toFixed(),
+            unit_cost: '0',
+            total_cost: '0',
+            gain_or_loss: new Decimal(event.gross_amount).toFixed(2),
+          }];
+        }
+        vouchers.push(buildAuctionAdjustmentVoucher(event, auctionDisposals, tallyProfile));
+        break;
+      }
+
       default:
         break;
     }

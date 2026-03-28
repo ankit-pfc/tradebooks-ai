@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: process.env.VERCEL ? undefined : 'standalone',
   outputFileTracingRoot: process.cwd(),
   turbopack: {
     root: process.cwd(),

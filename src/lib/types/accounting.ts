@@ -113,3 +113,84 @@ export interface LedgerMapping {
    */
   script_level_flag: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Tally Profile — controls how canonical concepts map to Tally names/groups
+// ---------------------------------------------------------------------------
+
+/** Capital gain classification. */
+export type GainType = 'STCG' | 'LTCG' | 'STCL' | 'LTCL';
+
+/** A ledger name + group pair. */
+export interface LedgerDef {
+  readonly name: string;
+  readonly group: string;
+}
+
+/**
+ * A naming template with token substitution for per-scrip ledgers.
+ * Tokens: {symbol} = exchange trading symbol (e.g. "RELIANCE").
+ */
+export interface NamingTemplate {
+  /** Template string, e.g. "STCG ON {symbol}", "{symbol}-SH". */
+  template: string;
+  /** Tally group the resolved ledger belongs to. */
+  group: string;
+  /** If the group is a custom sub-group, its parent group in Tally. */
+  parentGroup?: string;
+}
+
+/**
+ * Maps one or more charge EventTypes to a single consolidated Tally ledger.
+ * Real accountants use 2-3 charge ledgers, not 8.
+ */
+export interface ChargeConsolidation {
+  /** Charge event types that roll into this ledger. */
+  eventTypes: EventType[];
+  /** The Tally ledger name. */
+  ledgerName: string;
+  /** The Tally group. */
+  groupName: string;
+}
+
+/**
+ * Controls how canonical events map to actual Tally ledger names and group
+ * hierarchy for a specific client's Tally company.
+ *
+ * Separates the "what accounting entries to make" concern (AccountingProfile)
+ * from "what to call them in Tally" concern (TallyProfile).
+ */
+export interface TallyProfile {
+  id: string;
+  name: string;
+
+  // --- Fixed ledger overrides ---
+  broker: LedgerDef;
+  bank: LedgerDef;
+
+  // --- Per-scrip naming templates ---
+  investment: NamingTemplate;
+  stcg: NamingTemplate;
+  ltcg: NamingTemplate;
+  stcl: NamingTemplate;
+  ltcl: NamingTemplate;
+  dividend: NamingTemplate;
+  speculationGain: LedgerDef;
+  speculationLoss: LedgerDef;
+
+  // --- Charge mapping ---
+  chargeConsolidation: ChargeConsolidation[];
+
+  // --- TDS ---
+  tdsOnDividend: LedgerDef;
+  tdsOnSecurities: LedgerDef;
+
+  // --- Sub-groups that need to be created before ledgers ---
+  customGroups: Array<{ name: string; parent: string }>;
+
+  // --- Flags ---
+  /** When true, each sold security gets its own STCG/LTCG ledger. */
+  perScripCapitalGains: boolean;
+  /** When true, each security's dividend gets its own DIV ledger. */
+  perScripDividends: boolean;
+}

@@ -16,7 +16,6 @@ import Decimal from 'decimal.js';
 import type {
   ZerodhaAgtsRow,
   AgtsParseResult,
-  ParseMetadata,
 } from './types';
 
 export const PARSER_VERSION = '1.0.0';

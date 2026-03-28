@@ -1,14 +1,15 @@
 import type {
     AppBatchStatus,
-        BatchDetail,
-        BatchException,
-        BatchFileMeta,
-        BatchProcessingResult,
-        BatchRecord,
-        DashboardResponse,
-        ExportArtifactRef,
-        UploadBatchRequest,
+    BatchDetail,
+    BatchException,
+    BatchFileMeta,
+    BatchProcessingResult,
+    BatchRecord,
+    DashboardResponse,
+    ExportArtifactRef,
+    UploadBatchRequest,
 } from '@/lib/types';
+import type { CostLot } from '@/lib/types/events';
 
 /**
  * Input used to create a new batch record.
@@ -75,4 +76,9 @@ export interface BatchRepository {
 
     listExceptions(): Promise<BatchException[]>;
     buildDashboardSummary(): Promise<DashboardResponse>;
+
+    // Multi-FY cost lot persistence
+    saveClosingLots(batchId: string, snapshot: Record<string, CostLot[]>): Promise<void>;
+    getClosingLots(batchId: string): Promise<Record<string, CostLot[]> | null>;
+    listPriorBatches(userId: string, companyName: string): Promise<BatchRecord[]>;
 }

@@ -43,3 +43,6 @@ next-env.d.ts
 # local caches and data
 /temp_cache
 /.data
+
+# stale nested project artifact
+tradebooks-ai/
