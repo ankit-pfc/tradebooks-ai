@@ -42,6 +42,15 @@ export interface ZerodhaTradebookRow {
   trade_id: string;
   order_id: string;
   order_execution_time: string;
+  /**
+   * Product / order type marker from Zerodha.
+   * - CNC: Cash & Carry (delivery / investment)
+   * - MIS: Margin Intraday Square-off (intraday / speculative business)
+   * - NRML: Normal (F&O carry-forward / non-speculative business)
+   * - MTF: Margin Trading Facility (leveraged delivery)
+   * Optional — absent in older CSV exports.
+   */
+  product?: 'CNC' | 'MIS' | 'NRML' | 'MTF';
   /** Series code (e.g. "EQ", "T") — present in XLSX exports, absent in CSV */
   series?: string;
   /** Auction flag (e.g. "False") — present in XLSX exports, absent in CSV */

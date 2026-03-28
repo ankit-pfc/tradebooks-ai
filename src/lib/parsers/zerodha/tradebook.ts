@@ -71,6 +71,7 @@ function normaliseHeader(raw: string): keyof ZerodhaTradebookRow | null {
     'trade id': 'trade_id',
     'order id': 'order_id',
     'order execution time': 'order_execution_time',
+    product: 'product',
     series: 'series',
     auction: 'auction',
     amount: 'amount',
@@ -155,6 +156,14 @@ function buildRows(headerRow: string[], dataRows: string[][]): ZerodhaTradebookR
         if (cellValue) raw[field] = parseNumeric(cellValue, field, i);
       } else if (field === 'trade_type') {
         raw[field] = parseTradeType(cellValue, i);
+      } else if (field === 'product') {
+        // product is optional; normalise to uppercase union
+        if (cellValue) {
+          const upper = cellValue.toUpperCase() as 'CNC' | 'MIS' | 'NRML' | 'MTF';
+          if (['CNC', 'MIS', 'NRML', 'MTF'].includes(upper)) {
+            raw[field] = upper;
+          }
+        }
       } else {
         (raw as Record<string, string>)[field] = cellValue;
       }

@@ -9,7 +9,7 @@
 
 import Decimal from 'decimal.js';
 import { createHash } from 'crypto';
-import { EventType, type CanonicalEvent } from '../types/events';
+import { EventType, TradeCategory, type CanonicalEvent } from '../types/events';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -48,6 +48,57 @@ function buildHash(...fields: string[]): string {
  */
 function buildSecurityId(exchange: string, symbol: string): string {
   return `${exchange.trim().toUpperCase()}:${symbol.trim().toUpperCase()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Trade category classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify a tradebook row into a TradeCategory based on the product marker,
+ * exchange, and segment.
+ *
+ * Rules:
+ * - MCX exchange → COMMODITY (always non-speculative business)
+ * - MIS product → INTRADAY (speculative business)
+ * - NRML product + F&O segment (FO, NFO, BFO, MCX-SX) → FNO (non-speculative business)
+ * - CNC / MTF product → DELIVERY (investment / capital gains)
+ * - Fallback: if no product marker, infer from segment
+ */
+function classifyTradeCategory(row: ZerodhaTradebookRow): TradeCategory {
+  const exchange = row.exchange.trim().toUpperCase();
+  const segment = row.segment.trim().toUpperCase();
+  const product = row.product?.toUpperCase();
+
+  // Commodity trades (MCX) are always non-speculative business income
+  if (exchange === 'MCX') {
+    return TradeCategory.COMMODITY;
+  }
+
+  // F&O segments: NFO, BFO, MCX-SX FO, CDS
+  const isFnoSegment = ['FO', 'NFO', 'BFO', 'CDS'].includes(segment);
+
+  if (product === 'MIS') {
+    // MIS on F&O segment is still F&O (non-speculative), not speculative
+    if (isFnoSegment) return TradeCategory.FNO;
+    return TradeCategory.INTRADAY;
+  }
+
+  if (product === 'NRML') {
+    if (isFnoSegment) return TradeCategory.FNO;
+    // NRML on equity segment is delivery (carry-forward)
+    return TradeCategory.DELIVERY;
+  }
+
+  if (product === 'CNC' || product === 'MTF') {
+    return TradeCategory.DELIVERY;
+  }
+
+  // No product marker — infer from segment
+  if (isFnoSegment) return TradeCategory.FNO;
+
+  // Default: equity delivery
+  return TradeCategory.DELIVERY;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,10 +173,13 @@ export function tradebookRowToEvents(
     row.price,
   );
 
+  const tradeCategory = classifyTradeCategory(row);
+
   const event: CanonicalEvent = {
     event_id: eventId,
     import_batch_id: batchId,
     event_type: eventType,
+    trade_category: tradeCategory,
     event_date: eventDate,
     settlement_date: null, // T+1/T+2 settlement date not present in tradebook rows
     security_id: securityId,
@@ -196,6 +250,7 @@ export function fundsStatementRowToEvents(
     event_id: eventId,
     import_batch_id: batchId,
     event_type: eventType,
+    trade_category: null,
     event_date: eventDate,
     settlement_date: null,
     security_id: securityId,

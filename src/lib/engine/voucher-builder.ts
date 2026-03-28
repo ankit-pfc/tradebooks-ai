@@ -100,6 +100,43 @@ function shouldCapitalizeBuyCharges(profile: AccountingProfile): boolean {
   );
 }
 
+/**
+ * For investor mode, STT is NEVER capitalized or expensed — it goes to Capital A/c.
+ * Split charge events into: allowable charges (can capitalize/expense) and STT.
+ */
+function partitionCharges(
+  chargeEvents: CanonicalEvent[],
+  profile: AccountingProfile,
+): { allowableCharges: CanonicalEvent[]; sttCharges: CanonicalEvent[] } {
+  if (profile.mode !== AccountingMode.INVESTOR) {
+    // For traders, all charges including STT flow through normal expense path
+    return { allowableCharges: chargeEvents, sttCharges: [] };
+  }
+  const allowableCharges: CanonicalEvent[] = [];
+  const sttCharges: CanonicalEvent[] = [];
+  for (const ce of chargeEvents) {
+    if (ce.event_type === EventType.STT) {
+      sttCharges.push(ce);
+    } else {
+      allowableCharges.push(ce);
+    }
+  }
+  return { allowableCharges, sttCharges };
+}
+
+/**
+ * Determine if a disposal is short-term or long-term based on holding period.
+ * Short-term: holding < 12 months. Long-term: holding >= 12 months.
+ */
+function isLongTermHolding(acquisitionDate: string, sellDate: string): boolean {
+  const acq = new Date(acquisitionDate);
+  const sell = new Date(sellDate);
+  // Add 12 months to acquisition date
+  const threshold = new Date(acq);
+  threshold.setMonth(threshold.getMonth() + 12);
+  return sell >= threshold;
+}
+
 // ---------------------------------------------------------------------------
 // Charge event helpers
 // ---------------------------------------------------------------------------
@@ -137,12 +174,19 @@ function isChargeEvent(e: CanonicalEvent): boolean {
  * Build a purchase voucher for a BUY_TRADE event.
  *
  * Investor mode (CAPITALIZE charges):
- *   DR  Investment in Equity Shares - {script}   (gross + all charges)
+ *   DR  Investment in Equity Shares - {script}   (gross + allowable charges)
+ *   DR  STT                                       (to Capital A/c — NOT capitalised)
  *   CR  Zerodha Broking                           (total payable)
  *
- * Investor mode (EXPENSE charges) / Trader mode:
- *   DR  Investment/Shares-in-Trade - {script}     (gross amount)
- *   DR  Brokerage / STT / …                       (each charge separately)
+ * Note: For investors, STT is NEVER capitalised or expensed. It goes directly
+ * to the Capital Account (not allowed as deduction under Income Tax Act).
+ * Other charges (brokerage, exchange, GST, SEBI, stamp duty) are capitalised
+ * into the buy price.
+ *
+ * Trader mode:
+ *   DR  Shares-in-Trade - {script}               (gross amount)
+ *   DR  Brokerage / Exchange / GST / SEBI / Stamp (each charge — fully deductible)
+ *   DR  STT                                       (non-deductible, still recorded)
  *   CR  Zerodha Broking                           (gross + all charges)
  */
 export function buildBuyVoucher(
@@ -153,8 +197,8 @@ export function buildBuyVoucher(
   const draftId = crypto.randomUUID();
   const symbol = symbolFromSecurityId(event.security_id);
   const capitalize = shouldCapitalizeBuyCharges(profile);
-
   const isInvestor = profile.mode === AccountingMode.INVESTOR;
+
   const assetLedger = resolveLedger(
     isInvestor
       ? 'Investment in Equity Shares - {script}'
@@ -162,19 +206,27 @@ export function buildBuyVoucher(
     symbol,
   );
 
+  // Partition charges: STT is always separate for investors
+  const { allowableCharges, sttCharges } = partitionCharges(chargeEvents, profile);
+
   const grossAmount = new Decimal(event.gross_amount);
-  const totalCharges = chargeEvents.reduce(
+  const allowableTotal = allowableCharges.reduce(
     (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
     new Decimal(0),
   );
+  const sttTotal = sttCharges.reduce(
+    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
+    new Decimal(0),
+  );
+  const totalCharges = allowableTotal.add(sttTotal);
 
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
   if (capitalize) {
-    // Single DR line: asset absorbs the total inclusive of charges
+    // DR: asset absorbs gross + allowable charges (NOT STT for investors)
     lines.push(
-      makeLine(draftId, lineNo++, assetLedger, grossAmount.add(totalCharges), 'DR', {
+      makeLine(draftId, lineNo++, assetLedger, grossAmount.add(allowableTotal), 'DR', {
         security_id: event.security_id,
         quantity: event.quantity,
         rate: event.rate,
@@ -189,8 +241,8 @@ export function buildBuyVoucher(
         rate: event.rate,
       }),
     );
-    // DR: each charge to its expense ledger
-    for (const ce of chargeEvents) {
+    // DR: each allowable charge to its expense ledger
+    for (const ce of allowableCharges) {
       const chargeLedger = CHARGE_LEDGER_NAMES[ce.event_type] ?? 'Miscellaneous Charges';
       const chargeAmt = new Decimal(ce.charge_amount);
       if (chargeAmt.greaterThan(0)) {
@@ -199,7 +251,15 @@ export function buildBuyVoucher(
     }
   }
 
-  // CR: Zerodha Broking — total payable (gross + charges always)
+  // DR: STT always goes to its own ledger (Capital A/c for investors, expense for traders)
+  for (const ce of sttCharges) {
+    const chargeAmt = new Decimal(ce.charge_amount);
+    if (chargeAmt.greaterThan(0)) {
+      lines.push(makeLine(draftId, lineNo++, 'STT', chargeAmt, 'DR'));
+    }
+  }
+
+  // CR: Zerodha Broking — total payable (gross + ALL charges including STT)
   const totalPayable = grossAmount.add(totalCharges);
   lines.push(makeLine(draftId, lineNo++, 'Zerodha Broking', totalPayable, 'CR'));
 
@@ -230,24 +290,23 @@ export function buildBuyVoucher(
  * Build a sales voucher for a SELL_TRADE event.
  *
  * Investor mode:
- *   DR  Zerodha Broking                     (sale proceeds received)
- *   CR  Investment in Equity Shares - {script}  (cost basis cleared)
- *   CR  Profit on Sale of Investments       (if gain)
- *  OR
- *   DR  Loss on Sale of Investments         (if loss)
- *   DR  charge ledgers                      (sell charges expensed)
- *   CR  Zerodha Broking (net)               (already credited above — adjust)
+ *   DR  Zerodha Broking                     (selling price less allowable costs)
+ *   DR  STT                                 (to Capital A/c — not deductible)
+ *   DR  ST/LT Capital Loss                  (if loss, goes to Capital A/c)
+ *   CR  Investment in Equity Shares - {script}  (FIFO cost basis — reduces inventory)
+ *   CR  ST/LT Capital Gain                  (if gain, goes to Capital A/c)
  *
- * Simplified approach: debit broker for proceeds, credit asset at cost,
- * book net gain/loss.  Charges reduce the net gain / increase net loss.
+ * Allowable costs (brokerage, exchange, GST, SEBI, stamp duty) reduce sale
+ * proceeds for investors. STT always goes to Capital Account separately.
+ * Gain/loss ledger is determined by holding period (< 12m = STCG, >= 12m = LTCG).
  *
  * Trader mode:
- *   DR  Zerodha Broking                     (sale proceeds)
- *   CR  Trading Sales                       (gross sell value)
+ *   DR  Zerodha Broking                     (sale proceeds net of charges)
+ *   DR  Brokerage / Exchange / …            (each charge — fully deductible)
+ *   DR  STT                                 (non-deductible, still recorded)
  *   DR  Cost of Shares Sold                 (total cost basis)
+ *   CR  Trading Sales                       (gross sell value)
  *   CR  Shares-in-Trade - {script}          (clear cost from asset)
- *   DR  charge ledgers                      (expensed)
- *   CR  Zerodha Broking (net charge credit)
  */
 export function buildSellVoucher(
   event: CanonicalEvent,
@@ -260,10 +319,20 @@ export function buildSellVoucher(
   const isInvestor = profile.mode === AccountingMode.INVESTOR;
 
   const grossAmount = new Decimal(event.gross_amount);
-  const totalCharges = chargeEvents.reduce(
+
+  // Partition charges: STT handled separately for investors
+  const { allowableCharges, sttCharges } = partitionCharges(chargeEvents, profile);
+
+  const allowableTotal = allowableCharges.reduce(
     (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
     new Decimal(0),
   );
+  const sttTotal = sttCharges.reduce(
+    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
+    new Decimal(0),
+  );
+  const totalCharges = allowableTotal.add(sttTotal);
+
   const totalCostBasis = costDisposals.reduce(
     (sum, d) => sum.add(new Decimal(d.total_cost)),
     new Decimal(0),
@@ -272,8 +341,6 @@ export function buildSellVoucher(
     (sum, d) => sum.add(new Decimal(d.gain_or_loss)),
     new Decimal(0),
   );
-  // Net gain after sell charges (sell charges reduce gain for investors)
-  const netGainLoss = totalGainLoss.sub(totalCharges);
 
   const lines: VoucherLine[] = [];
   let lineNo = 1;
@@ -284,21 +351,59 @@ export function buildSellVoucher(
       symbol,
     );
 
-    // DR: Zerodha Broking for the gross sale proceeds (net of charges — broker settles net)
+    // For investors:
+    // - Allowable charges (brokerage, exchange, GST, SEBI, stamp duty) are
+    //   "reduced from sale price" — they are NOT separate expense lines.
+    //   They reduce the effective sale proceeds and thus the capital gain.
+    // - STT goes to Capital Account (not allowed as expense under IT Act).
+    //
+    // Entry:
+    //   DR  Zerodha Broking      (gross - ALL charges = net from broker)
+    //   DR  STT                  (to Capital A/c)
+    //   DR  ST/LT Capital Loss   (if loss)
+    //   CR  Investment - {script} (FIFO cost basis — inventory reduced)
+    //   CR  ST/LT Capital Gain   (if gain)
+
+    // DR: Zerodha Broking — net proceeds received from broker (all charges deducted)
     const netProceeds = grossAmount.sub(totalCharges);
     lines.push(makeLine(draftId, lineNo++, 'Zerodha Broking', netProceeds, 'DR'));
 
-    // DR: charge ledgers (expensed)
-    for (const ce of chargeEvents) {
-      const chargeLedger =
-        CHARGE_LEDGER_NAMES[ce.event_type] ?? 'Miscellaneous Charges';
+    // DR: STT to Capital Account (not allowed as expense)
+    for (const ce of sttCharges) {
       const chargeAmt = new Decimal(ce.charge_amount);
       if (chargeAmt.greaterThan(0)) {
-        lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
+        lines.push(makeLine(draftId, lineNo++, 'STT', chargeAmt, 'DR'));
       }
     }
 
-    // CR: Investment account at cost basis
+    // Determine STCG vs LTCG based on holding period of the disposed lots.
+    // If disposals span both ST and LT, we split the gain/loss accordingly.
+    // Allowable charges reduce the effective sale price → reduce gain / increase loss.
+    let stGain = new Decimal(0);
+    let ltGain = new Decimal(0);
+
+    for (const d of costDisposals) {
+      const disposalGain = new Decimal(d.gain_or_loss);
+      if (d.acquisition_date && isLongTermHolding(d.acquisition_date, event.event_date)) {
+        ltGain = ltGain.add(disposalGain);
+      } else {
+        stGain = stGain.add(disposalGain);
+      }
+    }
+
+    // Distribute allowable charges proportionally to reduce ST/LT gains
+    const totalRawGainAbs = stGain.abs().add(ltGain.abs());
+    if (totalRawGainAbs.greaterThan(0) && allowableTotal.greaterThan(0)) {
+      const stProportion = stGain.abs().div(totalRawGainAbs);
+      const ltProportion = ltGain.abs().div(totalRawGainAbs);
+      stGain = stGain.sub(allowableTotal.mul(stProportion));
+      ltGain = ltGain.sub(allowableTotal.mul(ltProportion));
+    } else if (allowableTotal.greaterThan(0)) {
+      // All disposals have zero gain — apply all charges to ST by default
+      stGain = stGain.sub(allowableTotal);
+    }
+
+    // CR: Investment account at cost basis (FIFO — reduces inventory)
     lines.push(
       makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', {
         security_id: event.security_id,
@@ -307,25 +412,47 @@ export function buildSellVoucher(
       }),
     );
 
-    // CR or DR: Gain / Loss
-    if (netGainLoss.greaterThanOrEqualTo(0)) {
+    // Book ST capital gain/loss
+    if (!stGain.isZero()) {
+      if (stGain.greaterThan(0)) {
+        lines.push(
+          makeLine(draftId, lineNo++, 'Short Term Capital Gain', stGain, 'CR'),
+        );
+      } else {
+        lines.push(
+          makeLine(draftId, lineNo++, 'Short Term Capital Loss', stGain.abs(), 'DR'),
+        );
+      }
+    }
+
+    // Book LT capital gain/loss
+    if (!ltGain.isZero()) {
+      if (ltGain.greaterThan(0)) {
+        lines.push(
+          makeLine(draftId, lineNo++, 'Long Term Capital Gain', ltGain, 'CR'),
+        );
+      } else {
+        lines.push(
+          makeLine(draftId, lineNo++, 'Long Term Capital Loss', ltGain.abs(), 'DR'),
+        );
+      }
+    }
+
+    // If both ST and LT gains are zero (exact break-even after charges), add a zero-value line
+    if (stGain.isZero() && ltGain.isZero()) {
       lines.push(
-        makeLine(draftId, lineNo++, 'Profit on Sale of Investments', netGainLoss, 'CR'),
-      );
-    } else {
-      lines.push(
-        makeLine(draftId, lineNo++, 'Loss on Sale of Investments', netGainLoss.abs(), 'DR'),
+        makeLine(draftId, lineNo++, 'Short Term Capital Gain', new Decimal(0), 'CR'),
       );
     }
   } else {
-    // Trader mode
+    // Trader mode — all charges are fully deductible expenses (STT non-deductible but still recorded)
     const stockLedger = resolveLedger('Shares-in-Trade - {script}', symbol);
 
     // DR: Zerodha Broking for net sale proceeds
     const netProceeds = grossAmount.sub(totalCharges);
     lines.push(makeLine(draftId, lineNo++, 'Zerodha Broking', netProceeds, 'DR'));
 
-    // DR: charge ledgers
+    // DR: charge ledgers (all charges flow through — both allowable and STT)
     for (const ce of chargeEvents) {
       const chargeLedger =
         CHARGE_LEDGER_NAMES[ce.event_type] ?? 'Miscellaneous Charges';
@@ -511,16 +638,18 @@ export function buildVouchers(
         const chargeEvents = chargeIndex.get(chargeKey) ?? [];
         chargeEvents.forEach((ce) => handledChargeIds.add(ce.event_id));
 
-        // Compute total capitalised cost if applicable
+        // Compute total capitalised cost if applicable.
+        // For investors: STT is NEVER capitalised — only allowable charges are.
         let additionalCost: string | undefined;
         if (shouldCapitalizeBuyCharges(profile) && chargeEvents.length > 0) {
-          const totalCharges = chargeEvents
+          const { allowableCharges: capCharges } = partitionCharges(chargeEvents, profile);
+          const totalCapitalised = capCharges
             .reduce(
               (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
               new Decimal(0),
             )
             .toFixed(2);
-          additionalCost = totalCharges;
+          additionalCost = totalCapitalised;
         }
 
         // Add lot to the tracker before building the voucher
@@ -552,6 +681,7 @@ export function buildVouchers(
               unit_cost: '0',
               total_cost: '0',
               gain_or_loss: new Decimal(event.gross_amount).toFixed(2),
+              acquisition_date: event.event_date, // fallback: same-day (short-term)
             },
           ];
         }

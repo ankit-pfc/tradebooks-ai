@@ -6,6 +6,40 @@
  */
 
 /**
+ * Classification of a trade based on the broker product marker (CNC, MIS, NRML, MTF)
+ * and the instrument/exchange context.
+ *
+ * Drives the accounting treatment:
+ * - DELIVERY → Investment (capital gains regime)
+ * - INTRADAY → Speculative business income
+ * - FNO → Non-speculative business income
+ * - COMMODITY → Non-speculative business income (always, regardless of intraday/positional)
+ */
+export enum TradeCategory {
+  /** CNC / MTF delivery trades — treated as investment */
+  DELIVERY = 'DELIVERY',
+  /** MIS equity intraday — speculative business income */
+  INTRADAY = 'INTRADAY',
+  /** NRML F&O or any F&O segment — non-speculative business income */
+  FNO = 'FNO',
+  /** MCX commodity trades — always non-speculative business income */
+  COMMODITY = 'COMMODITY',
+}
+
+/**
+ * Tax income category derived from TradeCategory.
+ * Used for ledger naming and ITR classification.
+ */
+export enum IncomeCategory {
+  /** Capital gains — STCG or LTCG based on holding period */
+  CAPITAL_GAINS = 'CAPITAL_GAINS',
+  /** Speculative business income (intraday equity) */
+  SPECULATIVE_BUSINESS = 'SPECULATIVE_BUSINESS',
+  /** Non-speculative business income (F&O, commodity) */
+  NON_SPECULATIVE_BUSINESS = 'NON_SPECULATIVE_BUSINESS',
+}
+
+/**
  * Exhaustive set of event categories that the engine can produce from broker data.
  * Trade events carry security/quantity; charge events carry charge_type/charge_amount.
  */
@@ -60,6 +94,11 @@ export interface CanonicalEvent {
   import_batch_id: string;
   /** Categorised event kind driving accounting treatment. */
   event_type: EventType;
+  /**
+   * Trade classification derived from broker product marker + segment/exchange.
+   * Null for non-trade events (charges, bank movements, dividends).
+   */
+  trade_category: TradeCategory | null;
   /** Trade / transaction date in ISO-8601 format ("YYYY-MM-DD"). */
   event_date: string;
   /** Settlement date in ISO-8601 format; may equal event_date for intraday. */

@@ -32,6 +32,8 @@ export interface CostDisposal {
    * Positive = gain, negative = loss.
    */
   gain_or_loss: string;
+  /** Acquisition date of the lot (YYYY-MM-DD). Used for STCG/LTCG classification. */
+  acquisition_date: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -217,6 +219,7 @@ export class CostLotTracker {
         unit_cost: unitCost.toFixed(6),
         total_cost: totalCost.toFixed(2),
         gain_or_loss: gainOrLoss.toFixed(2),
+        acquisition_date: lot.acquisition_date,
       });
 
       // Reduce open quantity on the lot
@@ -285,6 +288,10 @@ export class CostLotTracker {
       openLots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0)),
     );
 
+    // For weighted average, use the earliest open lot's acquisition date
+    // (conservative approach for STCG/LTCG classification)
+    const earliestDate = openLots.length > 0 ? openLots[0].acquisition_date : '';
+
     // Return a single aggregated disposal record
     const disposal: CostDisposal = {
       lot_id: 'WEIGHTED_AVERAGE',
@@ -292,6 +299,7 @@ export class CostLotTracker {
       unit_cost: weightedUnitCost.toFixed(6),
       total_cost: costForSell.toFixed(2),
       gain_or_loss: gainOrLoss.toFixed(2),
+      acquisition_date: earliestDate,
     };
 
     return [disposal];

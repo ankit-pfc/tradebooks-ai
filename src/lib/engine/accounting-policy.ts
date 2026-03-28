@@ -157,21 +157,41 @@ export function getDefaultLedgerMappings(
   // -------------------------------------------------------------------------
   const gainLossMappings: LedgerMapping[] = isInvestor
     ? [
+        // Short-term capital gains (holding < 12 months)
         {
-          ledger_mapping_id: `${profileId}::PROFIT_ON_SALE`,
+          ledger_mapping_id: `${profileId}::STCG_PROFIT`,
           accounting_profile_id: profileId,
           event_type: EventType.SELL_TRADE,
-          tally_ledger_name: 'Profit on Sale of Investments',
-          tally_group_name: 'Indirect Income',
+          tally_ledger_name: 'Short Term Capital Gain',
+          tally_group_name: 'Capital Account',
           debit_credit_rule: 'CR',
           script_level_flag: false,
         },
         {
-          ledger_mapping_id: `${profileId}::LOSS_ON_SALE`,
+          ledger_mapping_id: `${profileId}::STCG_LOSS`,
           accounting_profile_id: profileId,
           event_type: EventType.SELL_TRADE,
-          tally_ledger_name: 'Loss on Sale of Investments',
-          tally_group_name: 'Indirect Expenses',
+          tally_ledger_name: 'Short Term Capital Loss',
+          tally_group_name: 'Capital Account',
+          debit_credit_rule: 'DR',
+          script_level_flag: false,
+        },
+        // Long-term capital gains (holding > 12 months)
+        {
+          ledger_mapping_id: `${profileId}::LTCG_PROFIT`,
+          accounting_profile_id: profileId,
+          event_type: EventType.SELL_TRADE,
+          tally_ledger_name: 'Long Term Capital Gain',
+          tally_group_name: 'Capital Account',
+          debit_credit_rule: 'CR',
+          script_level_flag: false,
+        },
+        {
+          ledger_mapping_id: `${profileId}::LTCG_LOSS`,
+          accounting_profile_id: profileId,
+          event_type: EventType.SELL_TRADE,
+          tally_ledger_name: 'Long Term Capital Loss',
+          tally_group_name: 'Capital Account',
           debit_credit_rule: 'DR',
           script_level_flag: false,
         },
@@ -214,8 +234,10 @@ export function getDefaultLedgerMappings(
       ledger_mapping_id: mappingId(profileId, EventType.STT, 'DR'),
       accounting_profile_id: profileId,
       event_type: EventType.STT,
+      // Investor: STT goes to Capital Account (not allowed as expense per IT Act)
+      // Trader: STT is not deductible as business expense
       tally_ledger_name: 'STT',
-      tally_group_name: 'Indirect Expenses',
+      tally_group_name: isInvestor ? 'Capital Account' : 'Indirect Expenses',
       debit_credit_rule: 'DR',
       script_level_flag: false,
     },
