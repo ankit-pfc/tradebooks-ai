@@ -1,0 +1,6 @@
+[build]
+dockerfilePath = "Dockerfile"
+
+[build.args]
+NEXT_PUBLIC_SUPABASE_URL = "${{NEXT_PUBLIC_SUPABASE_URL}}"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "${{NEXT_PUBLIC_SUPABASE_ANON_KEY}}"
