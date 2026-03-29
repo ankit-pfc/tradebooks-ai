@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBatchRepository } from '@/lib/db';
+import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import type { AppExceptionSeverity } from '@/lib/types';
 
 const VALID_SEVERITIES: AppExceptionSeverity[] = ['error', 'warning', 'info'];
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const repo = getBatchRepository();
     const severityParam = request.nextUrl.searchParams.get('severity');
     const allExceptions = await repo.listExceptions();

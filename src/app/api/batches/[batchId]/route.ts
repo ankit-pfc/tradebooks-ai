@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getBatchRepository } from '@/lib/db';
+import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   try {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { batchId } = await params;
     const repo = getBatchRepository();
     const batch = await repo.getBatch(batchId);

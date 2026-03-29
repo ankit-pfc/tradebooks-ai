@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUserId } from "@/lib/supabase/auth-guard";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,11 @@ type OpenAIImageResponse = {
 };
 
 export async function POST(request: NextRequest) {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
         return NextResponse.json({ error: "OPENAI_API_KEY is not configured." }, { status: 500 });
