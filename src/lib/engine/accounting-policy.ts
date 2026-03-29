@@ -14,8 +14,10 @@ import {
   CostBasisMethod,
   type AccountingProfile,
   type LedgerMapping,
+  type TallyProfile,
 } from '../types/accounting';
 import { EventType } from '../types/events';
+import * as L from '../constants/ledger-names';
 
 // ---------------------------------------------------------------------------
 // Default profiles
@@ -342,4 +344,210 @@ export function getDefaultLedgerMappings(
     ...bankMappings,
     ...dividendMappings,
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Default TallyProfiles
+// ---------------------------------------------------------------------------
+
+/**
+ * Default TallyProfile for individual investors (ITR-2 filing).
+ *
+ * Capital gains, dividends, STT, brokerage, and DP charges are placed under
+ * Capital Account — matching how Indian CAs actually structure Tally for
+ * individual investors. This is NOT the P&L approach; it's the Schedule CG
+ * approach used in ITR-2.
+ *
+ * Per-scrip ledgers: each security gets its own STCG/LTCG/dividend ledger.
+ * Charges are consolidated from 8 types to ~4 ledgers.
+ */
+export const INVESTOR_TALLY_DEFAULT: TallyProfile = {
+  id: 'investor-tally-default',
+  name: 'Individual Investor — Capital Account Approach',
+
+  broker: L.CA_BROKER,
+  bank: L.BANK,
+
+  investment: {
+    template: '{symbol}-SH',
+    group: L.CA_ZERODHA_INVESTMENT_GROUP,
+    parentGroup: L.INVESTMENT_GROUP,
+  },
+  stcg: {
+    template: 'STCG ON {symbol}',
+    group: L.CA_STCG_GROUP,
+    parentGroup: L.CA_PARENT_GROUP,
+  },
+  ltcg: {
+    template: 'LTCG ON {symbol}',
+    group: L.CA_LTCG_GROUP,
+    parentGroup: L.CA_PARENT_GROUP,
+  },
+  stcl: {
+    template: 'STCL ON {symbol}',
+    group: L.CA_STCL_GROUP,
+    parentGroup: L.CA_PARENT_GROUP,
+  },
+  ltcl: {
+    template: 'LTCL ON {symbol}',
+    group: L.CA_LTCL_GROUP,
+    parentGroup: L.CA_PARENT_GROUP,
+  },
+  dividend: {
+    template: 'DIV {symbol}',
+    group: L.CA_DIVIDEND_GROUP,
+    parentGroup: L.CA_PARENT_GROUP,
+  },
+
+  speculationGain: L.CA_SPECULATION_GAIN,
+  speculationLoss: L.CA_SPECULATION_LOSS,
+
+  chargeConsolidation: [
+    {
+      eventTypes: [EventType.BROKERAGE],
+      ledgerName: L.CA_BROKERAGE.name,
+      groupName: L.CA_BROKERAGE.group,
+    },
+    {
+      eventTypes: [EventType.STT],
+      ledgerName: L.CA_STT.name,
+      groupName: L.CA_STT.group,
+    },
+    {
+      eventTypes: [
+        EventType.EXCHANGE_CHARGE,
+        EventType.SEBI_CHARGE,
+      ],
+      ledgerName: L.CA_EXCHANGE_AND_OTHER.name,
+      groupName: L.CA_EXCHANGE_AND_OTHER.group,
+    },
+    {
+      eventTypes: [EventType.GST_ON_CHARGES],
+      ledgerName: L.GST_ON_CHARGES.name,
+      groupName: L.GST_ON_CHARGES.group,
+    },
+    {
+      eventTypes: [EventType.STAMP_DUTY],
+      ledgerName: L.STAMP_DUTY.name,
+      groupName: L.STAMP_DUTY.group,
+    },
+    {
+      eventTypes: [EventType.DP_CHARGE],
+      ledgerName: L.CA_DP_CHARGES.name,
+      groupName: L.CA_DP_CHARGES.group,
+    },
+  ],
+
+  tdsOnDividend: L.TDS_ON_DIVIDEND,
+  tdsOnSecurities: L.TDS_ON_SECURITIES,
+
+  customGroups: [...L.CA_CUSTOM_GROUPS],
+
+  perScripCapitalGains: true,
+  perScripDividends: true,
+};
+
+/**
+ * Default TallyProfile for traders (ITR-3, business income).
+ * Keeps the P&L-centric approach with charges under Indirect Expenses.
+ * Capital gains are not per-scrip (single ledger for profit/loss on sale).
+ */
+export const TRADER_TALLY_DEFAULT: TallyProfile = {
+  id: 'trader-tally-default',
+  name: 'Active Trader — P&L Approach',
+
+  broker: L.BROKER,
+  bank: L.BANK,
+
+  investment: {
+    template: 'Shares-in-Trade - {symbol}',
+    group: L.STOCK_IN_TRADE_GROUP,
+  },
+  stcg: {
+    template: L.STCG_PROFIT.name,
+    group: L.STCG_PROFIT.group,
+  },
+  ltcg: {
+    template: L.LTCG_PROFIT.name,
+    group: L.LTCG_PROFIT.group,
+  },
+  stcl: {
+    template: L.STCG_LOSS.name,
+    group: L.STCG_LOSS.group,
+  },
+  ltcl: {
+    template: L.LTCG_LOSS.name,
+    group: L.LTCG_LOSS.group,
+  },
+  dividend: {
+    template: L.DIVIDEND_INCOME.name,
+    group: L.DIVIDEND_INCOME.group,
+  },
+
+  speculationGain: L.SPECULATIVE_PROFIT,
+  speculationLoss: L.SPECULATIVE_LOSS,
+
+  chargeConsolidation: [
+    { eventTypes: [EventType.BROKERAGE], ledgerName: L.BROKERAGE.name, groupName: L.BROKERAGE.group },
+    { eventTypes: [EventType.STT], ledgerName: L.STT.name, groupName: L.STT.group },
+    { eventTypes: [EventType.EXCHANGE_CHARGE], ledgerName: L.EXCHANGE_CHARGES.name, groupName: L.EXCHANGE_CHARGES.group },
+    { eventTypes: [EventType.SEBI_CHARGE], ledgerName: L.SEBI_CHARGES.name, groupName: L.SEBI_CHARGES.group },
+    { eventTypes: [EventType.GST_ON_CHARGES], ledgerName: L.GST_ON_CHARGES.name, groupName: L.GST_ON_CHARGES.group },
+    { eventTypes: [EventType.STAMP_DUTY], ledgerName: L.STAMP_DUTY.name, groupName: L.STAMP_DUTY.group },
+    { eventTypes: [EventType.DP_CHARGE], ledgerName: L.DP_CHARGES.name, groupName: L.DP_CHARGES.group },
+  ],
+
+  tdsOnDividend: L.TDS_ON_DIVIDEND,
+  tdsOnSecurities: L.TDS_ON_SECURITIES,
+
+  customGroups: [],
+
+  perScripCapitalGains: false,
+  perScripDividends: false,
+};
+
+/**
+ * Get the default TallyProfile for a given accounting mode.
+ */
+export function getDefaultTallyProfile(mode: AccountingMode): TallyProfile {
+  return mode === AccountingMode.INVESTOR
+    ? INVESTOR_TALLY_DEFAULT
+    : TRADER_TALLY_DEFAULT;
+}
+
+/**
+ * Derive Indian FY label from period dates.
+ * Indian FY runs April 1 to March 31.
+ * Example: "2024-04-01" to "2025-03-31" → "2024-25"
+ *
+ * Falls back to "{startYear}-{endYear}" for non-standard periods.
+ */
+export function deriveFYLabel(periodFrom: string, periodTo: string): string {
+  if (!periodFrom || !periodTo) return '';
+  const startYear = parseInt(periodFrom.slice(0, 4), 10);
+  const endYear = parseInt(periodTo.slice(0, 4), 10);
+  if (isNaN(startYear) || isNaN(endYear)) return '';
+  const endShort = String(endYear).slice(-2);
+  return `${startYear}-${endShort}`;
+}
+
+/**
+ * Build an AccountingProfile from user settings, merging with defaults.
+ */
+export function buildProfileFromSettings(settings: {
+  accounting_mode: 'INVESTOR' | 'TRADER';
+  cost_basis_method: 'FIFO' | 'WEIGHTED_AVERAGE';
+  charge_treatment: 'CAPITALIZE' | 'EXPENSE' | 'HYBRID';
+  voucher_granularity: 'TRADE_LEVEL' | 'CONTRACT_NOTE_LEVEL' | 'DAILY_SUMMARY_BY_SCRIPT' | 'DAILY_SUMMARY_POOLED';
+  ledger_strategy: 'SCRIPT_LEVEL' | 'POOLED';
+}): AccountingProfile {
+  const base = settings.accounting_mode === 'INVESTOR' ? INVESTOR_DEFAULT : TRADER_DEFAULT;
+  return {
+    ...base,
+    mode: settings.accounting_mode === 'INVESTOR' ? AccountingMode.INVESTOR : AccountingMode.TRADER,
+    cost_basis_method: CostBasisMethod[settings.cost_basis_method],
+    charge_treatment: ChargeTreatment[settings.charge_treatment],
+    voucher_granularity: VoucherGranularity[settings.voucher_granularity],
+    ledger_strategy: LedgerStrategy[settings.ledger_strategy],
+  };
 }

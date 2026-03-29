@@ -24,6 +24,10 @@ export type ZerodhaFileType =
   | 'funds_statement'
   | 'holdings'
   | 'contract_note'
+  | 'taxpnl'
+  | 'agts'
+  | 'ledger'
+  | 'dividends'
   | 'unknown';
 
 // ---------------------------------------------------------------------------
@@ -44,14 +48,24 @@ const FINGERPRINTS: Array<{ type: ZerodhaFileType; headers: string[] }> = [
   },
   {
     type: 'holdings',
-    // "qty." and "avg. cost" are distinctive — no other Zerodha report uses them
-    headers: ['qty.', 'avg. cost', 'cur. val', 'ltp'],
+    // Actual XLSX format uses these columns
+    headers: ['quantity available', 'average price', 'previous closing price'],
   },
   {
     type: 'contract_note',
     // Contract notes typically include these columns; the set is conservative
     // because the format varies between equity and F&O notes.
     headers: ['trade no', 'order no', 'brokerage'],
+  },
+  {
+    type: 'taxpnl',
+    // "taxable profit" and "period of holding" are unique to the Tax P&L report
+    headers: ['taxable profit', 'period of holding'],
+  },
+  {
+    type: 'agts',
+    // The combination of buy/sell quantity + value columns is unique to AGTS
+    headers: ['buy quantity', 'buy value', 'sell quantity', 'sell value'],
   },
 ];
 
@@ -64,6 +78,10 @@ const FILENAME_PATTERNS: Array<{ type: ZerodhaFileType; pattern: RegExp }> = [
   { type: 'funds_statement', pattern: /fund[s_\s-]*statement/i },
   { type: 'holdings', pattern: /holding/i },
   { type: 'contract_note', pattern: /contract[_\s-]*note/i },
+  { type: 'taxpnl', pattern: /tax[_\s-]*p[&]?n[&]?l/i },
+  { type: 'agts', pattern: /agts/i },
+  { type: 'ledger', pattern: /ledger/i },
+  { type: 'dividends', pattern: /dividend/i },
 ];
 
 function detectFromFilename(fileName: string): ZerodhaFileType | null {
@@ -110,19 +128,27 @@ function extractHeaderCandidates(buffer: Buffer, isXlsx: boolean): Set<string> {
         cellDates: false,
         sheetRows: MAX_SCAN_ROWS,
       });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      if (!firstSheet) return candidates;
 
-      const rows: unknown[][] = XLSX.utils.sheet_to_json(firstSheet, {
-        header: 1,
-        defval: '',
-        blankrows: false,
-      });
+      // Scan up to 3 sheets to catch multi-sheet files like taxpnl
+      const sheetsToScan = workbook.SheetNames.slice(0, 3);
+      for (const sheetName of sheetsToScan) {
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) continue;
 
-      for (const row of rows) {
-        for (const cell of row as unknown[]) {
-          const str = String(cell ?? '').trim().toLowerCase();
-          if (str) candidates.add(str);
+        // Also add sheet names as candidates (useful for taxpnl detection)
+        candidates.add(sheetName.trim().toLowerCase());
+
+        const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          defval: '',
+          blankrows: false,
+        });
+
+        for (const row of rows) {
+          for (const cell of row as unknown[]) {
+            const str = String(cell ?? '').trim().toLowerCase();
+            if (str) candidates.add(str);
+          }
         }
       }
     } else {

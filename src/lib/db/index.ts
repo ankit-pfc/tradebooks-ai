@@ -4,9 +4,12 @@ import {
     createBatch,
     getArtifactPath,
     getBatch,
+    getClosingLots as localGetClosingLots,
     getUploadedFilePath,
     listBatches,
     listExceptions,
+    listPriorBatches as localListPriorBatches,
+    saveClosingLots as localSaveClosingLots,
     saveExportArtifacts,
     saveProcessingOutcome,
     setBatchStatus,
@@ -16,6 +19,12 @@ import type {
     BatchRepository,
     SaveProcessingOutputInput,
 } from '@/lib/db/repository';
+import { supabaseBatchRepository } from '@/lib/db/supabase-store';
+import type { SettingsRepository } from '@/lib/db/settings-repository';
+import {
+    localSettingsRepository,
+    supabaseSettingsRepository,
+} from '@/lib/db/settings-repository';
 
 const LOCAL_RECENT_BATCHES_LIMIT = 10;
 
@@ -62,6 +71,18 @@ const localBatchRepository: BatchRepository = {
         return listExceptions();
     },
 
+    async saveClosingLots(batchId, snapshot) {
+        await localSaveClosingLots(batchId, snapshot);
+    },
+
+    async getClosingLots(batchId) {
+        return localGetClosingLots(batchId);
+    },
+
+    async listPriorBatches(userId, companyName) {
+        return localListPriorBatches(userId, companyName);
+    },
+
     async buildDashboardSummary(): Promise<DashboardResponse> {
         const batches = await listBatches();
         const exceptions = await listExceptions();
@@ -99,9 +120,19 @@ const localBatchRepository: BatchRepository = {
 /**
  * Composition boundary for repository selection.
  *
- * Default is local adapter for local-first development.
- * Future phases can branch this by env/config to return a Supabase adapter.
+ * Returns the Supabase adapter when NEXT_PUBLIC_SUPABASE_URL is set,
+ * otherwise falls back to the local file-based adapter.
  */
 export function getBatchRepository(): BatchRepository {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        return supabaseBatchRepository;
+    }
     return localBatchRepository;
+}
+
+export function getSettingsRepository(): SettingsRepository {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        return supabaseSettingsRepository;
+    }
+    return localSettingsRepository;
 }

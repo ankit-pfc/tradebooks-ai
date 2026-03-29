@@ -28,6 +28,13 @@ export interface LedgerMasterInput {
   affects_stock?: boolean;
 }
 
+export interface GroupMasterInput {
+  /** Tally group name to create. */
+  name: string;
+  /** Parent group in the Tally group hierarchy. */
+  parent: string;
+}
+
 /**
  * VoucherDraft augmented with its resolved line items.
  * The core VoucherDraft type intentionally omits lines (they live in a
@@ -128,8 +135,36 @@ function buildEnvelope(reportName: string, companyName: string) {
 export function generateMastersXml(
   ledgerNames: LedgerMasterInput[],
   companyName: string,
+  groups?: GroupMasterInput[],
 ): string {
   const { root, requestData } = buildEnvelope('All Masters', companyName);
+
+  // Emit GROUP masters first — TallyPrime requires parent groups to exist
+  // before child ledgers that reference them.
+  if (groups && groups.length > 0) {
+    for (const group of groups) {
+      const msg = requestData.ele('TALLYMESSAGE', {
+        'xmlns:UDF': 'TallyUDF',
+      });
+
+      const groupEle = msg.ele('GROUP', {
+        NAME: group.name,
+        RESERVEDNAME: '',
+        ACTION: 'Create',
+      });
+
+      groupEle
+        .ele('NAME.LIST')
+        .ele('NAME')
+        .txt(group.name);
+
+      groupEle.ele('PARENT').txt(group.parent);
+
+      const langList = groupEle.ele('LANGUAGENAME.LIST');
+      langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(group.name);
+      langList.ele('LANGUAGEID').txt(' 1033');
+    }
+  }
 
   for (const ledger of ledgerNames) {
     const msg = requestData.ele('TALLYMESSAGE', {
@@ -138,6 +173,7 @@ export function generateMastersXml(
 
     const ledgerEle = msg.ele('LEDGER', {
       NAME: ledger.name,
+      RESERVEDNAME: '',
       ACTION: 'Create',
     });
 
@@ -148,9 +184,15 @@ export function generateMastersXml(
 
     ledgerEle.ele('PARENT').txt(ledger.parent_group);
     ledgerEle.ele('ISBILLWISEON').txt('No');
+    ledgerEle.ele('ISCOSTCENTRESON').txt('No');
     ledgerEle
       .ele('AFFECTSSTOCK')
       .txt(ledger.affects_stock === true ? 'Yes' : 'No');
+    ledgerEle.ele('COUNTRYOFRESIDENCE').txt('India');
+
+    const langList = ledgerEle.ele('LANGUAGENAME.LIST');
+    langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(ledger.name);
+    langList.ele('LANGUAGEID').txt(' 1033');
   }
 
   return root.end({ prettyPrint: true });
@@ -187,9 +229,12 @@ export function generateVouchersXml(
     const voucherEle = msg.ele('VOUCHER', {
       VCHTYPE: tallyVchType,
       ACTION: 'Create',
+      OBJVIEW: 'Accounting Voucher View',
     });
 
-    voucherEle.ele('DATE').txt(toTallyDate(voucher.voucher_date));
+    const tallyDate = toTallyDate(voucher.voucher_date);
+    voucherEle.ele('DATE').txt(tallyDate);
+    voucherEle.ele('EFFECTIVEDATE').txt(tallyDate);
 
     if (voucher.narrative) {
       voucherEle.ele('NARRATION').txt(voucher.narrative);
@@ -206,11 +251,23 @@ export function generateVouchersXml(
       (a, b) => a.line_no - b.line_no,
     );
 
+    // The first line is the party ledger (broker/bank account).
+    const partyLedgerName = sortedLines[0]?.ledger_name ?? '';
+    if (partyLedgerName) {
+      voucherEle.ele('PARTYLEDGERNAME').txt(partyLedgerName);
+    }
+
     for (const line of sortedLines) {
       const entry = voucherEle.ele('ALLLEDGERENTRIES.LIST');
 
       entry.ele('LEDGERNAME').txt(line.ledger_name);
       entry.ele('ISDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
+      entry.ele('ISLASTDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
+      entry.ele('ISPARTYLEDGER').txt(
+        line.ledger_name === partyLedgerName ? 'Yes' : 'No',
+      );
+      entry.ele('LEDGERFROMITEM').txt('No');
+      entry.ele('REMOVEZEROENTRIES').txt('No');
       entry
         .ele('AMOUNT')
         .txt(tallyAmount(line.amount, line.dr_cr));
@@ -277,9 +334,10 @@ export function generateFullExport(
   vouchers: VoucherDraftWithLines[],
   ledgers: LedgerMasterInput[],
   companyName: string,
+  groups?: GroupMasterInput[],
 ): FullExportResult {
   return {
-    mastersXml: generateMastersXml(ledgers, companyName),
+    mastersXml: generateMastersXml(ledgers, companyName, groups),
     transactionsXml: generateVouchersXml(vouchers, companyName),
   };
 }

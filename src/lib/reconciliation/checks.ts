@@ -7,6 +7,8 @@
 import Decimal from 'decimal.js';
 import { CanonicalEvent, EventType } from '../types/events';
 import { VoucherDraft } from '../types/vouchers';
+import type { ZerodhaContractNoteCharges, ZerodhaDividendRow } from '../parsers/zerodha/types';
+import type { TradeMatchResult } from '../engine/trade-matcher';
 
 // ---------------------------------------------------------------------------
 // Local types (mirrors the shapes described in the reconciliation spec)
@@ -457,6 +459,235 @@ export function checkChargeCompleteness(events: CanonicalEvent[]): Reconciliatio
 }
 
 // ---------------------------------------------------------------------------
+// Contract-note–specific checks
+// ---------------------------------------------------------------------------
+
+/**
+ * checkContractNoteChargeReconciliation
+ *
+ * For each charge type, sums the allocated per-trade charge events and
+ * verifies they match the aggregate charge from the contract note.
+ * Catches rounding or allocation bugs.
+ */
+export function checkContractNoteChargeReconciliation(
+  events: CanonicalEvent[],
+  contractNoteCharges: ZerodhaContractNoteCharges[],
+): ReconciliationCheck {
+  const CHECK_NAME = 'CN_CHARGE_RECONCILIATION';
+
+  if (contractNoteCharges.length === 0) {
+    return {
+      check_name: CHECK_NAME,
+      status: 'PASSED',
+      expected: '0',
+      actual: '0',
+      difference: '0',
+      details: 'No contract note charges to reconcile.',
+    };
+  }
+
+  // Sum aggregate charges from all contract notes
+  const aggregateByType = new Map<string, Decimal>();
+  for (const cn of contractNoteCharges) {
+    // Combine exchange_charges + clearing_charges since CLEARING_CHARGE events
+    // are normalised to EXCHANGE_CHARGE in the event stream.
+    const exchangeTotal = new Decimal(cn.exchange_charges || '0')
+      .add(new Decimal(cn.clearing_charges || '0')).toFixed(2);
+
+    const pairs: Array<[string, string]> = [
+      ['STT', cn.stt],
+      ['EXCHANGE_CHARGE', exchangeTotal],
+      ['SEBI_CHARGE', cn.sebi_fees],
+      ['STAMP_DUTY', cn.stamp_duty],
+    ];
+    for (const [type, val] of pairs) {
+      const prev = aggregateByType.get(type) ?? new Decimal(0);
+      aggregateByType.set(type, prev.add(new Decimal(val || '0')));
+    }
+    // GST: sum all three components
+    const gst = new Decimal(cn.cgst || '0').add(new Decimal(cn.sgst || '0')).add(new Decimal(cn.igst || '0'));
+    const prevGst = aggregateByType.get('GST_ON_CHARGES') ?? new Decimal(0);
+    aggregateByType.set('GST_ON_CHARGES', prevGst.add(gst));
+  }
+
+  // Sum charge events from canonical events
+  const eventByType = new Map<string, Decimal>();
+  for (const e of events) {
+    if (e.charge_type && e.contract_note_ref) {
+      // Normalize clearing charges into exchange charges
+      const type = e.charge_type === 'CLEARING_CHARGE' ? 'EXCHANGE_CHARGE' : e.charge_type;
+      const prev = eventByType.get(type) ?? new Decimal(0);
+      eventByType.set(type, prev.add(new Decimal(e.charge_amount)));
+    }
+  }
+
+  const mismatches: string[] = [];
+  let totalDiff = new Decimal(0);
+
+  for (const [type, expected] of aggregateByType.entries()) {
+    const actual = eventByType.get(type) ?? new Decimal(0);
+    const diff = expected.sub(actual).abs();
+    // Allow 0.02 tolerance per charge type for rounding
+    if (diff.gt(new Decimal('0.02'))) {
+      mismatches.push(`${type}: expected ${expected.toFixed(2)}, got ${actual.toFixed(2)} (diff ${diff.toFixed(2)})`);
+      totalDiff = totalDiff.add(diff);
+    }
+  }
+
+  if (mismatches.length === 0) {
+    return {
+      check_name: CHECK_NAME,
+      status: 'PASSED',
+      expected: String(aggregateByType.size),
+      actual: String(aggregateByType.size),
+      difference: '0',
+      details: `All charge types reconcile between contract notes and allocated events.`,
+    };
+  }
+
+  return {
+    check_name: CHECK_NAME,
+    status: 'FAILED',
+    expected: String(aggregateByType.size),
+    actual: String(aggregateByType.size - mismatches.length),
+    difference: totalDiff.toFixed(2),
+    details: `Charge mismatch: ${mismatches.join('; ')}.`,
+  };
+}
+
+/**
+ * checkTradeMatch
+ *
+ * Reports how many tradebook trades were matched to contract-note trades.
+ * PASSED if 100%, WARNING if ≥90%, FAILED if <90%.
+ */
+export function checkTradeMatch(matchResult: TradeMatchResult): ReconciliationCheck {
+  const CHECK_NAME = 'TRADE_MATCH';
+
+  const total =
+    matchResult.matched.length +
+    matchResult.unmatchedTradebook.length +
+    matchResult.unmatchedContractNote.length;
+
+  if (total === 0) {
+    return {
+      check_name: CHECK_NAME,
+      status: 'PASSED',
+      expected: '0',
+      actual: '0',
+      difference: '0',
+      details: 'No trades to match.',
+    };
+  }
+
+  const matchRate = matchResult.matched.length / Math.max(
+    matchResult.matched.length + matchResult.unmatchedTradebook.length,
+    1,
+  );
+
+  const status: 'PASSED' | 'WARNING' | 'FAILED' =
+    matchRate >= 1.0 ? 'PASSED' : matchRate >= 0.9 ? 'WARNING' : 'FAILED';
+
+  return {
+    check_name: CHECK_NAME,
+    status,
+    expected: String(matchResult.matched.length + matchResult.unmatchedTradebook.length),
+    actual: String(matchResult.matched.length),
+    difference: String(matchResult.unmatchedTradebook.length),
+    details:
+      `${matchResult.matched.length} trades matched ` +
+      `(${(matchRate * 100).toFixed(1)}% match rate). ` +
+      `${matchResult.unmatchedTradebook.length} tradebook trade(s) unmatched, ` +
+      `${matchResult.unmatchedContractNote.length} contract note trade(s) unmatched.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Dividend TDS reconciliation
+// ---------------------------------------------------------------------------
+
+/**
+ * checkDividendTdsReconciliation
+ *
+ * Compares gross dividend and TDS amounts computed by the event pipeline
+ * against the raw dividend rows from the parser.
+ *
+ * Gross from events = sum of DIVIDEND events' gross_amount.
+ * TDS from events   = sum of TDS_ON_DIVIDEND events' charge_amount.
+ * Raw gross          = sum of (quantity × dividend_per_share) across raw rows.
+ * Raw TDS            = raw gross − sum of net_dividend_amount.
+ *
+ * PASSED if both match; WARNING if mismatch ≤ 1%; FAILED otherwise.
+ */
+export function checkDividendTdsReconciliation(
+  events: CanonicalEvent[],
+  rawDividendRows: ZerodhaDividendRow[],
+): ReconciliationCheck {
+  const CHECK_NAME = 'DIVIDEND_TDS_RECONCILIATION';
+
+  if (rawDividendRows.length === 0) {
+    return {
+      check_name: CHECK_NAME,
+      status: 'PASSED',
+      expected: '0',
+      actual: '0',
+      difference: '0',
+      details: 'No dividend rows to reconcile.',
+    };
+  }
+
+  // Sum from canonical events
+  const eventGrossTotal = events
+    .filter((e) => e.event_type === EventType.DIVIDEND)
+    .reduce((acc, e) => acc.add(new Decimal(e.gross_amount)), new Decimal(0));
+
+  const eventTdsTotal = events
+    .filter((e) => e.event_type === EventType.TDS_ON_DIVIDEND)
+    .reduce((acc, e) => acc.add(new Decimal(e.charge_amount)), new Decimal(0));
+
+  // Sum from raw rows
+  let rawGrossTotal = new Decimal(0);
+  let rawNetTotal = new Decimal(0);
+  for (const row of rawDividendRows) {
+    const qty = new Decimal(row.quantity);
+    const dps = new Decimal(row.dividend_per_share);
+    rawGrossTotal = rawGrossTotal.add(qty.mul(dps));
+    rawNetTotal = rawNetTotal.add(new Decimal(row.net_dividend_amount));
+  }
+  const rawTdsTotal = rawGrossTotal.sub(rawNetTotal);
+
+  const grossDiff = eventGrossTotal.sub(rawGrossTotal).abs();
+  const tdsDiff = eventTdsTotal.sub(rawTdsTotal).abs();
+
+  if (grossDiff.isZero() && tdsDiff.isZero()) {
+    return {
+      check_name: CHECK_NAME,
+      status: 'PASSED',
+      expected: `gross=${rawGrossTotal.toFixed(2)}, tds=${rawTdsTotal.toFixed(2)}`,
+      actual: `gross=${eventGrossTotal.toFixed(2)}, tds=${eventTdsTotal.toFixed(2)}`,
+      difference: '0',
+      details: `Dividend gross and TDS totals match across ${rawDividendRows.length} row(s).`,
+    };
+  }
+
+  // Allow small tolerance (rounding)
+  const totalDiff = grossDiff.add(tdsDiff);
+  const grossThreshold = rawGrossTotal.isZero() ? new Decimal('0.01') : rawGrossTotal.mul('0.01');
+  const isWarning = totalDiff.lte(grossThreshold);
+
+  return {
+    check_name: CHECK_NAME,
+    status: isWarning ? 'WARNING' : 'FAILED',
+    expected: `gross=${rawGrossTotal.toFixed(2)}, tds=${rawTdsTotal.toFixed(2)}`,
+    actual: `gross=${eventGrossTotal.toFixed(2)}, tds=${eventTdsTotal.toFixed(2)}`,
+    difference: totalDiff.toFixed(2),
+    details:
+      `Dividend mismatch: gross diff=${grossDiff.toFixed(2)}, ` +
+      `TDS diff=${tdsDiff.toFixed(2)} across ${rawDividendRows.length} row(s).`,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Aggregate runner
 // ---------------------------------------------------------------------------
 
@@ -473,8 +704,19 @@ export function runFullReconciliation(params: {
   vouchers: VoucherDraft[];
   rawTradebookRows?: Record<string, unknown>[];
   holdingsRows?: Record<string, unknown>[];
+  contractNoteCharges?: ZerodhaContractNoteCharges[];
+  tradeMatchResult?: TradeMatchResult;
+  rawDividendRows?: ZerodhaDividendRow[];
 }): ReconciliationResult {
-  const { events, vouchers, rawTradebookRows = [], holdingsRows = [] } = params;
+  const {
+    events,
+    vouchers,
+    rawTradebookRows = [],
+    holdingsRows = [],
+    contractNoteCharges,
+    tradeMatchResult,
+    rawDividendRows,
+  } = params;
 
   const checks: ReconciliationCheck[] = [
     checkTradeTotals(events, rawTradebookRows),
@@ -483,6 +725,17 @@ export function runFullReconciliation(params: {
     checkDuplicateEvents(events),
     checkChargeCompleteness(events),
   ];
+
+  // Contract-note–specific checks (only when CN data is present)
+  if (contractNoteCharges && contractNoteCharges.length > 0) {
+    checks.push(checkContractNoteChargeReconciliation(events, contractNoteCharges));
+  }
+  if (tradeMatchResult) {
+    checks.push(checkTradeMatch(tradeMatchResult));
+  }
+  if (rawDividendRows && rawDividendRows.length > 0) {
+    checks.push(checkDividendTdsReconciliation(events, rawDividendRows));
+  }
 
   const failedChecks = checks.filter((c) => c.status === 'FAILED');
   const warningChecks = checks.filter((c) => c.status === 'WARNING');

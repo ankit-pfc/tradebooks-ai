@@ -1,45 +1,82 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// This function can be marked `async` if using `await` inside
-export function middleware(request: NextRequest) {
-  // Allow all paths in development
-  if (process.env.NODE_ENV === 'development') {
-    return NextResponse.next()
-  }
+/** Paths that never require authentication. */
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/privacy', '/terms'];
 
-  const { pathname } = request.nextUrl
-
-  // Define allowed paths for production (Landing Page only)
-  const isAllowedPath = 
-    pathname === '/' || 
-    pathname.startsWith('/privacy') || 
-    pathname.startsWith('/terms') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.') || 
-    pathname.startsWith('/favicon')
-
-  if (!isAllowedPath) {
-    // Force redirect to landing page in production
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
-  return NextResponse.next()
+function isPublicPath(pathname: string): boolean {
+    return (
+        PUBLIC_PATHS.includes(pathname) ||
+        pathname.startsWith('/_next') ||
+        pathname.startsWith('/api/auth') ||
+        pathname.startsWith('/auth') ||
+        pathname.includes('.') ||
+        pathname.startsWith('/favicon')
+    );
 }
 
-// See "Matching Paths" below to learn more
+export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    // Use SUPABASE_URL (server-only, not inlined by Next.js at build time)
+    // with NEXT_PUBLIC_* as fallback for local dev.
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    // Skip Supabase session refresh if env vars are not configured
+    if (!supabaseUrl || !supabaseAnonKey) {
+        return NextResponse.next();
+    }
+
+    let supabaseResponse = NextResponse.next({ request });
+
+    const supabase = createServerClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll();
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value }) =>
+                        request.cookies.set(name, value),
+                    );
+                    supabaseResponse = NextResponse.next({ request });
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, options),
+                    );
+                },
+            },
+        },
+    );
+
+    // Refresh the session — this keeps the auth cookie alive
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    // Redirect unauthenticated users away from protected routes
+    if (!user && !isPublicPath(pathname)) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/login';
+        url.searchParams.set('redirectTo', pathname);
+        return NextResponse.redirect(url);
+    }
+
+    // Redirect authenticated users away from login/signup
+    if (user && (pathname === '/login' || pathname === '/signup')) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/dashboard';
+        return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+}
+
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
-}
+    matcher: [
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    ],
+};

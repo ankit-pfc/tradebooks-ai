@@ -34,7 +34,7 @@ export default function PrivacyPage() {
                         Your uploaded data is used strictly for parser processing, reconciliation checks,
                         exception reporting, and Tally XML generation.
                     </p>
-                    <div className="rounded-lg border border-[#387ED1]/20 bg-[#387ED1]/10 p-5 text-[#1A1A2E]">
+                    <div className="rounded-lg border border-[#2D9CDB]/20 bg-[#2D9CDB]/10 p-5 text-[#0B1F33]">
                         <strong>Explicit guarantee:</strong> We do not use your financial data to train AI models.
                     </div>
 

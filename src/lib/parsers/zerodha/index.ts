@@ -24,6 +24,22 @@ export type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
   ZerodhaHoldingsRow,
+  ZerodhaMFHoldingsRow,
+  HoldingsParseResult,
+  ZerodhaTaxPnlExitRow,
+  ZerodhaTaxPnlChargeRow,
+  ZerodhaTaxPnlDividendRow,
+  ZerodhaTaxPnlEquitySummaryRow,
+  ZerodhaAgtsRow,
+  TaxPnlParseResult,
+  AgtsParseResult,
+  ZerodhaLedgerRow,
+  LedgerParseResult,
+  ZerodhaContractNoteTradeRow,
+  ZerodhaContractNoteCharges,
+  ContractNoteParseResult,
+  ZerodhaDividendRow,
+  DividendsParseResult,
   ParseMetadata,
 } from './types';
 
@@ -38,7 +54,16 @@ export { parseFundsStatement } from './funds-statement';
 export type { FundsStatementParseResult } from './funds-statement';
 
 export { parseHoldings } from './holdings';
-export type { HoldingsParseResult } from './holdings';
+
+export { parseTaxPnl } from './taxpnl';
+
+export { parseAgts } from './agts';
+
+export { parseLedger } from './ledger';
+
+export { parseContractNotes } from './contract-notes';
+
+export { parseDividends } from './dividends';
 
 // ---------------------------------------------------------------------------
 // Re-export file-type detector
@@ -53,7 +78,13 @@ export type { ZerodhaFileType } from './detect';
 
 import type { TradebookParseResult } from './tradebook';
 import type { FundsStatementParseResult } from './funds-statement';
-import type { HoldingsParseResult } from './holdings';
+import type {
+  HoldingsParseResult,
+  TaxPnlParseResult,
+  AgtsParseResult,
+  LedgerParseResult,
+  ContractNoteParseResult,
+} from './types';
 
 /**
  * Discriminated union returned by `parseZerodhaFile`.
@@ -63,7 +94,11 @@ import type { HoldingsParseResult } from './holdings';
 export type ZerodhaParseResult =
   | { type: 'tradebook'; data: TradebookParseResult }
   | { type: 'funds_statement'; data: FundsStatementParseResult }
-  | { type: 'holdings'; data: HoldingsParseResult };
+  | { type: 'holdings'; data: HoldingsParseResult }
+  | { type: 'taxpnl'; data: TaxPnlParseResult }
+  | { type: 'agts'; data: AgtsParseResult }
+  | { type: 'contract_note'; data: ContractNoteParseResult }
+  | { type: 'ledger'; data: LedgerParseResult };
 
 // ---------------------------------------------------------------------------
 // Main entry point
@@ -73,6 +108,10 @@ import { detectFileType } from './detect';
 import { parseTradebook } from './tradebook';
 import { parseFundsStatement } from './funds-statement';
 import { parseHoldings } from './holdings';
+import { parseTaxPnl } from './taxpnl';
+import { parseAgts } from './agts';
+import { parseContractNotes } from './contract-notes';
+import { parseLedger } from './ledger';
 
 /**
  * Auto-detect the type of a Zerodha file and route it to the correct parser.
@@ -111,17 +150,31 @@ export function parseZerodhaFile(
     case 'holdings':
       return { type: 'holdings', data: parseHoldings(fileBuffer, fileName) };
 
+    case 'taxpnl':
+      return { type: 'taxpnl', data: parseTaxPnl(fileBuffer, fileName) };
+
+    case 'agts':
+      return { type: 'agts', data: parseAgts(fileBuffer, fileName) };
+
     case 'contract_note':
+      return { type: 'contract_note', data: parseContractNotes(fileBuffer, fileName) };
+
+    case 'ledger':
+      return { type: 'ledger', data: parseLedger(fileBuffer, fileName) };
+
+    case 'dividends':
+      // Dividends file is not part of the unified result — parse separately
+      // Falls through to unknown since it's a standalone parser
       throw new Error(
-        `Contract note parsing is not yet implemented. ` +
-          `File "${fileName}" was detected as a contract note.`
+        `Dividends file detected. Use parseDividends() directly. ` +
+          `File "${fileName}" was detected as a standalone dividends file.`
       );
 
     case 'unknown':
       throw new Error(
         `Unable to determine the file type for "${fileName}". ` +
           `Ensure the file is a valid Zerodha tradebook, funds statement, ` +
-          `holdings export, or contract note.`
+          `holdings export, tax P&L, AGTS, ledger, or contract note.`
       );
   }
 }

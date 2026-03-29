@@ -166,6 +166,104 @@ export class CostLotTracker {
   }
 
   // -------------------------------------------------------------------------
+  // adjustLots — corporate actions
+  // -------------------------------------------------------------------------
+
+  /**
+   * Adjust open lots for a corporate action (bonus, split, merger/demerger).
+   *
+   * Mutations happen in place, consistent with disposeLots behaviour.
+   *
+   * @param params.securityId         The security whose lots are adjusted.
+   * @param params.quantityMultiplier Multiply open and original quantity by this factor.
+   * @param params.costDivisor        Divide effective_unit_cost by this factor.
+   *                                  Defaults to quantityMultiplier when omitted.
+   * @param params.newSecurityId      For mergers: transfer lots to a new security_id.
+   * @param params.preserveAcquisitionDate  When true (bonus/split), keep original date.
+   *                                  When false (merger), reset to actionDate if supplied.
+   * @param params.actionDate         Date of the corporate action (used when !preserveAcquisitionDate).
+   */
+  adjustLots(params: {
+    securityId: string;
+    quantityMultiplier: Decimal | string;
+    costDivisor?: Decimal | string;
+    newSecurityId?: string;
+    preserveAcquisitionDate: boolean;
+    actionDate?: string;
+  }): void {
+    const openLots = this.lots.get(params.securityId);
+    if (!openLots || openLots.length === 0) return;
+
+    const multiplier = new Decimal(params.quantityMultiplier);
+    const divisor = params.costDivisor
+      ? new Decimal(params.costDivisor)
+      : multiplier;
+
+    for (const lot of openLots) {
+      const openQty = new Decimal(lot.open_quantity);
+      const origQty = new Decimal(lot.original_quantity);
+      const unitCost = new Decimal(lot.effective_unit_cost);
+
+      lot.open_quantity = openQty.mul(multiplier).toFixed();
+      lot.original_quantity = origQty.mul(multiplier).toFixed();
+      lot.effective_unit_cost = unitCost.div(divisor).toFixed(6);
+
+      if (!params.preserveAcquisitionDate && params.actionDate) {
+        lot.acquisition_date = params.actionDate;
+      }
+    }
+
+    // For merger/demerger: transfer lots from old securityId to new
+    if (params.newSecurityId && params.newSecurityId !== params.securityId) {
+      // Update security_id on each lot
+      for (const lot of openLots) {
+        lot.security_id = params.newSecurityId;
+      }
+      // Move to new key in the map
+      const existingNewLots = this.lots.get(params.newSecurityId) ?? [];
+      this.lots.set(params.newSecurityId, [...existingNewLots, ...openLots]);
+      this.lots.delete(params.securityId);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Serialization
+  // -------------------------------------------------------------------------
+
+  /** Return all open lots across all securities. */
+  getAllOpenLots(): Map<string, CostLot[]> {
+    const result = new Map<string, CostLot[]>();
+    for (const [securityId, lots] of this.lots) {
+      const open = lots.filter((lot) =>
+        new Decimal(lot.open_quantity).greaterThan(0),
+      );
+      if (open.length > 0) {
+        result.set(securityId, open);
+      }
+    }
+    return result;
+  }
+
+  /** Serialize to a plain JSON-safe object for persistence. */
+  toJSON(): { lots: Record<string, CostLot[]> } {
+    const openLots = this.getAllOpenLots();
+    const record: Record<string, CostLot[]> = {};
+    for (const [securityId, lots] of openLots) {
+      record[securityId] = lots;
+    }
+    return { lots: record };
+  }
+
+  /** Reconstruct a CostLotTracker from serialized data. */
+  static fromJSON(data: { lots: Record<string, CostLot[]> }): CostLotTracker {
+    const tracker = new CostLotTracker();
+    for (const [securityId, lots] of Object.entries(data.lots)) {
+      tracker.lots.set(securityId, lots.map((lot) => ({ ...lot })));
+    }
+    return tracker;
+  }
+
+  // -------------------------------------------------------------------------
   // Aggregation helpers
   // -------------------------------------------------------------------------
 
