@@ -43,7 +43,7 @@ export default function PricingPage() {
                         Stop billing for manual entry. Convert Zerodha exports to Tally-ready XML in minutes.
                         Start free and upgrade as your client list grows.
                     </p>
-                    <p className="mt-3 text-sm text-slate-500">No broker credentials needed. No hidden reconciliation fees.</p>
+                    <p className="mt-3 text-base text-slate-500">No broker credentials needed. No hidden reconciliation fees.</p>
                 </div>
 
                 <div className="mx-auto mt-16 grid max-w-md gap-6 lg:max-w-4xl lg:grid-cols-2">
@@ -53,19 +53,19 @@ export default function PricingPage() {
                             className={`flex flex-col rounded-3xl p-8 ${tier.featured ? "border-2 border-[#387ED1] shadow-xl" : "border border-slate-200 shadow-sm"}`}
                         >
                             <h3 className="text-xl font-semibold text-slate-900">{tier.name}</h3>
-                            <p className="mt-2 text-sm text-slate-500">{tier.sub}</p>
+                            <p className="mt-2 text-base text-slate-500">{tier.sub}</p>
                             <div className="mt-6 flex items-baseline gap-x-2">
                                 <span className="text-4xl font-bold text-slate-900">{tier.price}</span>
-                                <span className="text-sm text-slate-500">{tier.period}</span>
+                                <span className="text-base text-slate-500">{tier.period}</span>
                             </div>
-                            <ul className="mt-8 flex-1 space-y-3 text-sm text-slate-600">
+                            <ul className="mt-8 flex-1 space-y-3 text-base text-slate-600">
                                 {tier.points.map((point) => (
                                     <li key={point}>• {point}</li>
                                 ))}
                             </ul>
                             <Link
                                 href={tier.href}
-                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-sm font-semibold ${tier.featured ? "bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
+                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-base font-semibold ${tier.featured ? "bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
                             >
                                 {tier.cta}
                             </Link>
@@ -74,12 +74,12 @@ export default function PricingPage() {
                 </div>
 
                 <div className="mt-20 overflow-hidden rounded-2xl border border-slate-200">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-base">
                         <thead className="bg-slate-900 text-white">
                             <tr>
-                                <th className="px-4 py-3">Feature</th>
-                                <th className="px-4 py-3">Free</th>
-                                <th className="px-4 py-3">Pro</th>
+                                <th className="px-5 py-4">Feature</th>
+                                <th className="px-5 py-4">Free</th>
+                                <th className="px-5 py-4">Pro</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white text-slate-600">
@@ -91,7 +91,7 @@ export default function PricingPage() {
                             ].map((row) => (
                                 <tr key={row[0]}>
                                     {row.map((cell) => (
-                                        <td key={cell} className="px-4 py-3">
+                                        <td key={cell} className="px-5 py-4">
                                             {cell}
                                         </td>
                                     ))}

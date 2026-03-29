@@ -77,8 +77,8 @@ export default function DashboardPage() {
       description: "Import batches created",
       icon: (
         <svg
-          width="20"
-          height="20"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -102,8 +102,8 @@ export default function DashboardPage() {
       description: "Tally-ready vouchers",
       icon: (
         <svg
-          width="20"
-          height="20"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -129,8 +129,8 @@ export default function DashboardPage() {
       description: "Reconciliation pass rate",
       icon: (
         <svg
-          width="20"
-          height="20"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -149,8 +149,8 @@ export default function DashboardPage() {
       description: "Items requiring review",
       icon: (
         <svg
-          width="20"
-          height="20"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -168,22 +168,22 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="px-8 py-8">
+    <div className="px-10 py-10">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-10">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-base text-gray-600 mt-1.5">
             Welcome to TradeBooks AI — your broker-to-Tally accounting bridge.
           </p>
         </div>
         <Link
           href="/upload"
-          className="inline-flex h-8 items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          className="inline-flex h-11 items-center justify-center rounded-lg bg-indigo-600 px-5 text-base font-medium text-white transition-colors hover:bg-indigo-700"
         >
           <svg
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -201,20 +201,20 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {stats.map((stat) => (
           <Card key={stat.title} className="border-gray-200">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-base font-semibold text-gray-700">
                 {stat.title}
               </CardTitle>
-              <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-lg bg-gray-50 flex items-center justify-center">
                 {stat.icon}
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
+              <p className="text-4xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-sm text-gray-600 mt-1.5">{stat.description}</p>
             </CardContent>
           </Card>
         ))}
@@ -224,16 +224,16 @@ export default function DashboardPage() {
       <Card className="border-gray-200">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
-            <CardTitle className="text-base font-semibold text-gray-900">
+            <CardTitle className="text-xl font-bold text-gray-900">
               Recent Import Batches
             </CardTitle>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-base text-gray-600 mt-1">
               Your latest Zerodha data imports and their status.
             </p>
           </div>
           <Link
             href="/batches"
-            className="inline-flex h-7 items-center justify-center rounded-lg border border-gray-200 bg-white px-2.5 text-[0.8rem] font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             View all
           </Link>
@@ -242,22 +242,22 @@ export default function DashboardPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50/50">
-                <TableHead className="text-xs font-medium text-gray-500 pl-6">
+                <TableHead className="text-sm font-semibold text-gray-700 pl-6">
                   Company
                 </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">
+                <TableHead className="text-sm font-semibold text-gray-700">
                   Date
                 </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">
+                <TableHead className="text-sm font-semibold text-gray-700">
                   Period
                 </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">
+                <TableHead className="text-sm font-semibold text-gray-700">
                   Status
                 </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500">
+                <TableHead className="text-sm font-semibold text-gray-700">
                   Vouchers
                 </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500 pr-6">
+                <TableHead className="text-sm font-semibold text-gray-700 pr-6">
                   Actions
                 </TableHead>
               </TableRow>
@@ -288,16 +288,16 @@ export default function DashboardPage() {
                         </svg>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="text-base font-medium text-gray-700">
                           No import batches yet
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-sm text-gray-500 mt-1">
                           Upload your first Zerodha files to get started.
                         </p>
                       </div>
                       <Link
                         href="/upload"
-                        className="mt-1 inline-flex h-7 items-center justify-center rounded-lg bg-indigo-600 px-2.5 text-[0.8rem] font-medium text-white transition-colors hover:bg-indigo-700"
+                        className="mt-2 inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
                       >
                         Start your first import
                       </Link>
@@ -307,31 +307,31 @@ export default function DashboardPage() {
               ) : (
                 batches.map((batch) => (
                   <TableRow key={batch.id} className="border-gray-100">
-                    <TableCell className="pl-6 text-sm font-medium text-gray-900">
+                    <TableCell className="pl-6 text-base font-medium text-gray-900">
                       {batch.company_name}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-base text-gray-700">
                       {formatDate(batch.created_at)}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-base text-gray-700">
                       {formatPeriod(batch.period_from, batch.period_to)}
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full border capitalize ${
+                        className={`text-sm font-medium px-3 py-1.5 rounded-full border capitalize ${
                           STATUS_BADGE[batch.status] ?? STATUS_BADGE.queued
                         }`}
                       >
                         {batch.status}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm font-medium text-gray-900">
+                    <TableCell className="text-base font-medium text-gray-900">
                       {batch.voucher_count}
                     </TableCell>
                     <TableCell className="pr-6">
                       <Link
                         href="/upload"
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
                       >
                         New Import
                       </Link>
@@ -345,7 +345,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Quick Guide */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           {
             step: "01",
@@ -368,17 +368,17 @@ export default function DashboardPage() {
         ].map((item) => (
           <div
             key={item.step}
-            className="rounded-lg border border-gray-200 bg-white p-5"
+            className="rounded-lg border border-gray-200 bg-white p-6"
           >
             <div
-              className={`inline-flex items-center justify-center w-8 h-8 rounded-md text-xs font-bold mb-3 border ${item.color}`}
+              className={`inline-flex items-center justify-center w-10 h-10 rounded-md text-sm font-bold mb-3 border ${item.color}`}
             >
               {item.step}
             </div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">
+            <h3 className="text-base font-bold text-gray-900 mb-1.5">
               {item.title}
             </h3>
-            <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
           </div>
         ))}
       </div>

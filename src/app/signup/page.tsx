@@ -39,7 +39,7 @@ export default function SignupPage() {
     if (success) {
         return (
             <div className="flex min-h-screen items-center justify-center px-4">
-                <Card className="w-full max-w-sm">
+                <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Check your email</CardTitle>
                         <CardDescription>
@@ -61,7 +61,7 @@ export default function SignupPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center px-4">
-            <Card className="w-full max-w-sm">
+            <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Create an account</CardTitle>
                     <CardDescription>
@@ -97,15 +97,15 @@ export default function SignupPage() {
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-600">{error}</p>
+                            <p className="text-base text-red-600">{error}</p>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button type="submit" className="w-full h-12" disabled={loading}>
                             {loading ? 'Creating account...' : 'Sign up'}
                         </Button>
                     </form>
 
-                    <p className="mt-4 text-center text-sm text-muted-foreground">
+                    <p className="mt-4 text-center text-base text-muted-foreground">
                         Already have an account?{' '}
                         <Link href="/login" className="underline underline-offset-4 hover:text-primary">
                             Log in
