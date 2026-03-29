@@ -264,9 +264,43 @@ const faqs = [
     },
 ];
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'TradeBooks AI',
+  applicationCategory: 'FinanceApplication',
+  operatingSystem: 'Web',
+  description: 'Converts Zerodha broker exports to Tally-importable XML with FIFO cost basis, exception-first reconciliation, and row-level traceability.',
+  url: 'https://tradebooks.ai',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'INR',
+    description: 'Free plan with 1 active entity',
+  },
+};
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
 export default function LandingPage() {
     return (
         <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             <section id="hero" className="bg-[#F7F8FA] py-20 sm:py-28">
                 <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:gap-16 lg:px-8">
                     {/* ── Left: Copy ── */}

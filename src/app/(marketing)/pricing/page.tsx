@@ -3,9 +3,15 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
-    title: "Pricing | TradeBooks AI",
+    title: "Pricing",
     description:
         "Simple pricing based on the number of client books you manage. Start free and scale your CA practice's Zerodha-to-Tally workflow without per-transaction fees.",
+    alternates: { canonical: '/pricing' },
+    openGraph: {
+        title: "Pricing | TradeBooks AI",
+        description: "Simple pricing based on the number of client books you manage. Start free and scale your CA practice's Zerodha-to-Tally workflow.",
+        url: '/pricing',
+    },
 };
 
 const tiers = [

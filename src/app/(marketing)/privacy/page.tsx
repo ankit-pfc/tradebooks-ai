@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Privacy Policy | TradeBooks AI",
+    title: "Privacy Policy",
     description:
         "Read how TradeBooks AI secures your financial data. We use a secure file-upload model, require no broker credentials, and never train AI on your trading data.",
+    alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyPage() {
