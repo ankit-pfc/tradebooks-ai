@@ -112,7 +112,7 @@ export default function ZerodhaTallyGuidePage() {
                         <li><strong>Upload Source Files:</strong> Import Tradebook, Funds, and Holdings CSVs.</li>
                         <li><strong>Configure Treatment:</strong> Select whether the client is an Investor (resulting in STCG/LTCG vouchers) or a Trader (business income).</li>
                         <li><strong>Exception First Reconcile:</strong> The software flags missing entries or un-reconciled breaks instantly so you fix them before they enter Tally.</li>
-                        <li><strong>XML Export:</strong> Download the pre-formatted XML and ingest it into Tally via `Import Data > Transactions`.</li>
+                        <li><strong>XML Export:</strong> Download the pre-formatted XML and ingest it into Tally via `Import Data &gt; Transactions`.</li>
                     </ol>
 
                     <div className="my-10 rounded-2xl border border-slate-200 p-8 text-center shadow-lg sm:p-10">
