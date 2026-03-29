@@ -709,6 +709,9 @@ export default function LandingPage() {
                             </tbody>
                         </table>
                     </div>
+                    <p className="mt-6 text-center text-sm text-[#475569]">
+                        Looking for a retail tax filing tool instead of Tally bookkeeping? <Link href="/compare/quicko" className="font-semibold text-[#1E4FD8] hover:underline">Read our TradeBooks AI vs Quicko breakdown.</Link>
+                    </p>
                 </div>
             </section>
 
