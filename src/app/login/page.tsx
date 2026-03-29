@@ -47,6 +47,18 @@ function LoginForm() {
             return;
         }
 
+        // Check if user has MFA enabled
+        const { data: factorsData } = await supabase.auth.mfa.listFactors();
+        const verifiedTotpFactors =
+            factorsData?.totp?.filter((f) => f.status === 'verified') ?? [];
+
+        if (verifiedTotpFactors.length > 0) {
+            // User has MFA — redirect to TOTP verification
+            const mfaUrl = `/login/verify-mfa?redirectTo=${encodeURIComponent(redirectTo)}`;
+            router.push(mfaUrl);
+            return;
+        }
+
         router.push(redirectTo);
         router.refresh();
     }
