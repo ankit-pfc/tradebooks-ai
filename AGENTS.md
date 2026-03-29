@@ -56,6 +56,45 @@ For any assigned task, read only:
 
 Do not widen scope unless dependency/handoff notes require it.
 
+## 5a) Agent coding guardrails
+
+These guardrails apply to every agent working in this repo. They exist because the unit of work has shifted from “write a function” to “own a feature end-to-end.” Vague prompts and unverified assumptions are now the primary failure mode.
+
+### G1 — Tests first, always
+Before writing any implementation code, write a complete test suite that defines exact behavior (valid inputs, edge cases, error paths, cross-cutting concerns). Only then implement the feature. Tests are the specification. If the behavior is not tested, it is not specified.
+
+### G2 — Architecture review before code
+For any task that introduces a new module, API route, data model, or cross-cutting concern: output a brief `plan.md` (≤1 page) describing the approach, key decisions, and alternatives rejected. Do not proceed to implementation until that plan is confirmed (either by a human reviewer or by explicit self-approval with reasoning recorded).
+
+### G3 — Explicit trust-model and constraint awareness
+Before adding any security, encryption, validation, or infrastructure mechanism, state the exact threat model it defends against. Do not add a security control unless it meaningfully addresses a real threat in this system’s trust model. Avoid security theater (e.g., encrypting data that is already protected by the transport layer).
+
+### G4 — Post-implementation self-review
+After completing a task, run a self-review answering:
+- What assumptions did I make that were not explicitly stated?
+- Where could this implementation be wrong?
+- What edge cases or failure modes are not covered by the current tests?
+- Does anything I added conflict with the existing architecture?
+
+Record the answers in the module’s **Handoff notes** before marking the task complete.
+
+### G5 — Human-in-the-loop for high-risk changes
+If a change touches any of the following areas, pause and surface a summary to the human reviewer before finalizing:
+- Auth flows or session management
+- Supabase RLS policies or database migrations
+- File storage access control
+- Export correctness (Tally XML structure / voucher math)
+- Any third-party API key or secret handling
+
+The summary must state: what changed, why, and what breaks if the change is wrong.
+
+### G6 — Context detection: greenfield vs legacy
+At the start of each task, declare which mode applies:
+- **Greenfield** — new module with no existing callers. Move fast; the main risk is wrong spec.
+- **Legacy/wiring** — touching existing code with live callers or downstream dependents. Surface migration risks immediately; prefer additive changes over in-place rewrites.
+
+This declaration must appear in the module’s **Handoff notes**.
+
 ## 6) Global engineering rules
 - Prefer incremental, testable steps over broad refactors.
 - Do not claim features as done unless wired end-to-end.

@@ -21,12 +21,20 @@
 - `src/...`
 - `src/...`
 
+## Context mode
+<!-- Declare one: Greenfield | Legacy/wiring -->
+- Mode:
+- Rationale:
+
 ## Task breakdown
-1. <Concrete step>
-2. <Concrete step>
-3. <Concrete step>
+<!-- G1: First step must always be writing tests that define the behavior. -->
+1. Write tests covering: <exact behaviors, edge cases, error paths>
+2. <Implementation step>
+3. <Implementation step>
 
 ## Acceptance criteria
+- [ ] Tests written before implementation (G1)
+- [ ] `npm run test` passes for this module
 - [ ] <Measurable outcome>
 - [ ] <Measurable outcome>
 
@@ -37,9 +45,14 @@
   - <check>
 
 ## Handoff notes
+<!-- G4: Required self-review answers before marking complete. -->
+- Context mode (greenfield / legacy): <!-- G6 -->
 - What changed:
 - What remains:
-- Risks/assumptions:
+- Assumptions made (not explicitly stated in spec):
+- Edge cases / failure modes not yet covered by tests:
+- Conflicts or risks with existing architecture:
+- High-risk areas requiring human sign-off (auth / migrations / export correctness): <!-- G5 -->
 
 ## Open questions
 - <Question>
