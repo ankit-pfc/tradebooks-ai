@@ -37,22 +37,22 @@ export default function MarketingLayout({
                 </div>
                 <span className="text-white font-semibold">TradeBooks AI</span>
               </div>
-              <p className="text-sm leading-relaxed">
+              <p className="text-base leading-relaxed">
                 Broker statements to Tally, automatically. Built for Indian CAs,
                 accountants, and traders.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1 text-sm text-slate-200">
                   <Lock className="h-3.5 w-3.5 text-[#2D9D78]" /> SSL Secured
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1 text-sm text-slate-200">
                   <ShieldCheck className="h-3.5 w-3.5 text-[#2D9D78]" /> SOC-style Controls
                 </span>
               </div>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white mb-3">Product</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-base font-semibold text-white mb-3">Product</h3>
+              <ul className="space-y-2 text-base">
                 <li>
                   <Link href="/#how-it-works" className="hover:text-white transition-colors">
                     Workflow
@@ -81,8 +81,8 @@ export default function MarketingLayout({
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white mb-3">Resources</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-base font-semibold text-white mb-3">Resources</h3>
+              <ul className="space-y-2 text-base">
                 <li>
                   <Link href="/#trust-strip" className="hover:text-white transition-colors">
                     Trust & Security
@@ -101,8 +101,8 @@ export default function MarketingLayout({
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white mb-3">Legal</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-base font-semibold text-white mb-3">Legal</h3>
+              <ul className="space-y-2 text-base">
                 <li>
                   <Link href="/privacy" className="hover:text-white transition-colors">
                     Privacy Policy
@@ -113,7 +113,7 @@ export default function MarketingLayout({
                     Terms of Service
                   </Link>
                 </li>
-                <li className="inline-flex items-center gap-1 text-slate-400">
+                <li className="inline-flex items-center gap-1 text-slate-300">
                   <CheckCircle2 className="h-3.5 w-3.5 text-[#2D9D78]" />
                   Data retention controls
                 </li>
@@ -137,7 +137,7 @@ export default function MarketingLayout({
             </div>
           </div>
           <Separator className="my-8 bg-slate-800" />
-          <p className="text-center text-sm">
+          <p className="text-center text-base">
             &copy; {new Date().getFullYear()} TradeBooks AI. All rights reserved.
           </p>
         </div>

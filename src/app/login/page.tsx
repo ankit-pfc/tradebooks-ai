@@ -53,7 +53,7 @@ function LoginForm() {
 
     return (
         <div className="flex min-h-screen items-center justify-center px-4">
-            <Card className="w-full max-w-sm">
+            <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Log in</CardTitle>
                     <CardDescription>
@@ -88,15 +88,15 @@ function LoginForm() {
                         </div>
 
                         {error && (
-                            <p className="text-sm text-red-600">{error}</p>
+                            <p className="text-base text-red-600">{error}</p>
                         )}
 
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <Button type="submit" className="w-full h-12" disabled={loading}>
                             {loading ? 'Signing in...' : 'Sign in'}
                         </Button>
                     </form>
 
-                    <p className="mt-4 text-center text-sm text-muted-foreground">
+                    <p className="mt-4 text-center text-base text-muted-foreground">
                         Don&apos;t have an account?{' '}
                         <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
                             Sign up

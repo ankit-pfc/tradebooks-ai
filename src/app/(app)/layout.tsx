@@ -17,8 +17,8 @@ const navItems = [
     href: "/dashboard",
     icon: (
       <svg
-        width="18"
-        height="18"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -38,8 +38,8 @@ const navItems = [
     href: "/upload",
     icon: (
       <svg
-        width="18"
-        height="18"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -58,8 +58,8 @@ const navItems = [
     href: "/batches",
     icon: (
       <svg
-        width="18"
-        height="18"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -81,8 +81,8 @@ const navItems = [
     href: "/exceptions",
     icon: (
       <svg
-        width="18"
-        height="18"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -101,8 +101,8 @@ const navItems = [
     href: "/settings",
     icon: (
       <svg
-        width="18"
-        height="18"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -142,14 +142,14 @@ export default function AppLayout({
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-60 shrink-0 flex flex-col bg-white border-r border-gray-200">
+      <aside className="w-72 shrink-0 flex flex-col bg-white border-r border-gray-200">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+        <div className="h-[72px] flex items-center px-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center">
               <svg
-                width="16"
-                height="16"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="white"
@@ -160,7 +160,7 @@ export default function AppLayout({
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </div>
-            <span className="font-semibold text-gray-900 text-sm">
+            <span className="font-semibold text-gray-900 text-base">
               TradeBooks AI
             </span>
           </div>
@@ -175,14 +175,14 @@ export default function AppLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-medium transition-colors ${
                   isActive
                     ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 <span
-                  className={isActive ? "text-indigo-600" : "text-gray-400"}
+                  className={isActive ? "text-indigo-600" : "text-gray-500"}
                 >
                   {item.icon}
                 </span>
@@ -196,23 +196,23 @@ export default function AppLayout({
         <div className="px-4 py-4 border-t border-gray-200">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-gray-100 transition-colors cursor-pointer">
-                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-semibold text-indigo-700">
+                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-indigo-700">
                     {userEmail[0].toUpperCase()}
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-gray-900 truncate">
                     {userEmail}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">Free Plan</p>
+                  <p className="text-xs text-gray-600 truncate">Free Plan</p>
                 </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-48">
               <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
                 <svg
-                  width="14"
-                  height="14"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
