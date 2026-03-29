@@ -1,51 +1,60 @@
-# Brand DNA (Canonical Reference: Sadhaka)
+# Brand DNA (Canonical Reference: Tradebooks AI)
 
 ## Purpose of this document
 
-Capture the strategic core that drives voice, narrative, and conversion behavior.
+Capture the strategic core that drives voice, narrative, and conversion behavior for Tradebooks AI and any surfaces built to extend the brand.
 
 ## Mission
 
-- Help users move from confusion and fragmented information toward confident action.
-- Make complex domains feel guided, coherent, and trustworthy.
+- Help traders and finance professionals move from painful, error-prone manual reconciliation toward confident, automated Tally-ready data output.
+- Make a technically complex pipeline (broker export → cost basis calculation → accounting entry) feel guided, transparent, and trustworthy.
 
 ## Worldview
 
-- Users are not just buying features; they are buying clarity and confidence.
-- Premium experiences reduce cognitive load through structure and restraint.
-- Trust is earned progressively through evidence, transparency, and consistency.
+- Users are not just buying a file converter; they are buying confidence that their financial data is correct.
+- Precision experiences reduce anxiety through transparency of rules and process, not through design polish alone.
+- Trust is earned progressively: explain the mechanism first, then show proof, then ask for action.
+- A financial compliance tool that is 99% accurate is worse than one that is 100% accurate and tells you where the 1% needs attention.
 
 ## Audience profile
 
-- Users evaluating meaningful decisions in high-trust categories.
-- Mixed awareness levels: curious newcomers + comparison-ready evaluators.
-- Need both emotional reassurance and practical proof.
+Primary:
+- **Active equity/F&O traders** — high frequency, tax-season stress, want the problem gone.
+- **Chartered Accountants** — handling multiple trading clients, evaluating tools professionally, trust professional peers' endorsements.
+- **Small proprietary trading firms** — need bulk batch processing and consistent ledger entries.
+
+Awareness levels:
+- **Pain-aware but solution-unaware**: "I hate doing this manually but didn't know automation was possible."
+- **Solution-aware and evaluating**: "I need to know if this is actually accurate before trusting it with my books."
 
 ## Emotional promise
 
-- “You will feel clear, supported, and in control.”
-- Anxiety decreases as the page progresses from claim → explanation → evidence → action.
+- "You will feel certain your Tally data is right — without spending days on it."
+- Anxiety decreases as the page progresses: problem acknowledged → mechanism explained → proof shown → easy action offered.
+- The emotional arc is: frustrated → skeptical → convinced → relieved.
 
 ## Trust posture
 
-- Calm authority, not hype.
-- Credibility through educational framing, social proof, and clean execution.
-- Avoid manipulative urgency unless domain-appropriate and evidence-backed.
+- Transparent authority, not black-box AI.
+- Credibility through rule explanation (FIFO, STCG/LTCG, corporate action handling), professional endorsements (CAs), and specific accuracy claims.
+- Avoid urgency manipulation — this is a professional tool purchased on trust, not impulse.
 
 ## Conversion philosophy
 
-- Trust before ask.
+- Mechanism clarity before ask: users must understand *how* the pipeline produces correct output before they upload financial data.
 - One dominant CTA intent per major section.
-- Reduce ambiguity: every section should answer one question that blocks conversion.
+- FAQ must address the real blockers: data format compatibility, Tally version, privacy, F&O/intraday edge cases.
 
 ## Tone and voice
 
-- Confident, grounded, precise.
-- Human and empathetic, not casual/slang-heavy.
-- Benefit-oriented language anchored in concrete outcomes.
+- Confident, precise, and domain-expert.
+- Professional but human — not clinical or cold.
+- Benefit-oriented language anchored in concrete, verifiable outcomes.
+- Uses accounting/trading vocabulary naturally (FIFO, STCG/LTCG, voucher, ledger, tradebook).
 
 ## Non-negotiables
 
-- No copy-paste of canonical brand text.
-- No visual noise that undermines perceived quality.
-- No conversion pressure before objection handling and proof.
+- No vague AI hype ("our AI understands your trades") — the engine is rule-based and deterministic; say so.
+- No visual noise that undermines perceived professional quality.
+- No conversion pressure before mechanism understanding and proof.
+- Never overpromise on tax outcomes or regulatory decisions — Tradebooks AI handles *data*, not advice.
