@@ -44,12 +44,12 @@ const outputFlow = [
     {
         title: "Zerodha CSV",
         text: "Tradebook, funds, holdings, and contract note exports from Console.",
-        tone: "border-[#D6E3F3] bg-[#F8FBFF] text-[#38506F]",
+        tone: "border-[#E5E7EB] bg-[#F9FAFB] text-[#374151]",
     },
     {
         title: "TradeBooks AI Engine",
         text: "Investor/Trader logic + exception-first reconciliation + voucher mapping.",
-        tone: "border-[#CFE3D7] bg-[#F4FBF7] text-[#2f4f43]",
+        tone: "border-[#A8E6C3] bg-[#F4FBF7] text-[#1D6B3F]",
     },
     {
         title: "Tally XML",
@@ -112,14 +112,14 @@ const personas = [
         text: "Standardize Zerodha-to-Tally workflows across multiple clients and close cycles faster.",
         sub: "For firms managing many books",
         outcome: "Build one repeatable process across your team and client portfolio.",
-        accent: "from-[#EAF3FF] to-[#F5F9FF] border-[#BFD8F6] text-[#255FA0]",
+        accent: "from-[#EBF5FB] to-[#F5FBFE] border-[#B8DFF3] text-[#0B1F33]",
     },
     {
         title: "Accounting Teams",
         text: "Reduce repetitive voucher posting work and improve consistency in every period close.",
         sub: "For internal finance operations",
         outcome: "Shift effort from manual posting to review, controls, and reporting.",
-        accent: "from-[#EAFBF3] to-[#F4FDF8] border-[#B9E7CF] text-[#1E7A58]",
+        accent: "from-[#EAFBF0] to-[#F4FDF8] border-[#A8E6C3] text-[#1F8B4C]",
     },
     {
         title: "Active Traders",
@@ -267,14 +267,14 @@ const faqs = [
 export default function LandingPage() {
     return (
         <>
-            <section id="hero" className="bg-[#F7F8FA] py-20 sm:py-28">
+            <section id="hero" className="bg-[#F9FAFB] py-20 sm:py-28">
                 <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:gap-16 lg:px-8">
                     {/* ── Left: Copy ── */}
                     <div>
-                        <Badge className="mb-5 border-[1.5px] border-[#93C5FD] bg-[#1E4FD8]/10 text-[#255FA0] hover:bg-[#1E4FD8]/10">
+                        <Badge className="mb-5 border-[1.5px] border-[#2D9CDB] bg-[#2D9CDB]/10 text-[#0B1F33] hover:bg-[#2D9CDB]/10">
                             Built for Indian CAs & Accountants
                         </Badge>
-                        <h1 className="font-sans text-[44px] font-extrabold leading-[1.08] tracking-tight text-[#0F1C2E] sm:text-[56px]">
+                        <h1 className="font-sans text-[44px] font-extrabold leading-[1.08] tracking-tight text-[#0B1F33] sm:text-[56px]">
                             Stop posting Zerodha trades manually.
                         </h1>
                         <p className="mt-6 max-w-xl text-[20px] font-normal leading-[1.6] text-[#374151]">
@@ -284,13 +284,13 @@ export default function LandingPage() {
                         <div className="mt-9 flex flex-wrap gap-3">
                             <Link
                                 href="/upload"
-                                className="inline-flex items-center justify-center rounded-lg bg-[#1E4FD8] px-7 py-[14px] text-base font-semibold text-white transition-colors hover:bg-[#1944bb]"
+                                className="inline-flex items-center justify-center rounded-lg bg-[#0B1F33] px-7 py-[14px] text-base font-semibold text-white transition-colors hover:bg-[#132d47]"
                             >
                                 Get Started Free
                             </Link>
                             <Link
                                 href="#how-it-works"
-                                className="inline-flex items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-6 py-[13px] text-base font-medium text-[#1A1A2E] transition-colors hover:bg-white"
+                                className="inline-flex items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-6 py-[13px] text-base font-medium text-[#0B1F33] transition-colors hover:bg-white"
                             >
                                 See How It Works <ArrowRight className="ml-1.5 h-4 w-4" />
                             </Link>
@@ -299,17 +299,17 @@ export default function LandingPage() {
 
                         <div className="mt-8 flex max-w-xl flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3.5">
                             <div className="flex items-center gap-1.5">
-                                <Scale className="h-4 w-4 shrink-0 text-[#1E4FD8]" />
+                                <Scale className="h-4 w-4 shrink-0 text-[#2D9CDB]" />
                                 <span className="text-sm font-medium text-[#374151]">{trustBarItems[0]}</span>
                                 <span className="ml-2.5 h-4 w-px bg-[#D1D5DB]" />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Lock className="h-4 w-4 shrink-0 text-[#1E4FD8]" />
+                                <Lock className="h-4 w-4 shrink-0 text-[#2D9CDB]" />
                                 <span className="text-sm font-medium text-[#374151]">{trustBarItems[1]}</span>
                                 <span className="ml-2.5 h-4 w-px bg-[#D1D5DB]" />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Plug className="h-4 w-4 shrink-0 text-[#1E4FD8]" />
+                                <Plug className="h-4 w-4 shrink-0 text-[#2D9CDB]" />
                                 <span className="text-sm font-medium text-[#374151]">{trustBarItems[2]}</span>
                             </div>
                         </div>
@@ -317,11 +317,11 @@ export default function LandingPage() {
 
                     {/* ── Right: Advisor photo with floating product UI card ── */}
                     <div className="relative hidden md:block">
-                        <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-[#387ED1]/10 blur-3xl" />
-                        <div className="pointer-events-none absolute -bottom-8 right-4 h-36 w-36 rounded-full bg-[#2D9D78]/10 blur-3xl" />
+                        <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-[#2D9CDB]/10 blur-3xl" />
+                        <div className="pointer-events-none absolute -bottom-8 right-4 h-36 w-36 rounded-full bg-[#27AE60]/10 blur-3xl" />
 
                         {/* Advisor photo — main visual */}
-                        <div className="relative h-[400px] overflow-hidden rounded-2xl border border-[#D6E3F3] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.10)] lg:h-[520px]">
+                        <div className="relative h-[400px] overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.10)] lg:h-[520px]">
                             <Image
                                 src="/hero-advisor.jpg"
                                 alt="Accountant reviewing TradeBooks AI output"
@@ -334,21 +334,21 @@ export default function LandingPage() {
                         </div>
 
                         {/* Floating product UI card — bottom-left, not covering the advisor */}
-                        <div className="absolute -bottom-6 -left-10 z-10 w-[200px] overflow-hidden rounded-xl border border-[#D6E3F3] bg-white/95 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
+                        <div className="absolute -bottom-6 -left-10 z-10 w-[200px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white/95 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
                             <div className="mb-2 flex items-center justify-between">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#475569]">Batch Preview</p>
-                                <span className="inline-flex items-center gap-1 rounded-full border border-[#2D9D78]/30 bg-[#2D9D78]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#2D9D78]">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#27AE60]/30 bg-[#27AE60]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#27AE60]">
                                     <BadgeCheck className="h-2.5 w-2.5" /> 42 ready
                                 </span>
                             </div>
 
                             {/* Mini workflow */}
-                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FBFF] px-2 py-1.5">
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8] text-[9px] font-bold text-white">Z</div>
-                                <div className="h-px flex-1 bg-[#D6E3F3]" />
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8]/15 text-[9px] font-bold text-[#1E4FD8]">AI</div>
-                                <div className="h-px flex-1 bg-[#D6E3F3]" />
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#2D9D78]/15 text-[9px] font-bold text-[#2D9D78]">T</div>
+                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-2 py-1.5">
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#0B1F33] text-[9px] font-bold text-white">Z</div>
+                                <div className="h-px flex-1 bg-[#E5E7EB]" />
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#2D9CDB]/15 text-[9px] font-bold text-[#2D9CDB]">AI</div>
+                                <div className="h-px flex-1 bg-[#E5E7EB]" />
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#27AE60]/15 text-[9px] font-bold text-[#27AE60]">T</div>
                             </div>
 
                             {/* Compact voucher rows */}
@@ -358,11 +358,11 @@ export default function LandingPage() {
                                     { symbol: "HDFCBANK · MIS", amount: "₹8,120", ok: true },
                                     { symbol: "INFY · CNC", amount: "₹12,040", ok: false },
                                 ].map((row) => (
-                                    <div key={row.symbol} className="flex items-center justify-between rounded-md border border-[#E2E8F0] bg-white px-2 py-1">
-                                        <p className="text-[10px] font-semibold text-[#1A1A2E]">{row.symbol}</p>
+                                    <div key={row.symbol} className="flex items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-2 py-1">
+                                        <p className="text-[10px] font-semibold text-[#0B1F33]">{row.symbol}</p>
                                         <div className="flex items-center gap-1.5">
-                                            <p className="text-[10px] font-semibold text-[#1A1A2E]">{row.amount}</p>
-                                            <span className={`inline-flex rounded-full px-1 py-px text-[8px] font-bold ${row.ok ? "bg-[#2D9D78]/10 text-[#2D9D78]" : "bg-amber-50 text-amber-600"}`}>
+                                            <p className="text-[10px] font-semibold text-[#0B1F33]">{row.amount}</p>
+                                            <span className={`inline-flex rounded-full px-1 py-px text-[8px] font-bold ${row.ok ? "bg-[#27AE60]/10 text-[#27AE60]" : "bg-amber-50 text-amber-600"}`}>
                                                 {row.ok ? "Ready" : "Review"}
                                             </span>
                                         </div>
@@ -370,19 +370,19 @@ export default function LandingPage() {
                                 ))}
                             </div>
 
-                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-[#F3F6FB] px-2 py-1">
+                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-[#F9FAFB] px-2 py-1">
                                 <p className="text-[9px] font-medium text-[#475569]">Exceptions: 2</p>
-                                <p className="text-[9px] font-semibold text-[#1E4FD8]">Export XML →</p>
+                                <p className="text-[9px] font-semibold text-[#2D9CDB]">Export XML →</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section id="output-flow" className="border-b border-[#E2E8F0] bg-white py-14 sm:py-16">
+            <section id="output-flow" className="border-b border-[#E5E7EB] bg-white py-14 sm:py-16">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#475569]">The output, at a glance</p>
-                    <h2 className="mt-3 text-center font-sans text-2xl font-bold tracking-tight text-[#1A1A2E] sm:text-3xl">
+                    <h2 className="mt-3 text-center font-sans text-2xl font-bold tracking-tight text-[#0B1F33] sm:text-3xl">
                         From broker export to Tally-importable XML
                     </h2>
                     <div className="mt-8 grid gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
@@ -390,11 +390,11 @@ export default function LandingPage() {
                             <>
                                 <article key={step.title} className={`rounded-2xl border p-5 ${step.tone}`}>
                                     <p className="text-xs font-bold uppercase tracking-[0.1em]">Step 0{idx + 1}</p>
-                                    <h3 className="mt-2 text-xl font-semibold text-[#1A1A2E]">{step.title}</h3>
+                                    <h3 className="mt-2 text-xl font-semibold text-[#0B1F33]">{step.title}</h3>
                                     <p className="mt-2 text-base leading-7">{step.text}</p>
                                 </article>
                                 {idx < outputFlow.length - 1 && (
-                                    <div className="mx-auto hidden h-8 w-8 items-center justify-center rounded-full border border-[#D6E3F3] bg-[#F8FBFF] text-[#1E4FD8] md:flex">
+                                    <div className="mx-auto hidden h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] text-[#2D9CDB] md:flex">
                                         <ArrowRight className="h-4 w-4" />
                                     </div>
                                 )}
@@ -404,18 +404,18 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section id="stats" className="border-y border-[#E2E8F0] bg-white py-8">
+            <section id="stats" className="border-y border-[#E5E7EB] bg-white py-8">
                 <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:grid-cols-3 sm:px-6 lg:px-8">
                     {heroStats.map((stat) => (
-                        <div key={stat.label} className="rounded-xl border border-[#E2E8F0] bg-white px-5 py-4 text-center">
-                            <p className="text-3xl font-extrabold tracking-tight text-[#1A1A2E]">{stat.value}</p>
+                        <div key={stat.label} className="rounded-xl border border-[#E5E7EB] bg-white px-5 py-4 text-center">
+                            <p className="text-3xl font-extrabold tracking-tight text-[#0B1F33]">{stat.value}</p>
                             <p className="mt-1.5 text-sm leading-6 text-[#374151]">{stat.label}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
-            <section id="trust-strip" className="border-b border-[#E2E8F0] bg-white py-6">
+            <section id="trust-strip" className="border-b border-[#E5E7EB] bg-white py-6">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <p className="text-center text-xs font-semibold tracking-[0.12em] text-[#718096]">
                         Designed for the ecosystem you already use
@@ -424,10 +424,10 @@ export default function LandingPage() {
                         {ecosystemMarks.map((item) => (
                             <div
                                 key={item.name}
-                                className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-3 text-center"
+                                className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-center"
                             >
                                 <p className="inline-flex items-center text-base font-semibold text-[#475569]">
-                                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded bg-[#1E4FD8]/10 text-xs font-bold text-[#1E4FD8]">
+                                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded bg-[#2D9CDB]/10 text-xs font-bold text-[#2D9CDB]">
                                         {item.logo}
                                     </span>
                                     {item.name}
@@ -439,7 +439,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section id="problem" className="bg-[#0F1C2E] py-20">
+            <section id="problem" className="bg-[#0B1F33] py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-white sm:text-[36px]">Why manual posting breaks at scale</h2>
                     <p className="mx-auto mt-4 max-w-3xl text-center leading-8 text-slate-200">
@@ -450,12 +450,12 @@ export default function LandingPage() {
                         {painCards.map((card) => (
                             <div key={card.label} className="rounded-2xl border border-slate-700/70 bg-slate-900/60 p-6">
                                 <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 ring-1 ring-slate-700">
-                                    {card.icon === "hourglass" && <Hourglass className="h-5 w-5 text-[#7fb0e5]" />}
-                                    {card.icon === "arrows" && <ArrowLeftRight className="h-5 w-5 text-[#7fb0e5]" />}
-                                    {card.icon === "alert" && <AlertTriangle className="h-5 w-5 text-[#7fb0e5]" />}
+                                    {card.icon === "hourglass" && <Hourglass className="h-5 w-5 text-[#2D9CDB]" />}
+                                    {card.icon === "arrows" && <ArrowLeftRight className="h-5 w-5 text-[#2D9CDB]" />}
+                                    {card.icon === "alert" && <AlertTriangle className="h-5 w-5 text-[#2D9CDB]" />}
                                 </div>
                                 <p className="text-[56px] font-bold leading-none tracking-tight text-white">{card.metric}</p>
-                                <p className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-[#7fb0e5]">{card.label}</p>
+                                <p className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-[#2D9CDB]">{card.label}</p>
                                 <p className="mt-4 text-sm leading-7 text-slate-100">{card.text}</p>
                             </div>
                         ))}
@@ -465,20 +465,20 @@ export default function LandingPage() {
 
             <section id="testimonials" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Early-user proof from real close cycles</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Early-user proof from real close cycles</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center text-base font-normal leading-[1.7] text-[#4B5563]">
                         Initial feedback from teams running Zerodha-to-Tally workflows with exception-first review.
                     </p>
                     <div className="mt-10 grid gap-5 md:grid-cols-2">
                         {testimonials.map((item) => (
-                            <article key={item.name} className="rounded-2xl border border-[#D6E3F3] bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+                            <article key={item.name} className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
                                 <p className="text-base leading-8 text-[#334155]">“{item.quote}”</p>
                                 <div className="mt-5 flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1E4FD8] text-base font-bold text-white">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1F33] text-base font-bold text-white">
                                         {item.avatar}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-semibold text-[#1A1A2E]">{item.name}</p>
+                                        <p className="text-sm font-semibold text-[#0B1F33]">{item.name}</p>
                                         <p className="text-sm tracking-[0.04em] text-[#475569]">{item.role}</p>
                                     </div>
                                 </div>
@@ -488,27 +488,27 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section id="how-it-works" className="bg-[#F3F6FB] py-20">
+            <section id="how-it-works" className="bg-[#F9FAFB] py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">How it works</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">How it works</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center text-base font-normal leading-[1.7] text-[#4B5563]">
                         A controlled 4-step workflow designed for faster closes and cleaner downstream posting.
                     </p>
                     <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
                         {processSteps.map((step, idx) => (
-                            <div key={step.title} className="rounded-2xl border border-[#E2E8F0] bg-[#F7F8FA] p-7 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#1E4FD8]/15 text-[#1E4FD8]">
+                            <div key={step.title} className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-7 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#2D9CDB]/15 text-[#2D9CDB]">
                                     {idx === 0 && <FileSpreadsheet className="h-5 w-5" />}
                                     {idx === 1 && <Workflow className="h-5 w-5" />}
                                     {idx === 2 && <ShieldCheck className="h-5 w-5" />}
                                     {idx === 3 && <Send className="h-5 w-5" />}
                                 </div>
-                                <p className="mt-4 text-xs font-bold tracking-[0.14em] text-[#1E4FD8]">STEP 0{idx + 1}</p>
-                                <h3 className="mt-2 text-lg font-semibold text-[#1A1A2E]">{step.title}</h3>
+                                <p className="mt-4 text-xs font-bold tracking-[0.14em] text-[#2D9CDB]">STEP 0{idx + 1}</p>
+                                <h3 className="mt-2 text-lg font-semibold text-[#0B1F33]">{step.title}</h3>
                                 <p className="mt-2 text-base leading-7 text-[#374151]">{step.text}</p>
-                                <div className="mt-4 space-y-2 rounded-lg border border-[#D6E3F3] bg-white p-3 text-sm text-[#42526b]">
-                                    <p className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5 text-[#1E4FD8]" /> Time: {step.eta}</p>
-                                    <p className="inline-flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-[#2D9D78]" /> Outcome: {step.outcome}</p>
+                                <div className="mt-4 space-y-2 rounded-lg border border-[#E5E7EB] bg-white p-3 text-sm text-[#42526b]">
+                                    <p className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5 text-[#2D9CDB]" /> Time: {step.eta}</p>
+                                    <p className="inline-flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-[#27AE60]" /> Outcome: {step.outcome}</p>
                                 </div>
                             </div>
                         ))}
@@ -516,7 +516,7 @@ export default function LandingPage() {
                     <div className="mt-8 flex justify-center">
                         <Link
                             href="/upload"
-                            className="inline-flex h-11 items-center justify-center rounded-lg border border-[#1E4FD8]/30 bg-[#1E4FD8]/10 px-5 text-sm font-semibold text-[#1E4FD8] transition-colors hover:bg-[#1E4FD8]/15"
+                            className="inline-flex h-11 items-center justify-center rounded-lg border border-[#2D9CDB]/30 bg-[#2D9CDB]/10 px-5 text-sm font-semibold text-[#2D9CDB] transition-colors hover:bg-[#2D9CDB]/15"
                         >
                             Try this workflow on your next close <ArrowRight className="ml-1.5 h-4 w-4" />
                         </Link>
@@ -526,29 +526,29 @@ export default function LandingPage() {
 
             <section id="who-its-for" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Who it’s for</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Who it’s for</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         Pick the profile closest to your workflow and see where TradeBooks AI fits best.
                     </p>
                     <div className="mt-10 grid gap-5 md:grid-cols-3">
                         {personas.map((persona, idx) => (
-                            <div key={persona.title} className="group rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-0.5">
+                            <div key={persona.title} className="group rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-0.5">
                                 <div className={`relative mb-5 overflow-hidden rounded-xl border bg-gradient-to-br p-4 ${persona.accent}`}>
-                                    <div className="absolute -right-4 -top-6 h-16 w-16 rounded-full bg-[#387ED1]/10" />
-                                    <div className="absolute -bottom-6 -left-4 h-14 w-14 rounded-full bg-[#2D9D78]/10" />
+                                    <div className="absolute -right-4 -top-6 h-16 w-16 rounded-full bg-[#2D9CDB]/10" />
+                                    <div className="absolute -bottom-6 -left-4 h-14 w-14 rounded-full bg-[#27AE60]/10" />
                                     <div className="relative flex items-center justify-between rounded-lg border border-white/70 bg-white/90 p-3">
                                         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5a6b84]">{persona.sub}</p>
-                                        <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#387ED1]/15 text-[#387ED1]">
+                                        <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2D9CDB]/15 text-[#2D9CDB]">
                                             {idx === 0 && <Workflow className="h-4 w-4" />}
                                             {idx === 1 && <Radar className="h-4 w-4" />}
                                             {idx === 2 && <FileText className="h-4 w-4" />}
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#1A1A2E]">{persona.title}</h3>
+                                <h3 className="text-lg font-semibold text-[#0B1F33]">{persona.title}</h3>
                                 <p className="mt-3 text-sm leading-7 text-[#374151]">{persona.text}</p>
                                 <p className="mt-3 text-sm leading-7 text-[#334155]">{persona.outcome}</p>
-                                <Link href="/upload" className="mt-5 inline-flex items-center text-sm font-semibold text-[#1E4FD8] group-hover:text-[#1944bb]">
+                                <Link href="/upload" className="mt-5 inline-flex items-center text-sm font-semibold text-[#2D9CDB] group-hover:text-[#132d47]">
                                     Know more <ArrowRight className="ml-1.5 h-4 w-4" />
                                 </Link>
                             </div>
@@ -559,16 +559,16 @@ export default function LandingPage() {
 
             <section id="proof" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">See exactly what gets exported</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">See exactly what gets exported</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         Practical, row-level evidence from source file to Tally-ready XML output — with exceptions surfaced before export.
                     </p>
 
-                    <div className="mt-10 overflow-hidden rounded-2xl border border-[#D6E3F3] bg-[#F8FBFF]">
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D6E3F3] bg-white px-5 py-4">
-                            <p className="text-sm font-semibold text-[#1A1A2E]">Export Preview · Batch #TB-2026-03-05-18</p>
+                    <div className="mt-10 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB]">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E7EB] bg-white px-5 py-4">
+                            <p className="text-sm font-semibold text-[#0B1F33]">Export Preview · Batch #TB-2026-03-05-18</p>
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="inline-flex items-center gap-1 rounded-full border border-[#2D9D78]/30 bg-[#2D9D78]/10 px-2.5 py-1 text-xs font-semibold text-[#2D9D78]">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#27AE60]/30 bg-[#27AE60]/10 px-2.5 py-1 text-xs font-semibold text-[#27AE60]">
                                     <BadgeCheck className="h-3.5 w-3.5" /> 42 vouchers ready
                                 </span>
                                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
@@ -588,15 +588,15 @@ export default function LandingPage() {
                                         <th className="px-3 py-2 font-semibold">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#E2E8F0] text-[#334155]">
+                                <tbody className="divide-y divide-[#E5E7EB] text-[#334155]">
                                     {exportPreviewRows.map((row) => (
                                         <tr key={`${row.symbol}-${row.source}`} className="bg-white/80">
                                             <td className="px-3 py-3">{row.date}</td>
-                                            <td className="px-3 py-3 font-medium text-[#1A1A2E]">{row.symbol}</td>
+                                            <td className="px-3 py-3 font-medium text-[#0B1F33]">{row.symbol}</td>
                                             <td className="px-3 py-3">{row.voucher}</td>
                                             <td className="px-3 py-3">{row.amount}</td>
                                             <td className="px-3 py-3">
-                                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${row.status === "Ready" ? "bg-[#2D9D78]/10 text-[#2D9D78]" : "bg-amber-50 text-amber-700"}`}>
+                                                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${row.status === "Ready" ? "bg-[#27AE60]/10 text-[#27AE60]" : "bg-amber-50 text-amber-700"}`}>
                                                     {row.status}
                                                 </span>
                                                 <p className="mt-1 text-xs text-[#475569]">Source link: {row.source}</p>
@@ -607,12 +607,12 @@ export default function LandingPage() {
                             </table>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#D6E3F3] bg-white px-5 py-4 text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E7EB] bg-white px-5 py-4 text-sm">
                             <p className="inline-flex items-center gap-1.5 text-[#334155]">
-                                <FileText className="h-4 w-4 text-[#387ED1]" /> Row-link traceability included in exported package.
+                                <FileText className="h-4 w-4 text-[#2D9CDB]" /> Row-link traceability included in exported package.
                             </p>
                             <p className="inline-flex items-center gap-1.5 text-[#334155]">
-                                <FileSpreadsheet className="h-4 w-4 text-[#387ED1]" /> Compatible with Tally Prime and Tally ERP 9 import format.
+                                <FileSpreadsheet className="h-4 w-4 text-[#2D9CDB]" /> Compatible with Tally Prime and Tally ERP 9 import format.
                             </p>
                         </div>
                     </div>
@@ -621,17 +621,17 @@ export default function LandingPage() {
 
             <section id="features" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Built for accounting precision, not just parsing</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Built for accounting precision, not just parsing</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         These are the workflow safeguards that reduce manual rework and improve close confidence.
                     </p>
                     <div className="mt-10 grid gap-5 md:grid-cols-2">
                         {featureCards.map((feature) => (
-                            <article key={feature.title} className="rounded-2xl border border-[#D6E3F3] bg-[#F8FBFF] p-6">
-                                <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.08em] text-[#387ED1]">
+                            <article key={feature.title} className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-6">
+                                <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.08em] text-[#2D9CDB]">
                                     <BadgeCheck className="h-4 w-4" /> Core capability
                                 </p>
-                                <h3 className="mt-3 text-xl font-semibold text-[#1A1A2E]">{feature.title}</h3>
+                                <h3 className="mt-3 text-xl font-semibold text-[#0B1F33]">{feature.title}</h3>
                                 <p className="mt-3 text-sm leading-7 text-[#374151]">{feature.text}</p>
                             </article>
                         ))}
@@ -641,31 +641,31 @@ export default function LandingPage() {
 
             <section id="comparison" className="bg-white pb-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Compared to alternatives</h2>
-                    <div className="mt-8 overflow-hidden rounded-2xl border border-[#E2E8F0]">
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Compared to alternatives</h2>
+                    <div className="mt-8 overflow-hidden rounded-2xl border border-[#E5E7EB]">
                         <table className="w-full text-left text-base">
-                            <thead className="bg-[#F7F8FA] text-[#1A1A2E]">
+                            <thead className="bg-[#F9FAFB] text-[#0B1F33]">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">Criteria</th>
                                     <th className="px-4 py-3 font-semibold">Manual Excel</th>
                                     <th className="px-4 py-3 font-semibold">Generic Parser</th>
-                                    <th className="px-4 py-3 font-semibold bg-[#EAF3FF]">
+                                    <th className="px-4 py-3 font-semibold bg-[#EBF5FB]">
                                         <div className="inline-flex items-center gap-2">
                                             TradeBooks AI
-                                            <span className="rounded-full border border-[#387ED1]/25 bg-[#387ED1]/10 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.08em] text-[#387ED1]">
+                                            <span className="rounded-full border border-[#2D9CDB]/25 bg-[#2D9CDB]/10 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.08em] text-[#2D9CDB]">
                                                 ✓ Recommended
                                             </span>
                                         </div>
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[#E2E8F0] bg-white text-[#374151]">
+                            <tbody className="divide-y divide-[#E5E7EB] bg-white text-[#374151]">
                                 {comparisonRows.map((row) => (
                                     <tr key={row[0]}>
                                         {row.map((cell, idx) => (
                                             <td
                                                 key={cell}
-                                                className={`px-4 py-3 ${idx === 0 ? "font-medium text-[#1A1A2E]" : ""} ${idx === 3 ? "bg-[#F5F9FF] font-semibold text-[#387ED1]" : ""}`}
+                                                className={`px-4 py-3 ${idx === 0 ? "font-medium text-[#0B1F33]" : ""} ${idx === 3 ? "bg-[#F5FBFE] font-semibold text-[#2D9CDB]" : ""}`}
                                             >
                                                 {cell}
                                             </td>
@@ -680,7 +680,7 @@ export default function LandingPage() {
 
             <section id="pricing" className="bg-white py-20">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Simple pricing for every close stage</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Simple pricing for every close stage</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         Start free to validate your workflow, then move to Pro once your team is ready for production exports.
                     </p>
@@ -691,24 +691,24 @@ export default function LandingPage() {
                         {pricingPlans.map((plan) => (
                             <article
                                 key={plan.name}
-                                className={`rounded-2xl border p-7 ${plan.featured ? "border-[#387ED1] bg-[#F5F9FF] shadow-[0_14px_32px_rgba(56,126,209,0.18)]" : "border-[#E2E8F0] bg-white"}`}
+                                className={`rounded-2xl border p-7 ${plan.featured ? "border-[#2D9CDB] bg-[#F5FBFE] shadow-[0_14px_32px_rgba(56,126,209,0.18)]" : "border-[#E5E7EB] bg-white"}`}
                             >
                                 <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#475569]">{plan.name}</p>
                                 <div className="mt-3 flex items-end gap-1.5">
-                                    <p className="text-4xl font-extrabold text-[#1A1A2E]">{plan.price}</p>
+                                    <p className="text-4xl font-extrabold text-[#0B1F33]">{plan.price}</p>
                                     <p className="text-sm text-[#64748B]">{plan.period}</p>
                                 </div>
                                 <p className="mt-3 text-base leading-7 text-[#475569]">{plan.description}</p>
                                 <ul className="mt-5 space-y-2.5 text-base text-[#334155]">
                                     {plan.points.map((point) => (
                                         <li key={point} className="inline-flex items-start gap-2">
-                                            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2D9D78]" /> {point}
+                                            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#27AE60]" /> {point}
                                         </li>
                                     ))}
                                 </ul>
                                 <Link
                                     href={plan.href}
-                                    className={`mt-7 inline-flex h-11 w-full items-center justify-center rounded-lg border text-base font-semibold transition-colors ${plan.featured ? "border-[#387ED1] bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "border-[#C7D7EC] text-[#1A1A2E] hover:bg-[#F7F8FA]"}`}
+                                    className={`mt-7 inline-flex h-11 w-full items-center justify-center rounded-lg border text-base font-semibold transition-colors ${plan.featured ? "border-[#2D9CDB] bg-[#2D9CDB] text-white hover:bg-[#132d47]" : "border-[#E5E7EB] text-[#0B1F33] hover:bg-[#F9FAFB]"}`}
                                 >
                                     {plan.cta}
                                 </Link>
@@ -720,11 +720,11 @@ export default function LandingPage() {
 
             <section id="faq" className="bg-white py-20">
                 <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Frequently Asked Questions</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Frequently Asked Questions</h2>
                     <div className="mt-10 space-y-4">
                         {faqs.map((item) => (
-                            <details key={item.q} className="rounded-xl border border-[#E2E8F0] bg-white p-5">
-                                <summary className="cursor-pointer list-none text-lg font-semibold leading-7 text-[#1A1A2E]">
+                            <details key={item.q} className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+                                <summary className="cursor-pointer list-none text-lg font-semibold leading-7 text-[#0B1F33]">
                                     {item.q}
                                 </summary>
                                 <p className="mt-3 text-base leading-8 text-[#374151]">{item.a}</p>
@@ -736,18 +736,18 @@ export default function LandingPage() {
 
             <section id="final-cta" className="bg-white py-20 text-center">
                 <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-3xl font-semibold text-[#1A1A2E] sm:text-4xl">Close faster with fewer exceptions and clean Tally imports.</h2>
+                    <h2 className="font-sans text-3xl font-semibold text-[#0B1F33] sm:text-4xl">Close faster with fewer exceptions and clean Tally imports.</h2>
                     <p className="mt-4 text-[#4B5563]">Move from manual posting to exception-first review and export ready XML your team can trust each cycle.</p>
                     <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                         <Link
                             href="/upload"
-                            className="inline-flex h-12 items-center justify-center rounded-lg bg-[#1E4FD8] px-7 text-sm font-semibold text-white hover:bg-[#1944bb]"
+                            className="inline-flex h-12 items-center justify-center rounded-lg bg-[#0B1F33] px-7 text-sm font-semibold text-white hover:bg-[#132d47]"
                         >
                             Get Started Free
                         </Link>
                         <Link
                             href="/pricing"
-                            className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-7 text-sm font-medium text-[#1A1A2E] hover:bg-[#F9FAFB]"
+                            className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-[#D1D5DB] px-7 text-sm font-medium text-[#0B1F33] hover:bg-[#F9FAFB]"
                         >
                             View Pricing
                         </Link>

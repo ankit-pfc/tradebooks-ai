@@ -35,7 +35,7 @@ export default function PricingPage() {
         <div className="bg-white py-24 sm:py-32">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-3xl text-center">
-                    <Badge className="mb-6 border-[#387ED1]/30 bg-[#387ED1]/10 text-[#387ED1] hover:bg-[#387ED1]/10">
+                    <Badge className="mb-6 border-[#2D9CDB]/30 bg-[#2D9CDB]/10 text-[#2D9CDB] hover:bg-[#2D9CDB]/10">
                         Transparent Pricing
                     </Badge>
                     <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">Simple pricing for clean, faster closes.</h1>
@@ -50,7 +50,7 @@ export default function PricingPage() {
                     {tiers.map((tier) => (
                         <div
                             key={tier.name}
-                            className={`flex flex-col rounded-3xl p-8 ${tier.featured ? "border-2 border-[#387ED1] shadow-xl" : "border border-slate-200 shadow-sm"}`}
+                            className={`flex flex-col rounded-3xl p-8 ${tier.featured ? "border-2 border-[#2D9CDB] shadow-lg" : "border border-slate-200 shadow-sm"}`}
                         >
                             <h3 className="text-xl font-semibold text-slate-900">{tier.name}</h3>
                             <p className="mt-2 text-base text-slate-500">{tier.sub}</p>
@@ -65,7 +65,7 @@ export default function PricingPage() {
                             </ul>
                             <Link
                                 href={tier.href}
-                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-base font-semibold ${tier.featured ? "bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
+                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-base font-semibold ${tier.featured ? "bg-[#0B1F33] text-white hover:bg-[#132d47]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
                             >
                                 {tier.cta}
                             </Link>

@@ -33,18 +33,18 @@ export function MarketingHeader() {
     return (
         <header
             className={cn(
-                "sticky top-0 z-50 w-full border-b border-[#E2E8F0]/80 bg-white/95 backdrop-blur transition-shadow duration-200",
+                "sticky top-0 z-50 w-full border-b border-[#E5E7EB]/80 bg-white/95 backdrop-blur transition-shadow duration-200",
                 isScrolled && "shadow-[0_6px_24px_rgba(15,23,42,0.08)]",
             )}
         >
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Link href="/" className="flex items-center gap-2.5">
-                    <div className="h-8 w-1.5 rounded-full bg-[#1E4FD8]" aria-hidden="true" />
-                    <div>
-                        <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
-                            TradeBooks
+                    <div className="h-8 w-1.5 rounded-sm bg-[#0B1F33]" aria-hidden="true" />
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-medium tracking-tight text-[#0B1F33]">
+                            Tradebooks
                         </span>
-                        <span className="block -mt-0.5 text-xl font-bold tracking-tight text-[#0F1C2E]">
+                        <span className="text-lg font-semibold tracking-tight text-[#2D9CDB]">
                             AI
                         </span>
                     </div>
@@ -55,7 +55,7 @@ export function MarketingHeader() {
                         <Link
                             key={link.href}
                             href={link.href}
-                            className="inline-flex items-center gap-1 text-base font-medium text-[#4A5568] transition-colors hover:text-[#0F1C2E]"
+                            className="inline-flex items-center gap-1 text-base font-medium text-[#6B7280] transition-colors hover:text-[#0B1F33]"
                         >
                             {link.label}
                             {link.hasDropdownCue && <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -66,7 +66,7 @@ export function MarketingHeader() {
                 <div className="hidden md:block">
                     <Link
                         href="/upload"
-                        className="inline-flex h-11 items-center justify-center rounded-full border border-[#1E4FD8]/30 bg-white px-5 text-base font-semibold text-[#1E4FD8] transition-colors hover:bg-[#EFF4FF]"
+                        className="inline-flex h-11 items-center justify-center rounded-full border border-[#0B1F33]/30 bg-white px-5 text-base font-semibold text-[#0B1F33] transition-colors hover:bg-[#F3F4F6]"
                     >
                         Get Started Free
                     </Link>
@@ -83,11 +83,11 @@ export function MarketingHeader() {
                             />
                         }
                     >
-                        <Menu className="h-5 w-5 text-[#0F1C2E]" />
+                        <Menu className="h-5 w-5 text-[#0B1F33]" />
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-[84%] border-l border-[#E2E8F0] bg-white p-0">
-                        <div className="border-b border-[#E2E8F0] px-5 py-4">
-                            <SheetTitle className="text-left text-lg font-semibold text-[#0F1C2E]">
+                    <SheetContent side="right" className="w-[84%] border-l border-[#E5E7EB] bg-white p-0">
+                        <div className="border-b border-[#E5E7EB] px-5 py-4">
+                            <SheetTitle className="text-left text-lg font-semibold text-[#0B1F33]">
                                 TradeBooks AI
                             </SheetTitle>
                         </div>
@@ -97,16 +97,16 @@ export function MarketingHeader() {
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className="inline-flex items-center justify-between border-b border-[#EEF2F7] py-3.5 text-base font-medium text-[#334155]"
+                                    className="inline-flex items-center justify-between border-b border-[#E5E7EB] py-3.5 text-base font-medium text-[#374151]"
                                 >
                                     {link.label}
-                                    {link.hasDropdownCue && <ChevronDown className="h-4 w-4 text-[#94A3B8]" aria-hidden="true" />}
+                                    {link.hasDropdownCue && <ChevronDown className="h-4 w-4 text-[#9CA3AF]" aria-hidden="true" />}
                                 </Link>
                             ))}
 
                             <Link
                                 href="/upload"
-                                className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#1E4FD8] px-5 text-base font-semibold text-white transition-colors hover:bg-[#1944BB]"
+                                className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[#0B1F33] px-5 text-base font-semibold text-white transition-colors hover:bg-[#132d47]"
                             >
                                 Get Started Free
                             </Link>

@@ -43,10 +43,10 @@ export function ImageGenScreen() {
     };
 
     return (
-        <section id="image-studio" className="rounded-2xl border border-[#D6E3F3] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] sm:p-6">
+        <section id="image-studio" className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-2">
-                <h3 className="text-base font-semibold text-[#1A1A2E]">AI Visual Studio</h3>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#1E4FD8]/30 bg-[#1E4FD8]/10 px-2.5 py-1 text-[11px] font-semibold text-[#1E4FD8]">
+                <h3 className="text-base font-semibold text-[#0B1F33]">AI Visual Studio</h3>
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#0B1F33]/30 bg-[#0B1F33]/10 px-2.5 py-1 text-[11px] font-semibold text-[#0B1F33]">
                     <Sparkles className="h-3.5 w-3.5" /> OpenAI
                 </span>
             </div>
@@ -59,19 +59,19 @@ export function ImageGenScreen() {
                     id="image-prompt"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="min-h-[90px] w-full rounded-lg border border-[#D6E3F3] px-3 py-2 text-sm text-[#1A1A2E] outline-none ring-[#1E4FD8]/30 focus:ring"
+                    className="min-h-[90px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-sm text-[#0B1F33] outline-none ring-[#0B1F33]/30 focus:ring"
                     placeholder="Describe the visual you want to generate..."
                 />
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="inline-flex h-10 items-center justify-center rounded-lg bg-[#1E4FD8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1944bb] disabled:cursor-not-allowed disabled:opacity-70"
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-[#0B1F33] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#132d47] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                     {isLoading ? "Generating..." : "Generate image"}
                 </button>
             </form>
 
-            <div className="mt-4 overflow-hidden rounded-lg border border-[#E2E8F0] bg-[#F8FBFF]">
+            <div className="mt-4 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]">
                 {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={imageUrl} alt="AI generated visual" className="h-auto w-full object-cover" />
