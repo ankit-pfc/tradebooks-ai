@@ -17,18 +17,18 @@ describe('generateMastersXml — GROUP master generation', () => {
     const xml = generateMastersXml(ledgers, 'Test Co', groups);
 
     // GROUP elements should appear
-    expect(xml).toContain('<GROUP NAME="ZERODHA-Investment" ACTION="Create">');
+    expect(xml).toContain('<GROUP NAME="ZERODHA-Investment" RESERVEDNAME="" ACTION="Create">');
     expect(xml).toContain('<PARENT>Investments</PARENT>');
-    expect(xml).toContain('<GROUP NAME="Capital A/c - STCG" ACTION="Create">');
+    expect(xml).toContain('<GROUP NAME="Capital A/c - STCG" RESERVEDNAME="" ACTION="Create">');
     expect(xml).toContain('<PARENT>Capital Account</PARENT>');
 
     // LEDGER elements should also appear
-    expect(xml).toContain('<LEDGER NAME="Bank Account" ACTION="Create">');
-    expect(xml).toContain('<LEDGER NAME="RELIANCE-SH" ACTION="Create">');
+    expect(xml).toContain('<LEDGER NAME="Bank Account" RESERVEDNAME="" ACTION="Create">');
+    expect(xml).toContain('<LEDGER NAME="RELIANCE-SH" RESERVEDNAME="" ACTION="Create">');
 
     // GROUPs must come BEFORE LEDGERs (TallyPrime requirement)
-    const groupPos = xml.indexOf('<GROUP NAME="ZERODHA-Investment"');
-    const ledgerPos = xml.indexOf('<LEDGER NAME="Bank Account"');
+    const groupPos = xml.indexOf('<GROUP NAME="ZERODHA-Investment" RESERVEDNAME=""');
+    const ledgerPos = xml.indexOf('<LEDGER NAME="Bank Account" RESERVEDNAME=""');
     expect(groupPos).toBeLessThan(ledgerPos);
   });
 
@@ -41,14 +41,14 @@ describe('generateMastersXml — GROUP master generation', () => {
   it('produces valid XML without groups (backward compat)', () => {
     const xml = generateMastersXml(ledgers, 'Test Co');
     expect(xml).not.toContain('<GROUP');
-    expect(xml).toContain('<LEDGER NAME="Bank Account"');
+    expect(xml).toContain('<LEDGER NAME="Bank Account" RESERVEDNAME=""');
     expect(xml).toContain('<ENVELOPE>');
   });
 
   it('passes groups through generateFullExport', () => {
     const { mastersXml } = generateFullExport([], ledgers, 'Test Co', groups);
-    expect(mastersXml).toContain('<GROUP NAME="ZERODHA-Investment"');
-    expect(mastersXml).toContain('<LEDGER NAME="Bank Account"');
+    expect(mastersXml).toContain('<GROUP NAME="ZERODHA-Investment" RESERVEDNAME=""');
+    expect(mastersXml).toContain('<LEDGER NAME="Bank Account" RESERVEDNAME=""');
   });
 
   it('handles empty groups array same as undefined', () => {
