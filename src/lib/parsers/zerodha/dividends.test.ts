@@ -9,8 +9,17 @@ const DATA_DIR = path.resolve(
   'Downloads/Zerodha reports sss/FY 2425',
 );
 const DIV_FILE = path.join(DATA_DIR, 'dividends-FC9134-2024_2025.xlsx');
+const HAS_LOCAL_DATA = fs.existsSync(DIV_FILE);
 
 describe('parseDividends', () => {
+  it('throws on empty buffer', () => {
+    expect(() => parseDividends(Buffer.alloc(0), 'empty.xlsx')).toThrow(
+      /empty/,
+    );
+  });
+});
+
+describe.skipIf(!HAS_LOCAL_DATA)('parseDividends (local data)', () => {
   it('parses the FY2425 dividends file', () => {
     const buf = fs.readFileSync(DIV_FILE);
     const result = parseDividends(buf, 'dividends.xlsx');
@@ -59,11 +68,5 @@ describe('parseDividends', () => {
       r.symbol.toLowerCase().includes('total'),
     );
     expect(totalRows.length).toBe(0);
-  });
-
-  it('throws on empty buffer', () => {
-    expect(() => parseDividends(Buffer.alloc(0), 'empty.xlsx')).toThrow(
-      /empty/,
-    );
   });
 });

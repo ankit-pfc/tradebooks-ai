@@ -8,8 +8,15 @@ const DATA_DIR = path.resolve(
   'Downloads/Zerodha reports sss/FY 2425',
 );
 const LEDGER_FILE = path.join(DATA_DIR, 'ledger-FC9134.xlsx');
+const HAS_LOCAL_DATA = fs.existsSync(LEDGER_FILE);
 
 describe('parseLedger', () => {
+  it('throws on empty buffer', () => {
+    expect(() => parseLedger(Buffer.alloc(0), 'empty.xlsx')).toThrow(/empty/);
+  });
+});
+
+describe.skipIf(!HAS_LOCAL_DATA)('parseLedger (local data)', () => {
   it('parses the FY2425 ledger file', () => {
     const buf = fs.readFileSync(LEDGER_FILE);
     const result = parseLedger(buf, 'ledger-FC9134.xlsx');
@@ -63,9 +70,5 @@ describe('parseLedger', () => {
 
     expect(result.metadata.date_range).not.toBeNull();
     expect(result.metadata.date_range!.from).toMatch(/^2024/);
-  });
-
-  it('throws on empty buffer', () => {
-    expect(() => parseLedger(Buffer.alloc(0), 'empty.xlsx')).toThrow(/empty/);
   });
 });

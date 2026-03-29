@@ -11,8 +11,17 @@ const CN_FILE = path.join(
   DATA_DIR,
   'Contract Notes_FC9134_2024-04-01_2025-03-31.xlsx',
 );
+const HAS_LOCAL_DATA = fs.existsSync(CN_FILE);
 
 describe('parseContractNotes', () => {
+  it('throws on empty buffer', () => {
+    expect(() =>
+      parseContractNotes(Buffer.alloc(0), 'empty.xlsx'),
+    ).toThrow(/empty/);
+  });
+});
+
+describe.skipIf(!HAS_LOCAL_DATA)('parseContractNotes (local data)', () => {
   it('parses the FY2425 contract notes file', () => {
     const buf = fs.readFileSync(CN_FILE);
     const result = parseContractNotes(buf, 'contract-notes.xlsx');
@@ -61,11 +70,5 @@ describe('parseContractNotes', () => {
 
     // 28 trading days in FY2425 for this client
     expect(result.charges.length).toBe(28);
-  });
-
-  it('throws on empty buffer', () => {
-    expect(() =>
-      parseContractNotes(Buffer.alloc(0), 'empty.xlsx'),
-    ).toThrow(/empty/);
   });
 });
