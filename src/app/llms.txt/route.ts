@@ -10,6 +10,11 @@ export function GET() {
 - [Pricing](https://tradebooks.ai/pricing)
 - [Brand Facts](https://tradebooks.ai/brand-facts)
 
+## Accounting Guides
+- [How to Import Zerodha Trades into Tally](https://tradebooks.ai/guides/zerodha-tally-accounting)
+- [F&O Tax Audit Guide for Indian Traders](https://tradebooks.ai/guides/f-and-o-tax-audit-india)
+- [Tax Loss Harvesting in Demat Accounts](https://tradebooks.ai/guides/tax-loss-harvesting-demat-accounts)
+
 ## Legal
 - [Privacy Policy](https://tradebooks.ai/privacy)
 - [Terms of Service](https://tradebooks.ai/terms)
