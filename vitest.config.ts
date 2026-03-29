@@ -7,4 +7,11 @@ export default defineConfig({
             '@': resolve(__dirname, './src'),
         },
     },
+    test: {
+        exclude: [
+            '**/node_modules/**',
+            '**/.next/**',
+            '**/dist/**',
+        ],
+    },
 });

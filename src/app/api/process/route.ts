@@ -184,6 +184,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 2b. Resolve period dates from form data or parsed file metadata
+    const allMetadataRanges = [
+      parsedFileSet.tradebook?.metadata.date_range,
+      parsedFileSet.contractNote?.metadata.date_range,
+      parsedFileSet.fundsStatement?.metadata.date_range,
+      parsedFileSet.dividends?.metadata.date_range,
+    ].filter((r): r is { from: string; to: string } => r != null);
+
+    const resolvedPeriodFrom = periodFrom || (
+      allMetadataRanges.length > 0
+        ? allMetadataRanges.reduce((min, r) => r.from < min ? r.from : min, allMetadataRanges[0].from)
+        : ''
+    );
+    const resolvedPeriodTo = periodTo || (
+      allMetadataRanges.length > 0
+        ? allMetadataRanges.reduce((max, r) => r.to > max ? r.to : max, allMetadataRanges[0].to)
+        : ''
+    );
+
+    if (!resolvedPeriodFrom || !resolvedPeriodTo) {
+      return NextResponse.json(
+        { error: 'Could not determine period dates. Please provide periodFrom and periodTo.' },
+        { status: 400 },
+      );
+    }
+
     // 3. Build canonical events from all sources
     const batchId = crypto.randomUUID();
     const events = buildCanonicalEvents({
@@ -291,15 +317,15 @@ export async function POST(request: NextRequest) {
     const failed = checks.filter((c) => c.status === 'FAILED').length;
 
     // 9. Compute FY label
-    const fyLabel = deriveFYLabel(periodFrom ?? '', periodTo ?? '');
+    const fyLabel = deriveFYLabel(resolvedPeriodFrom, resolvedPeriodTo);
 
     // 10. Persist to store
     const batch = await repo.createBatch({
       user_id: userId,
       company_name: companyName,
       accounting_mode: accountingMode as 'investor' | 'trader',
-      period_from: periodFrom ?? '',
-      period_to: periodTo ?? '',
+      period_from: resolvedPeriodFrom,
+      period_to: resolvedPeriodTo,
       prior_batch_id: priorBatchId ?? undefined,
       fy_label: fyLabel || undefined,
     });

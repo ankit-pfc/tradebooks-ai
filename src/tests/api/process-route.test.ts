@@ -137,7 +137,7 @@ function setupHappyPath() {
     mockDetectFileType.mockReturnValue('tradebook');
     mockParseTradebook.mockReturnValue({
         rows: [sampleRow],
-        metadata: { row_count: 1, parser_version: '1.0.0' },
+        metadata: { row_count: 1, parser_version: '1.0.0', date_range: { from: '2025-04-15', to: '2025-04-15' } },
     });
     mockBuildCanonicalEvents.mockReturnValue([
         { id: 'ev1', type: 'EQUITY_BUY', symbol: 'INFY' },
