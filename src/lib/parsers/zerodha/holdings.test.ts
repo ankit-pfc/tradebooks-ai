@@ -8,8 +8,15 @@ const DATA_DIR = path.resolve(
   'Downloads/Zerodha reports sss/FY 2425',
 );
 const HOLDINGS_FILE = path.join(DATA_DIR, 'holdings-FC9134.xlsx');
+const HAS_LOCAL_DATA = fs.existsSync(HOLDINGS_FILE);
 
 describe('parseHoldings', () => {
+  it('throws on empty buffer', () => {
+    expect(() => parseHoldings(Buffer.alloc(0), 'empty.xlsx')).toThrow(/empty/);
+  });
+});
+
+describe.skipIf(!HAS_LOCAL_DATA)('parseHoldings (local data)', () => {
   it('parses the FY2425 holdings file', () => {
     const buf = fs.readFileSync(HOLDINGS_FILE);
     const result = parseHoldings(buf, 'holdings-FC9134.xlsx');
@@ -45,9 +52,5 @@ describe('parseHoldings', () => {
     expect(gem).toBeDefined();
     expect(gem!.quantity_available).toBe('6400');
     expect(gem!.isin).toBe('INE0RUJ01013');
-  });
-
-  it('throws on empty buffer', () => {
-    expect(() => parseHoldings(Buffer.alloc(0), 'empty.xlsx')).toThrow(/empty/);
   });
 });
