@@ -84,8 +84,8 @@ export default function ExceptionsPage() {
     <div className="px-8 py-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Exceptions</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-3xl font-bold text-gray-900">Exceptions</h1>
+        <p className="text-base text-gray-600 mt-1">
           Review validation and reconciliation issues detected during
           processing.
         </p>
@@ -95,7 +95,7 @@ export default function ExceptionsPage() {
       <div className="flex items-center gap-3">
         <label
           htmlFor="severity-filter"
-          className="text-sm font-medium text-gray-600"
+          className="text-base font-medium text-gray-700"
         >
           Filter by severity:
         </label>
@@ -103,7 +103,7 @@ export default function ExceptionsPage() {
           id="severity-filter"
           value={severityFilter}
           onChange={(e) => setSeverityFilter(e.target.value)}
-          className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-10 rounded-lg border border-gray-200 bg-white px-2.5 text-base text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         >
           {FILTER_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -123,14 +123,14 @@ export default function ExceptionsPage() {
           ) : exceptions.length === 0 ? (
             <div className="py-16">
               <div className="text-center space-y-3">
-                <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-gray-400" />
+                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-base font-medium text-gray-700">
                     No exceptions to review
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-sm text-gray-500 mt-1">
                     {severityFilter === "all"
                       ? "Exceptions from processed batches will appear here."
                       : `No exceptions with severity "${SEVERITY_LABELS[severityFilter as AppExceptionSeverity] ?? severityFilter}".`}
@@ -142,22 +142,22 @@ export default function ExceptionsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-xs font-medium text-gray-500 pl-6">
+                  <TableHead className="text-sm font-semibold text-gray-700 pl-6">
                     Severity
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Code
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Message
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Batch ID
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Source Refs
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500 pr-6">
+                  <TableHead className="text-sm font-semibold text-gray-700 pr-6">
                     Date
                   </TableHead>
                 </TableRow>
@@ -175,21 +175,21 @@ export default function ExceptionsPage() {
                         {SEVERITY_LABELS[exc.severity] ?? exc.severity}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm font-mono text-gray-700">
+                    <TableCell className="text-base font-mono text-gray-700">
                       {exc.code}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600 max-w-xs truncate">
+                    <TableCell className="text-base text-gray-700 max-w-xs truncate">
                       {exc.message}
                     </TableCell>
-                    <TableCell className="text-sm font-mono text-gray-500">
+                    <TableCell className="text-base font-mono text-gray-500">
                       {exc.batch_id.slice(0, 8)}...
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-base text-gray-700">
                       {exc.source_refs.length > 0
                         ? exc.source_refs.join(", ")
                         : "\u2014"}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600 pr-6">
+                    <TableCell className="text-base text-gray-700 pr-6">
                       {formatDate(exc.created_at)}
                     </TableCell>
                   </TableRow>

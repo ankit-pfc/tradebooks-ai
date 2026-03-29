@@ -107,14 +107,14 @@ export default function BatchesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Batches</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900">Batches</h1>
+          <p className="text-base text-gray-600 mt-1">
             Track upload and processing lifecycle for each import batch.
           </p>
         </div>
         <Link
           href="/upload"
-          className="inline-flex h-8 items-center justify-center rounded-lg bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          className="inline-flex h-11 items-center justify-center rounded-lg bg-indigo-600 px-5 text-base font-medium text-white transition-colors hover:bg-indigo-700"
         >
           <Plus className="mr-2 h-4 w-4" />
           New Import
@@ -125,7 +125,7 @@ export default function BatchesPage() {
       <div className="flex items-center gap-3">
         <label
           htmlFor="status-filter"
-          className="text-sm font-medium text-gray-600"
+          className="text-base font-medium text-gray-700"
         >
           Filter by status:
         </label>
@@ -133,7 +133,7 @@ export default function BatchesPage() {
           id="status-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-10 rounded-lg border border-gray-200 bg-white px-2.5 text-base text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         >
           {FILTER_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -153,14 +153,14 @@ export default function BatchesPage() {
           ) : batches.length === 0 ? (
             <div className="py-16">
               <div className="text-center space-y-3">
-                <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
                   <FileText className="h-5 w-5 text-gray-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-base font-medium text-gray-700">
                     No batches found
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-sm text-gray-500 mt-1">
                     {statusFilter === "all"
                       ? "Upload your first Zerodha files to get started."
                       : `No batches with status "${STATUS_LABELS[statusFilter as AppBatchStatus] ?? statusFilter}".`}
@@ -169,7 +169,7 @@ export default function BatchesPage() {
                 {statusFilter === "all" && (
                   <Link
                     href="/upload"
-                    className="mt-1 inline-flex h-7 items-center justify-center rounded-lg bg-indigo-600 px-2.5 text-[0.8rem] font-medium text-white transition-colors hover:bg-indigo-700"
+                    className="mt-1 inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
                   >
                     Start your first import
                   </Link>
@@ -180,19 +180,19 @@ export default function BatchesPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-xs font-medium text-gray-500 pl-6">
+                  <TableHead className="text-sm font-semibold text-gray-700 pl-6">
                     Company Name
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Period
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Status
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500">
+                  <TableHead className="text-sm font-semibold text-gray-700">
                     Vouchers
                   </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-500 pr-6">
+                  <TableHead className="text-sm font-semibold text-gray-700 pr-6">
                     Created
                   </TableHead>
                 </TableRow>
@@ -200,10 +200,10 @@ export default function BatchesPage() {
               <TableBody>
                 {batches.map((batch) => (
                   <TableRow key={batch.id} className="border-gray-100">
-                    <TableCell className="pl-6 text-sm font-medium text-gray-900">
+                    <TableCell className="pl-6 text-base font-medium text-gray-900">
                       {batch.company_name}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-base text-gray-700">
                       {formatPeriod(batch.period_from, batch.period_to)}
                     </TableCell>
                     <TableCell>
@@ -216,10 +216,10 @@ export default function BatchesPage() {
                         {STATUS_LABELS[batch.status] ?? batch.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm font-medium text-gray-900">
+                    <TableCell className="text-base font-medium text-gray-900">
                       {batch.voucher_count}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600 pr-6">
+                    <TableCell className="text-base text-gray-700 pr-6">
                       {formatDate(batch.created_at)}
                     </TableCell>
                   </TableRow>

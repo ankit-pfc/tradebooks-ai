@@ -19,7 +19,7 @@ interface SettingsFormData {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 const SELECT_CLASSES =
-    "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
+    "h-10 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none focus:border-ring focus:ring-3 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function SettingsPage() {
     const [form, setForm] = useState<SettingsFormData>({
@@ -90,26 +90,26 @@ export default function SettingsPage() {
     if (loading) {
         return (
             <div className="px-8 py-8">
-                <p className="text-sm text-gray-400">Loading settings...</p>
+                <p className="text-base text-gray-500">Loading settings...</p>
             </div>
         );
     }
 
     return (
-        <div className="px-8 py-8 space-y-6 max-w-2xl">
+        <div className="px-8 py-8 space-y-6 max-w-3xl">
             <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+                <p className="text-base text-gray-600 mt-1">
                     Configure workspace defaults for upload and export workflows.
                 </p>
             </div>
 
             <Card className="border-gray-200">
                 <CardHeader>
-                    <CardTitle className="text-base font-semibold text-gray-900">
+                    <CardTitle className="text-lg font-bold text-gray-900">
                         Workspace defaults
                     </CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-base text-gray-600">
                         These values will pre-fill future import forms.
                     </p>
                 </CardHeader>
@@ -206,14 +206,14 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="flex items-center gap-3 pt-2">
-                        <Button onClick={handleSave} disabled={status === "saving"}>
+                        <Button className="h-11" onClick={handleSave} disabled={status === "saving"}>
                             {status === "saving" ? "Saving..." : "Save settings"}
                         </Button>
                         {status === "saved" && (
-                            <span className="text-sm text-green-600">Settings saved</span>
+                            <span className="text-base text-green-600">Settings saved</span>
                         )}
                         {status === "error" && (
-                            <span className="text-sm text-red-600">{errorMsg}</span>
+                            <span className="text-base text-red-600">{errorMsg}</span>
                         )}
                     </div>
                 </CardContent>
