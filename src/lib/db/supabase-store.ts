@@ -11,6 +11,7 @@ import type {
     BatchDetail,
     BatchException,
     BatchFileMeta,
+    BatchFileStatus,
     BatchProcessingResult,
     BatchRecord,
     ExportArtifactRef,
@@ -51,6 +52,10 @@ function rowToFileMeta(row: any): BatchFileMeta {
         mime_type: row.mime_type,
         size_bytes: row.size_bytes,
         detected_type: row.detected_type,
+        status: (row.status ?? 'uploaded') as BatchFileStatus,
+        content_hash: row.content_hash ?? null,
+        error_message: row.error_message ?? null,
+        uploaded_at: row.uploaded_at ?? null,
         created_at: row.created_at,
     };
 }
@@ -175,12 +180,17 @@ export const supabaseBatchRepository: BatchRepository = {
     async addUploadedFiles(batchId, filesWithStoragePath) {
         const supabase = await createClient();
         const rows = filesWithStoragePath.map((f: UploadedFilePersistenceInput) => ({
+            id: f.id,
             batch_id: batchId,
             file_name: f.file_name,
             mime_type: f.mime_type,
             size_bytes: f.size_bytes,
             detected_type: f.detected_type,
             storage_path: f.storage_path,
+            status: f.status,
+            content_hash: f.content_hash ?? null,
+            error_message: f.error_message ?? null,
+            uploaded_at: f.uploaded_at ?? null,
         }));
 
         const { error: insertError } = await supabase
@@ -349,6 +359,55 @@ export const supabaseBatchRepository: BatchRepository = {
 
         if (error) throw new Error(`listPriorBatches failed: ${error.message}`);
         return (data ?? []).map(rowToBatchRecord);
+    },
+
+    async updateFileStatus(fileId, status, errorMessage) {
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('batch_files')
+            .update({
+                status,
+                error_message: errorMessage ?? null,
+                ...(status === 'uploaded' ? { uploaded_at: new Date().toISOString() } : {}),
+            })
+            .eq('id', fileId);
+        if (error) throw new Error(`updateFileStatus failed: ${error.message}`);
+    },
+
+    async getFilesByBatch(batchId) {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('batch_files')
+            .select('*')
+            .eq('batch_id', batchId)
+            .order('created_at', { ascending: true });
+        if (error) throw new Error(`getFilesByBatch failed: ${error.message}`);
+        return (data ?? []).map(rowToFileMeta);
+    },
+
+    async deleteFile(batchId, fileId) {
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('batch_files')
+            .delete()
+            .eq('id', fileId)
+            .eq('batch_id', batchId);
+        if (error) throw new Error(`deleteFile failed: ${error.message}`);
+    },
+
+    async findDuplicateFile(userId, contentHash) {
+        const supabase = await createClient();
+        // Join via batches to scope to this user's files
+        const { data, error } = await supabase
+            .from('batch_files')
+            .select('batch_id, file_name, batches!inner(user_id)')
+            .eq('content_hash', contentHash)
+            .eq('batches.user_id', userId)
+            .limit(1)
+            .single();
+
+        if (error || !data) return null;
+        return { batchId: data.batch_id, fileName: data.file_name };
     },
 
     async buildDashboardSummary(): Promise<DashboardResponse> {

@@ -2,9 +2,12 @@ import type { DashboardResponse } from '@/lib/types';
 import {
     addBatchFiles,
     createBatch,
+    deleteFile as localDeleteFile,
+    findDuplicateFile as localFindDuplicateFile,
     getArtifactPath,
     getBatch,
     getClosingLots as localGetClosingLots,
+    getFilesByBatch as localGetFilesByBatch,
     getUploadedFilePath,
     listBatches,
     listExceptions,
@@ -14,6 +17,7 @@ import {
     saveProcessingOutcome,
     setBatchStatus,
     toPublicBatchDetail,
+    updateFileStatus as localUpdateFileStatus,
 } from '@/lib/db/local-store';
 import type {
     BatchRepository,
@@ -81,6 +85,22 @@ const localBatchRepository: BatchRepository = {
 
     async listPriorBatches(userId, companyName) {
         return localListPriorBatches(userId, companyName);
+    },
+
+    async updateFileStatus(fileId, status, errorMessage) {
+        await localUpdateFileStatus(fileId, status, errorMessage);
+    },
+
+    async getFilesByBatch(batchId) {
+        return localGetFilesByBatch(batchId);
+    },
+
+    async deleteFile(batchId, fileId) {
+        await localDeleteFile(batchId, fileId);
+    },
+
+    async findDuplicateFile(userId, contentHash) {
+        return localFindDuplicateFile(userId, contentHash);
     },
 
     async buildDashboardSummary(): Promise<DashboardResponse> {

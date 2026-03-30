@@ -49,3 +49,4 @@ tradebooks-ai/
 
 # secrets
 tradebooks-ai-*.json
+.claude/secrets.json

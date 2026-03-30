@@ -5,6 +5,7 @@ import type {
     BatchDetail,
     BatchException,
     BatchFileMeta,
+    BatchFileStatus,
     BatchProcessingResult,
     BatchRecord,
     ExportArtifactRef,
@@ -66,7 +67,7 @@ export async function createBatch(input: {
         accounting_mode: input.accounting_mode,
         period_from: input.period_from,
         period_to: input.period_to,
-        status: 'queued',
+        status: 'uploading',
         status_message: null,
         file_count: 0,
         voucher_count: 0,
@@ -126,13 +127,77 @@ export async function addBatchFiles(
     const batch = state.batches.find((b) => b.id === batchId);
     if (!batch) return;
     for (const f of files) {
-        const { storage_path, ...meta } = f;
-        batch.files.push(meta);
-        batch.uploaded_file_paths[meta.id] = storage_path;
+        const { storage_path, ...fileMeta } = f;
+        batch.files.push(fileMeta);
+        batch.uploaded_file_paths[fileMeta.id] = storage_path;
     }
     batch.file_count = batch.files.length;
     batch.updated_at = new Date().toISOString();
     await writeState(state);
+}
+
+export async function updateFileStatus(
+    fileId: string,
+    status: BatchFileStatus,
+    errorMessage?: string,
+): Promise<void> {
+    const state = await readState();
+    for (const batch of state.batches) {
+        const file = batch.files.find((f) => f.id === fileId);
+        if (file) {
+            file.status = status;
+            file.error_message = errorMessage ?? null;
+            if (status === 'uploaded') {
+                file.uploaded_at = new Date().toISOString();
+            }
+            batch.updated_at = new Date().toISOString();
+            await writeState(state);
+            return;
+        }
+    }
+}
+
+export async function getFilesByBatch(batchId: string): Promise<BatchFileMeta[]> {
+    const state = await readState();
+    const batch = state.batches.find((b) => b.id === batchId);
+    if (!batch) return [];
+    // Backfill defaults for files persisted before the robust-upload migration.
+    // Object.assign puts defaults first; properties on f override them when present.
+    return batch.files.map((f): BatchFileMeta =>
+        Object.assign(
+            {
+                status: 'uploaded' as BatchFileStatus,
+                content_hash: null as string | null,
+                error_message: null as string | null,
+                uploaded_at: null as string | null,
+            },
+            f,
+        ),
+    );
+}
+
+export async function deleteFile(batchId: string, fileId: string): Promise<void> {
+    const state = await readState();
+    const batch = state.batches.find((b) => b.id === batchId);
+    if (!batch) return;
+    batch.files = batch.files.filter((f) => f.id !== fileId);
+    delete batch.uploaded_file_paths[fileId];
+    batch.file_count = batch.files.length;
+    batch.updated_at = new Date().toISOString();
+    await writeState(state);
+}
+
+export async function findDuplicateFile(
+    userId: string,
+    contentHash: string,
+): Promise<{ batchId: string; fileName: string } | null> {
+    const state = await readState();
+    for (const batch of state.batches) {
+        if (batch.user_id !== userId) continue;
+        const match = batch.files.find((f) => f.content_hash === contentHash);
+        if (match) return { batchId: batch.id, fileName: match.file_name };
+    }
+    return null;
 }
 
 export async function saveProcessingOutcome(params: {
