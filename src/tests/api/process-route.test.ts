@@ -22,6 +22,10 @@ vi.mock('@/lib/supabase/server', () => ({
     }),
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+    rateLimit: vi.fn().mockReturnValue({ success: true, remaining: 99, reset: Date.now() + 3600000 }),
+}));
+
 vi.mock('node:fs/promises', () => ({
     mkdir: vi.fn().mockResolvedValue(undefined),
     writeFile: vi.fn().mockResolvedValue(undefined),
@@ -42,8 +46,9 @@ vi.mock('@/lib/parsers/zerodha/tradebook', () => ({
     parseTradebook: (...args: unknown[]) => mockParseTradebook(...args),
 }));
 
+const mockParseContractNotes = vi.fn();
 vi.mock('@/lib/parsers/zerodha/contract-notes', () => ({
-    parseContractNotes: vi.fn(),
+    parseContractNotes: (...args: unknown[]) => mockParseContractNotes(...args),
 }));
 
 vi.mock('@/lib/parsers/zerodha/funds-statement', () => ({
@@ -55,9 +60,10 @@ vi.mock('@/lib/parsers/zerodha/dividends', () => ({
 }));
 
 const mockBuildCanonicalEvents = vi.fn();
+const mockPairContractNoteData = vi.fn();
 vi.mock('@/lib/engine/canonical-events', () => ({
     buildCanonicalEvents: (...args: unknown[]) => mockBuildCanonicalEvents(...args),
-    pairContractNoteData: vi.fn(),
+    pairContractNoteData: (...args: unknown[]) => mockPairContractNoteData(...args),
 }));
 
 const mockBuildVouchers = vi.fn();
@@ -95,8 +101,9 @@ vi.mock('@/lib/export/tally-xml', () => ({
     generateFullExport: (...args: unknown[]) => mockGenerateFullExport(...args),
 }));
 
+const mockMatchTrades = vi.fn();
 vi.mock('@/lib/engine/trade-matcher', () => ({
-    matchTrades: vi.fn(),
+    matchTrades: (...args: unknown[]) => mockMatchTrades(...args),
 }));
 
 const { POST } = await import('@/app/api/process/route');
@@ -118,6 +125,20 @@ function makeRequest(form: FormData): NextRequest {
         method: 'POST',
         body: form,
     });
+}
+
+const CN_METADATA = { date_range: { from: '2025-04-15', to: '2025-04-15' } };
+
+function setupContractNote() {
+    mockParseContractNotes.mockReturnValue({
+        trades: [],
+        charges: { trade_date: '2025-04-15' },
+        tradesPerSheet: [],
+        metadata: CN_METADATA,
+    });
+    mockPairContractNoteData.mockReturnValue([
+        { trades: [], charges: { trade_date: '2025-04-15' } },
+    ]);
 }
 
 function setupHappyPath() {
@@ -281,5 +302,98 @@ describe('POST /api/process', () => {
 
         expect(res.status).toBe(500);
         expect(body.error).toBe('Parse failed');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Trade Match check
+// ---------------------------------------------------------------------------
+
+describe('Trade Match check', () => {
+    function makeTradeAndCNForm() {
+        const form = makeFormData({ companyName: 'Test Co', accountingMode: 'investor' });
+        form.append('files', new File(['csv,data'], 'tradebook.csv'));
+        form.append('files', new File(['cn data'], 'contract-note.xlsx'));
+        return form;
+    }
+
+    it('is absent when only a tradebook is uploaded (no CN file)', async () => {
+        setupHappyPath();
+
+        const form = makeFormData({ companyName: 'Test Co', accountingMode: 'investor' });
+        form.append('files', new File(['csv,data'], 'tradebook.csv'));
+
+        const res = await POST(makeRequest(form));
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        const tradeMatchCheck = body.checks.find((c: { check_name: string }) => c.check_name === 'Trade Match');
+        expect(tradeMatchCheck).toBeUndefined();
+    });
+
+    it('shows PASSED when all tradebook trades match contract note entries', async () => {
+        setupHappyPath();
+        setupContractNote();
+        mockDetectFileType
+            .mockReturnValueOnce('tradebook')
+            .mockReturnValueOnce('contract_note');
+        mockMatchTrades.mockReturnValue({
+            matched: [{ trade_id: 'T1' }],
+            unmatchedTradebook: [],
+            unmatchedContractNote: [],
+        });
+
+        const res = await POST(makeRequest(makeTradeAndCNForm()));
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        const check = body.checks.find((c: { check_name: string }) => c.check_name === 'Trade Match');
+        expect(check.status).toBe('PASSED');
+        expect(check.details).toContain('All 1 tradebook trades matched to contract note entries');
+    });
+
+    it('shows WARNING (not FAILED) when contract note has no trade rows', async () => {
+        // This is the scenario in the bug report: 0 matched, N unmatched tradebook, 0 unmatched CN
+        setupHappyPath();
+        setupContractNote();
+        mockDetectFileType
+            .mockReturnValueOnce('tradebook')
+            .mockReturnValueOnce('contract_note');
+        mockMatchTrades.mockReturnValue({
+            matched: [],
+            unmatchedTradebook: [{ trade_id: 'T1' }, { trade_id: 'T2' }],
+            unmatchedContractNote: [],
+        });
+
+        const res = await POST(makeRequest(makeTradeAndCNForm()));
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        const check = body.checks.find((c: { check_name: string }) => c.check_name === 'Trade Match');
+        expect(check.status).toBe('WARNING');
+        expect(check.details).toContain('Contract note had no individual trade entries');
+        expect(check.details).toContain('2 tradebook trades were processed as-is');
+    });
+
+    it('shows WARNING with match rate when partial match', async () => {
+        setupHappyPath();
+        setupContractNote();
+        mockDetectFileType
+            .mockReturnValueOnce('tradebook')
+            .mockReturnValueOnce('contract_note');
+        mockMatchTrades.mockReturnValue({
+            matched: [{ trade_id: 'T1' }],
+            unmatchedTradebook: [{ trade_id: 'T2' }, { trade_id: 'T3' }],
+            unmatchedContractNote: [{ trade_id: 'CN1' }],
+        });
+
+        const res = await POST(makeRequest(makeTradeAndCNForm()));
+        const body = await res.json();
+
+        expect(res.status).toBe(200);
+        const check = body.checks.find((c: { check_name: string }) => c.check_name === 'Trade Match');
+        expect(check.status).toBe('WARNING');
+        expect(check.details).toContain('33%');
+        expect(check.details).toContain('Tally XML is unaffected');
     });
 });
