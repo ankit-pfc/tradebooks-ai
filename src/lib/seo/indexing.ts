@@ -57,13 +57,11 @@ export async function pingGoogle(urls: string[]) {
       credentials = JSON.parse(Buffer.from(credentialsStr, 'base64').toString('utf-8'));
     }
     
-    const jwtClient = new google.auth.JWT(
-      credentials.client_email,
-      undefined,
-      credentials.private_key.replace(/\\n/g, '\n'),
-      ['https://www.googleapis.com/auth/indexing'],
-      undefined
-    );
+    const jwtClient = new google.auth.JWT({
+      email: credentials.client_email,
+      key: credentials.private_key.replace(/\\n/g, '\n'),
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
 
     // Initialize the API
     const indexing = google.indexing({ version: 'v3', auth: jwtClient });
