@@ -162,7 +162,7 @@ describe('POST /api/batches/[batchId]/process', () => {
     const body = await res.json();
 
     expect(res.status).toBe(409);
-    expect(body.error).toContain('not ready');
+    expect(body.error).toContain('still uploading');
   });
 
   it('returns 429 when rate limited', async () => {

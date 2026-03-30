@@ -182,17 +182,14 @@ describe('supabaseBatchRepository', () => {
     });
 
     describe('resolveUploadedFilePath', () => {
-        it('returns a signed URL for the file', async () => {
+        it('returns the storage path for the file', async () => {
             fromChain.single.mockResolvedValue({
                 data: { storage_path: 'user-1/file.csv' },
                 error: null,
             });
-            mockCreateSignedUrl.mockResolvedValue({
-                data: { signedUrl: 'https://example.com/signed' },
-            });
 
             const result = await supabaseBatchRepository.resolveUploadedFilePath('batch-1', 'file-1');
-            expect(result).toBe('https://example.com/signed');
+            expect(result).toBe('user-1/file.csv');
         });
 
         it('returns null when file not found', async () => {
