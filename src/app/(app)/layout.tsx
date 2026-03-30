@@ -192,6 +192,12 @@ export default function AppLayout({
           })}
         </nav>
 
+        {/* Legal links */}
+        <div className="px-4 pb-2 flex gap-3 text-xs text-gray-400">
+          <Link href="/terms" target="_blank" className="hover:text-gray-600 transition-colors">Terms</Link>
+          <Link href="/privacy" target="_blank" className="hover:text-gray-600 transition-colors">Privacy</Link>
+        </div>
+
         {/* Footer */}
         <div className="px-4 py-4 border-t border-gray-200">
           <DropdownMenu>

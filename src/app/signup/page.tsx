@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function SignupPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -20,6 +22,11 @@ export default function SignupPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
+
+        if (!agreedToTerms || !agreedToPrivacy) {
+            setError('You must agree to both the Terms of Service and Privacy Policy.');
+            return;
+        }
 
         const validation = validatePassword(password);
         if (!validation.valid) {
@@ -106,11 +113,42 @@ export default function SignupPage() {
                             <PasswordStrength password={password} />
                         </div>
 
+                        <div className="grid gap-3">
+                            <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={agreedToTerms}
+                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                    className="mt-0.5 shrink-0"
+                                />
+                                <span>
+                                    I agree to the{' '}
+                                    <Link href="/terms" target="_blank" className="underline underline-offset-4 hover:text-primary">
+                                        Terms of Service
+                                    </Link>
+                                </span>
+                            </label>
+                            <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={agreedToPrivacy}
+                                    onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                                    className="mt-0.5 shrink-0"
+                                />
+                                <span>
+                                    I agree to the{' '}
+                                    <Link href="/privacy" target="_blank" className="underline underline-offset-4 hover:text-primary">
+                                        Privacy Policy
+                                    </Link>
+                                </span>
+                            </label>
+                        </div>
+
                         {error && (
                             <p className="text-base text-red-600">{error}</p>
                         )}
 
-                        <Button type="submit" className="w-full h-12" disabled={loading}>
+                        <Button type="submit" className="w-full h-12" disabled={loading || !agreedToTerms || !agreedToPrivacy}>
                             {loading ? 'Creating account...' : 'Sign up'}
                         </Button>
                     </form>
