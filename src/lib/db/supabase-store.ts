@@ -302,7 +302,7 @@ export const supabaseBatchRepository: BatchRepository = {
         if (error || !data) return null;
 
         const { data: signedData } = await supabase.storage
-            .from('exports')
+            .from('uploads')
             .createSignedUrl(data.storage_path, SIGNED_URL_EXPIRY_SECONDS);
 
         return signedData?.signedUrl ?? null;
