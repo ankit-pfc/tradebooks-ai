@@ -11,6 +11,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 
 const navLinks = [
     { href: "/#features", label: "Features", hasDropdownCue: true },
@@ -38,17 +39,7 @@ export function MarketingHeader() {
             )}
         >
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                <Link href="/" className="flex items-center gap-2.5">
-                    <div className="h-8 w-1.5 rounded-full bg-[#1E4FD8]" aria-hidden="true" />
-                    <div>
-                        <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-[#6B7280]">
-                            TradeBooks
-                        </span>
-                        <span className="block -mt-0.5 text-xl font-bold tracking-tight text-[#0F1C2E]">
-                            AI
-                        </span>
-                    </div>
-                </Link>
+                <Logo className="mr-6" />
 
                 <nav className="hidden items-center gap-6 md:flex">
                     {navLinks.map((link) => (
