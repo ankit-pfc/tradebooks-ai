@@ -1,6 +1,7 @@
 import { detectFileType } from '@/lib/parsers/zerodha/detect';
 import { parseTradebook } from '@/lib/parsers/zerodha/tradebook';
 import { parseContractNotes } from '@/lib/parsers/zerodha/contract-notes';
+import { parseContractNotesXml } from '@/lib/parsers/zerodha/contract-notes-xml';
 import { parseFundsStatement } from '@/lib/parsers/zerodha/funds-statement';
 import { parseDividends } from '@/lib/parsers/zerodha/dividends';
 import {
@@ -146,7 +147,10 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
         break;
       }
       case 'contract_note': {
-        const parsed = parseContractNotes(f.buffer, f.fileName);
+        // XML files start with '<' (0x3c); XLSX files start with PK zip magic
+        const parsed = f.buffer[0] === 0x3c
+          ? parseContractNotesXml(f.buffer, f.fileName)
+          : parseContractNotes(f.buffer, f.fileName);
         const sheets = pairContractNoteData(
           parsed.trades,
           parsed.charges,
