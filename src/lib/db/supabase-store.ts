@@ -39,6 +39,8 @@ function rowToBatchRecord(row: any): BatchRecord {
         voucher_count: row.voucher_count,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        prior_batch_id: row.prior_batch_id ?? null,
+        fy_label: row.fy_label ?? null,
     };
 }
 
@@ -251,7 +253,7 @@ export const supabaseBatchRepository: BatchRepository = {
 
         // Update batch status and voucher count
         const hasErrors = input.exceptions.some((e) => e.severity === 'error');
-        await supabase
+        const { error: statusError } = await supabase
             .from('batches')
             .update({
                 voucher_count: input.voucherCount,
@@ -260,11 +262,13 @@ export const supabaseBatchRepository: BatchRepository = {
                 updated_at: new Date().toISOString(),
             })
             .eq('id', input.batchId);
+        if (statusError) throw new Error(`saveProcessingOutput status update failed: ${statusError.message}`);
     },
 
     async saveExportArtifacts(batchId, artifactsWithStoragePath) {
         const supabase = await createClient();
         const rows = artifactsWithStoragePath.map((a: ExportArtifactPersistenceInput) => ({
+            id: a.id,
             batch_id: batchId,
             artifact_type: a.artifact_type,
             file_name: a.file_name,
