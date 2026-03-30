@@ -207,6 +207,29 @@ export function FileUploadStatus({
             Retry
           </button>
         )}
+
+        {status === 'failed' && onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Remove"
+            className="ml-1 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Duplicate warning */}
