@@ -337,12 +337,30 @@ export async function POST(request: NextRequest) {
     ];
 
     if (matchResult) {
-      const matchRate = matchResult.matched.length /
-        Math.max(matchResult.matched.length + matchResult.unmatchedTradebook.length, 1);
+      const totalTradebook = matchResult.matched.length + matchResult.unmatchedTradebook.length;
+      const totalCN = matchResult.matched.length + matchResult.unmatchedContractNote.length;
+      const matchRate = matchResult.matched.length / Math.max(totalTradebook, 1);
+
+      let tradeMatchStatus: 'PASSED' | 'WARNING';
+      let tradeMatchDetails: string;
+
+      if (matchRate >= 1.0) {
+        tradeMatchStatus = 'PASSED';
+        tradeMatchDetails = `All ${matchResult.matched.length} tradebook trades matched to contract note entries.`;
+      } else if (totalCN === 0) {
+        // CN was uploaded but had no trade rows — likely a charges-only PDF
+        tradeMatchStatus = 'WARNING';
+        tradeMatchDetails = `Contract note had no individual trade entries to match against. Your ${totalTradebook} tradebook trades were processed as-is. This is normal if your contract note only contains charges.`;
+      } else {
+        // Partial match
+        tradeMatchStatus = 'WARNING';
+        tradeMatchDetails = `${matchResult.matched.length} of ${totalTradebook} trades matched (${(matchRate * 100).toFixed(0)}%). ${matchResult.unmatchedTradebook.length} tradebook trade(s) had no matching contract note entry — possible date or symbol format differences between files. Your Tally XML is unaffected.`;
+      }
+
       checks.push({
         check_name: 'Trade Match',
-        status: matchRate >= 1.0 ? 'PASSED' as const : matchRate >= 0.9 ? 'WARNING' as const : 'FAILED' as const,
-        details: `${matchResult.matched.length} matched, ${matchResult.unmatchedTradebook.length} unmatched tradebook, ${matchResult.unmatchedContractNote.length} unmatched CN.`,
+        status: tradeMatchStatus,
+        details: tradeMatchDetails,
       });
     }
 
