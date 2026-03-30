@@ -357,7 +357,7 @@ export default function LandingPage() {
                         <div className="pointer-events-none absolute -bottom-8 right-4 h-36 w-36 rounded-full bg-[#27AE60]/10 blur-3xl" />
 
                         {/* Model image — large, background */}
-                        <div className="absolute bottom-0 right-[-18%] z-0 h-full w-[110%]">
+                        <div className="absolute bottom-0 right-[-12%] z-0 h-full w-[110%]">
                             <Image
                                 src="/Tradebooks subject.png"
                                 alt="Accountant using TradeBooks AI"
@@ -371,7 +371,7 @@ export default function LandingPage() {
                         </div>
 
                         {/* Laptop frame — foreground, lower-left */}
-                        <div className="absolute bottom-4 left-[-22%] z-20 flex w-[72%] flex-col" style={{ height: "50%" }}>
+                        <div className="absolute bottom-4 left-[-14%] z-20 flex w-[72%] flex-col" style={{ height: "50%" }}>
                             {/* Screen bezel */}
                             <div className="flex-1 overflow-hidden rounded-t-xl border border-b-0 border-[#2C2C2C] bg-[#1a1a1a] p-[3px]">
                                 <div className="h-full overflow-hidden rounded-t-lg bg-white">
