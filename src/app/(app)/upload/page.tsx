@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -370,6 +370,13 @@ function StepUpload({
   const failedCount = fileList.filter((f) => f.status === 'failed').length;
   const canProcess = state.batchStatus === 'uploading' && hasUploaded && !hasInFlight;
 
+  const fileListRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (fileList.length === 1) {
+      fileListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [fileList.length]);
+
   const handleFilesAdded = (newFiles: File[]) => {
     // Parallel uploads — do not await
     newFiles.forEach((f) => batchUpload.uploadFile(f));
@@ -475,7 +482,7 @@ function StepUpload({
 
       {/* Per-file status list */}
       {fileList.length > 0 && (
-        <div className="space-y-2">
+        <div ref={fileListRef} className="space-y-2">
           <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
             Files ({fileList.length})
           </p>
@@ -934,6 +941,11 @@ export default function UploadPage() {
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
 
   const hook = useBatchUpload();
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [step]);
 
   const handleFormChange = (data: Partial<UploadFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -1006,7 +1018,7 @@ export default function UploadPage() {
         <StepIndicator current={step} total={STEPS} />
       </div>
 
-      <Card className="border-slate-200 bg-white shadow-sm">
+      <Card ref={cardRef} className="border-slate-200 bg-white shadow-sm">
         <CardContent className="px-8 py-8">
           {step === 1 && (
             <StepConfigure
