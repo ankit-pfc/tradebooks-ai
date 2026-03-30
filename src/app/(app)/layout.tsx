@@ -143,10 +143,10 @@ export default function AppLayout({
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-72 shrink-0 flex flex-col bg-white border-r border-gray-200">
+      <aside className="w-72 shrink-0 flex flex-col bg-[#0B1F33]">
         {/* Logo */}
-        <div className="h-[72px] flex items-center px-6 border-b border-gray-200">
-          <Logo />
+        <div className="h-[72px] flex items-center px-6 border-b border-white/10">
+          <Logo className="[&_span]:text-white" />
         </div>
 
         {/* Navigation */}
@@ -160,12 +160,12 @@ export default function AppLayout({
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-medium transition-colors ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    ? "bg-white/15 text-white border-l-2 border-[#2D9CDB]"
+                    : "text-white/70 hover:bg-white/10 hover:text-white border-l-2 border-transparent"
                 }`}
               >
                 <span
-                  className={isActive ? "text-indigo-600" : "text-gray-500"}
+                  className={isActive ? "text-white" : "text-white/50"}
                 >
                   {item.icon}
                 </span>
@@ -176,19 +176,19 @@ export default function AppLayout({
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-gray-200">
+        <div className="px-4 py-4 border-t border-white/10">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-gray-100 transition-colors cursor-pointer">
-                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-indigo-700">
+            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-white/10 transition-colors cursor-pointer">
+                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-white">
                     {userEmail[0].toUpperCase()}
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-white truncate">
                     {userEmail}
                   </p>
-                  <p className="text-xs text-gray-600 truncate">Free Plan</p>
+                  <p className="text-xs text-white/55 truncate">Free Plan</p>
                 </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-48">

@@ -173,7 +173,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-base text-gray-600 mt-1.5">
+          <p className="text-base text-gray-700 mt-1.5">
             Welcome to TradeBooks AI — your broker-to-Tally accounting bridge.
           </p>
         </div>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <Card key={stat.title} className="border-gray-200">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base font-semibold text-gray-700">
+              <CardTitle className="text-base font-semibold text-gray-900">
                 {stat.title}
               </CardTitle>
               <div className="w-11 h-11 rounded-lg bg-gray-50 flex items-center justify-center">
@@ -214,7 +214,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-4xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-600 mt-1.5">{stat.description}</p>
+              <p className="text-sm text-gray-700 mt-1.5">{stat.description}</p>
             </CardContent>
           </Card>
         ))}
@@ -227,13 +227,13 @@ export default function DashboardPage() {
             <CardTitle className="text-xl font-bold text-gray-900">
               Recent Import Batches
             </CardTitle>
-            <p className="text-base text-gray-600 mt-1">
+            <p className="text-base text-gray-700 mt-1">
               Your latest Zerodha data imports and their status.
             </p>
           </div>
           <Link
             href="/batches"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
           >
             View all
           </Link>
@@ -242,19 +242,19 @@ export default function DashboardPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-gray-200 bg-gray-50/50">
-                <TableHead className="text-sm font-semibold text-gray-700 pl-6">
+                <TableHead className="text-sm font-semibold text-gray-900 pl-6">
                   Company
                 </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">
+                <TableHead className="text-sm font-semibold text-gray-900">
                   Date
                 </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">
+                <TableHead className="text-sm font-semibold text-gray-900">
                   Period
                 </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">
+                <TableHead className="text-sm font-semibold text-gray-900">
                   Status
                 </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700">
+                <TableHead className="text-sm font-semibold text-gray-900">
                   Vouchers
                 </TableHead>
                 <TableHead className="text-sm font-semibold text-gray-700 pr-6">
@@ -288,10 +288,10 @@ export default function DashboardPage() {
                         </svg>
                       </div>
                       <div>
-                        <p className="text-base font-medium text-gray-700">
+                        <p className="text-base font-medium text-gray-900">
                           No import batches yet
                         </p>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-600 mt-1">
                           Upload your first Zerodha files to get started.
                         </p>
                       </div>
@@ -310,10 +310,10 @@ export default function DashboardPage() {
                     <TableCell className="pl-6 text-base font-medium text-gray-900">
                       {batch.company_name}
                     </TableCell>
-                    <TableCell className="text-base text-gray-700">
+                    <TableCell className="text-base text-gray-800">
                       {formatDate(batch.created_at)}
                     </TableCell>
-                    <TableCell className="text-base text-gray-700">
+                    <TableCell className="text-base text-gray-800">
                       {formatPeriod(batch.period_from, batch.period_to)}
                     </TableCell>
                     <TableCell>
@@ -378,7 +378,7 @@ export default function DashboardPage() {
             <h3 className="text-base font-bold text-gray-900 mb-1.5">
               {item.title}
             </h3>
-            <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{item.desc}</p>
           </div>
         ))}
       </div>

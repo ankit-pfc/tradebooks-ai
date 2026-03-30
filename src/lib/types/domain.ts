@@ -1,9 +1,18 @@
 export type AppBatchStatus =
+    | 'uploading'
     | 'queued'
     | 'running'
     | 'succeeded'
     | 'failed'
     | 'needs_review';
+
+export type BatchFileStatus =
+    | 'pending'
+    | 'uploading'
+    | 'uploaded'
+    | 'failed'
+    | 'processing'
+    | 'processed';
 
 export type BatchFileType =
     | 'tradebook'
@@ -24,6 +33,10 @@ export interface BatchFileMeta {
     mime_type: string;
     size_bytes: number;
     detected_type: BatchFileType;
+    status: BatchFileStatus;
+    content_hash: string | null;
+    error_message: string | null;
+    uploaded_at: string | null;
     created_at: string;
 }
 

@@ -29,7 +29,7 @@ const SELECT_CLASSES =
 
 const TAB_CLASSES = "px-4 py-2 text-sm font-medium rounded-lg transition-colors";
 const TAB_ACTIVE = "bg-indigo-50 text-indigo-700";
-const TAB_INACTIVE = "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
+const TAB_INACTIVE = "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
 
 /* -------------------------------------------------------------------------- */
 /*  Workspace Tab                                                             */
@@ -102,7 +102,7 @@ function WorkspaceTab() {
     };
 
     if (loading) {
-        return <p className="text-base text-gray-500">Loading settings...</p>;
+        return <p className="text-base text-gray-600">Loading settings...</p>;
     }
 
     return (
@@ -111,7 +111,7 @@ function WorkspaceTab() {
                 <CardTitle className="text-lg font-bold text-gray-900">
                     Workspace defaults
                 </CardTitle>
-                <p className="text-base text-gray-600">
+                <p className="text-base text-gray-700">
                     These values will pre-fill future import forms.
                 </p>
             </CardHeader>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
         <div className="px-8 py-8 space-y-6 max-w-3xl">
             <div>
                 <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-                <p className="text-base text-gray-600 mt-1">
+                <p className="text-base text-gray-700 mt-1">
                     Configure workspace defaults and security settings.
                 </p>
             </div>

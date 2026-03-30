@@ -85,7 +85,7 @@ export default function ExceptionsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Exceptions</h1>
-        <p className="text-base text-gray-600 mt-1">
+        <p className="text-base text-gray-700 mt-1">
           Review validation and reconciliation issues detected during
           processing.
         </p>
@@ -95,7 +95,7 @@ export default function ExceptionsPage() {
       <div className="flex items-center gap-3">
         <label
           htmlFor="severity-filter"
-          className="text-base font-medium text-gray-700"
+          className="text-base font-medium text-gray-800"
         >
           Filter by severity:
         </label>
@@ -118,7 +118,7 @@ export default function ExceptionsPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-gray-500">Loading exceptions...</p>
+              <p className="text-sm text-gray-600">Loading exceptions...</p>
             </div>
           ) : exceptions.length === 0 ? (
             <div className="py-16">
@@ -127,10 +127,10 @@ export default function ExceptionsPage() {
                   <AlertTriangle className="h-6 w-6 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-base font-medium text-gray-700">
+                  <p className="text-base font-medium text-gray-900">
                     No exceptions to review
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-600 mt-1">
                     {severityFilter === "all"
                       ? "Exceptions from processed batches will appear here."
                       : `No exceptions with severity "${SEVERITY_LABELS[severityFilter as AppExceptionSeverity] ?? severityFilter}".`}
@@ -142,22 +142,22 @@ export default function ExceptionsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-sm font-semibold text-gray-700 pl-6">
+                  <TableHead className="text-sm font-semibold text-gray-900 pl-6">
                     Severity
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Code
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Message
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Batch ID
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Source Refs
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700 pr-6">
+                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
                     Date
                   </TableHead>
                 </TableRow>
@@ -175,16 +175,16 @@ export default function ExceptionsPage() {
                         {SEVERITY_LABELS[exc.severity] ?? exc.severity}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-base font-mono text-gray-700">
+                    <TableCell className="text-base font-mono text-gray-800">
                       {exc.code}
                     </TableCell>
                     <TableCell className="text-base text-gray-700 max-w-xs truncate">
                       {exc.message}
                     </TableCell>
-                    <TableCell className="text-base font-mono text-gray-500">
+                    <TableCell className="text-base font-mono text-gray-600">
                       {exc.batch_id.slice(0, 8)}...
                     </TableCell>
-                    <TableCell className="text-base text-gray-700">
+                    <TableCell className="text-base text-gray-800">
                       {exc.source_refs.length > 0
                         ? exc.source_refs.join(", ")
                         : "\u2014"}
