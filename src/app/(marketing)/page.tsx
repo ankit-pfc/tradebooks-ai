@@ -357,14 +357,14 @@ export default function LandingPage() {
                         <div className="pointer-events-none absolute -bottom-8 right-4 h-36 w-36 rounded-full bg-[#27AE60]/10 blur-3xl" />
 
                         {/* Model image — large, background */}
-                        <div className="absolute bottom-0 right-[-12%] z-0 h-[120%] w-[110%]">
+                        <div className="absolute bottom-0 right-[-12%] z-0 h-full w-[110%]">
                             <Image
                                 src="/Tradebooks subject.png"
                                 alt="Accountant using TradeBooks AI"
                                 fill
                                 priority
                                 unoptimized
-                                className="object-contain object-bottom"
+                                className="object-cover object-top"
                             />
                             {/* Subtle bottom fade */}
                             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[8%] bg-gradient-to-t from-[#F7F8FA] to-transparent" />
