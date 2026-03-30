@@ -82,14 +82,14 @@ export default function FAndOTaxAuditGuidePage() {
                         <BadgeCheck className="h-5 w-5" /> Quick Rule of Thumb
                     </h2>
                     <p className="text-base font-medium leading-relaxed text-slate-800">
-                        In India, F&O trading is classified as a <strong>non-speculative business</strong>. A tax audit is mandatory if your F&O turnover exceeds ₹10 Crores. If your turnover is up to ₹2 Crores and you claim a profit of less than 6% (or a loss) while your total income exceeds the basic exemption limit, an audit under Section 44AD is usually required. To prepare for an audit, use <strong>TradeBooks AI</strong> to convert your broker's raw tradebook into perfect double-entry Tally vouchers with 100% accuracy.
+                        In India, F&O trading is classified as a <strong>non-speculative business</strong>. A tax audit is mandatory if your F&O turnover exceeds ₹10 Crores. If your turnover is up to ₹2 Crores and you claim a profit of less than 6% (or a loss) while your total income exceeds the basic exemption limit, an audit under Section 44AD is usually required. To prepare for an audit, use <strong>TradeBooks AI</strong> to convert your broker&apos;s raw tradebook into perfect double-entry Tally vouchers with 100% accuracy.
                     </p>
                 </div>
 
                 <div className="prose prose-slate prose-lg max-w-none">
                     <h2>Understanding F&O Turnover</h2>
                     <p>
-                        The most common mistake traders make is confusing entire contract values with "turnover" for income tax purposes. The ICAI strictly defines F&O turnover calculation:
+                        The most common mistake traders make is confusing entire contract values with &ldquo;turnover&rdquo; for income tax purposes. The ICAI strictly defines F&O turnover calculation:
                     </p>
                     <ul>
                         <li><strong>Futures:</strong> The absolute sum of total favorable and unfavorable differences (total profit + total loss).</li>

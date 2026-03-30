@@ -108,7 +108,7 @@ export default function BatchesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Batches</h1>
-          <p className="text-base text-gray-600 mt-1">
+          <p className="text-base text-gray-700 mt-1">
             Track upload and processing lifecycle for each import batch.
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function BatchesPage() {
       <div className="flex items-center gap-3">
         <label
           htmlFor="status-filter"
-          className="text-base font-medium text-gray-700"
+          className="text-base font-medium text-gray-800"
         >
           Filter by status:
         </label>
@@ -148,19 +148,19 @@ export default function BatchesPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-gray-500">Loading batches...</p>
+              <p className="text-sm text-gray-600">Loading batches...</p>
             </div>
           ) : batches.length === 0 ? (
             <div className="py-16">
               <div className="text-center space-y-3">
                 <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-gray-400" />
+                  <FileText className="h-5 w-5 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-base font-medium text-gray-700">
+                  <p className="text-base font-medium text-gray-900">
                     No batches found
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-600 mt-1">
                     {statusFilter === "all"
                       ? "Upload your first Zerodha files to get started."
                       : `No batches with status "${STATUS_LABELS[statusFilter as AppBatchStatus] ?? statusFilter}".`}
@@ -180,19 +180,19 @@ export default function BatchesPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-sm font-semibold text-gray-700 pl-6">
+                  <TableHead className="text-sm font-semibold text-gray-900 pl-6">
                     Company Name
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Period
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Status
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Vouchers
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-700 pr-6">
+                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
                     Created
                   </TableHead>
                 </TableRow>
@@ -203,7 +203,7 @@ export default function BatchesPage() {
                     <TableCell className="pl-6 text-base font-medium text-gray-900">
                       {batch.company_name}
                     </TableCell>
-                    <TableCell className="text-base text-gray-700">
+                    <TableCell className="text-base text-gray-800">
                       {formatPeriod(batch.period_from, batch.period_to)}
                     </TableCell>
                     <TableCell>

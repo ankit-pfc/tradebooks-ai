@@ -3,6 +3,7 @@ import type {
     BatchDetail,
     BatchException,
     BatchFileMeta,
+    BatchFileStatus,
     BatchProcessingResult,
     BatchRecord,
     DashboardResponse,
@@ -81,4 +82,17 @@ export interface BatchRepository {
     saveClosingLots(batchId: string, snapshot: Record<string, CostLot[]>): Promise<void>;
     getClosingLots(batchId: string): Promise<Record<string, CostLot[]> | null>;
     listPriorBatches(userId: string, companyName: string): Promise<BatchRecord[]>;
+
+    // Per-file lifecycle management (Sprint 1 — robust uploads)
+    updateFileStatus(
+        fileId: string,
+        status: BatchFileStatus,
+        errorMessage?: string,
+    ): Promise<void>;
+    getFilesByBatch(batchId: string): Promise<BatchFileMeta[]>;
+    deleteFile(batchId: string, fileId: string): Promise<void>;
+    findDuplicateFile(
+        userId: string,
+        contentHash: string,
+    ): Promise<{ batchId: string; fileName: string } | null>;
 }

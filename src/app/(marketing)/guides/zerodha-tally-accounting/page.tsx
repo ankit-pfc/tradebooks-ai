@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, ArrowRight, BookOpen, ExternalLink, HelpCircle } from "lucide-react";
+import { BadgeCheck, ArrowRight, ExternalLink, HelpCircle } from "lucide-react";
 
 export const metadata: Metadata = {
     title: "How to Automate Zerodha to Tally Accounting | TradeBooks AI",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { createClient } from '@/lib/supabase/client';
 import { validatePassword } from '@/lib/auth/password-validation';
@@ -25,21 +25,20 @@ function MfaSection() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const checkMfaStatus = useCallback(async () => {
-        const supabase = createClient();
-        const { data } = await supabase.auth.mfa.listFactors();
-        const verifiedFactors =
-            data?.totp?.filter((f) => f.status === 'verified') ?? [];
-        if (verifiedFactors.length > 0) {
-            setMfaEnabled(true);
-            setFactorId(verifiedFactors[0].id);
-        }
-        setLoading(false);
-    }, []);
-
     useEffect(() => {
+        async function checkMfaStatus() {
+            const supabase = createClient();
+            const { data } = await supabase.auth.mfa.listFactors();
+            const verifiedFactors =
+                data?.totp?.filter((f) => f.status === 'verified') ?? [];
+            if (verifiedFactors.length > 0) {
+                setMfaEnabled(true);
+                setFactorId(verifiedFactors[0].id);
+            }
+            setLoading(false);
+        }
         checkMfaStatus();
-    }, [checkMfaStatus]);
+    }, []);
 
     const handleEnroll = async () => {
         setError(null);

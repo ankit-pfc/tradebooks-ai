@@ -6,33 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/upload/file-dropzone";
+import { FileUploadStatus } from "@/components/upload/file-upload-status";
+import { useBatchUpload, type ProcessingResult, type BatchUploadConfig } from "@/hooks/use-batch-upload";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 type AccountingMode = "investor" | "trader";
-
-type FileType =
-  | "Tradebook"
-  | "Funds Statement"
-  | "Holdings"
-  | "Contract Note"
-  | "Unknown";
-
-interface UploadedFile {
-  id: string;
-  file: File;
-  detectedType: FileType;
-}
-
-type ProcessingStatus = "pending" | "running" | "done" | "error";
-
-interface ProcessingStep {
-  id: string;
-  label: string;
-  status: ProcessingStatus;
-}
 
 interface PriorBatch {
   id: string;
@@ -42,7 +22,7 @@ interface PriorBatch {
   fy_label?: string | null;
 }
 
-interface FormData {
+interface UploadFormData {
   accountingMode: AccountingMode;
   companyName: string;
   periodFrom: string;
@@ -50,46 +30,29 @@ interface FormData {
   priorBatchId: string;
 }
 
-interface ProcessingResult {
-  batchId: string;
-  tradeCount: number;
-  eventCount: number;
-  voucherCount: number;
-  ledgerCount: number;
-  checks: Array<{
-    check_name: string;
-    status: "PASSED" | "FAILED" | "WARNING";
-    details: string;
-  }>;
-  summary: { passed: number; warnings: number; failed: number };
-  mastersXml: string;
-  transactionsXml: string;
-  mastersArtifactId?: string;
-  transactionsArtifactId?: string;
-}
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function detectFileType(filename: string): FileType {
-  const lower = filename.toLowerCase();
-  if (lower.includes("tradebook") || lower.includes("trade_book"))
-    return "Tradebook";
-  if (
-    lower.includes("fund") ||
-    lower.includes("ledger") ||
-    lower.includes("statement")
-  )
-    return "Funds Statement";
-  if (lower.includes("holding")) return "Holdings";
-  if (lower.includes("contract") || lower.includes("note"))
-    return "Contract Note";
-  return "Unknown";
-}
+// Indian FY options: April 1 YYYY → March 31 YYYY+1
+// Covers FY 2018-19 through FY 2025-26 (current)
+const FY_OPTIONS: Array<{ label: string; from: string; to: string }> = Array.from(
+  { length: 8 },
+  (_, i) => {
+    const startYear = 2018 + i;
+    const endYear = startYear + 1;
+    return {
+      label: `FY ${startYear}-${String(endYear).slice(-2)}`,
+      from: `${startYear}-04-01`,
+      to: `${endYear}-03-31`,
+    };
+  },
+).reverse(); // most recent first
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function formatFYLabel(from: string, to: string): string {
+  if (!from || !to) return 'Period not set';
+  const sy = parseInt(from.slice(0, 4), 10);
+  const ey = parseInt(to.slice(0, 4), 10);
+  if (isNaN(sy) || isNaN(ey)) return 'Period not set';
+  return `FY ${sy}-${String(ey).slice(-2)}`;
 }
 
 function downloadXml(xml: string, filename: string) {
@@ -101,22 +64,6 @@ function downloadXml(xml: string, filename: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-const FILE_TYPE_BADGE: Record<FileType, string> = {
-  Tradebook: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  "Funds Statement": "bg-blue-100 text-blue-700 border-blue-200",
-  Holdings: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  "Contract Note": "bg-violet-100 text-violet-700 border-violet-200",
-  Unknown: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const INITIAL_STEPS: ProcessingStep[] = [
-  { id: "parse", label: "Parsing uploaded files", status: "pending" },
-  { id: "events", label: "Building financial events", status: "pending" },
-  { id: "vouchers", label: "Generating Tally vouchers", status: "pending" },
-  { id: "reconcile", label: "Reconciling transactions", status: "pending" },
-  { id: "xml", label: "Generating Tally XML", status: "pending" },
-];
 
 // ─── Step indicators ─────────────────────────────────────────────────────────
 
@@ -201,8 +148,8 @@ function StepConfigure({
   onChange,
   onNext,
 }: {
-  formData: FormData;
-  onChange: (data: Partial<FormData>) => void;
+  formData: UploadFormData;
+  onChange: (data: Partial<UploadFormData>) => void;
   onNext: () => void;
 }) {
   const [priorBatches, setPriorBatches] = useState<PriorBatch[]>([]);
@@ -227,20 +174,21 @@ function StepConfigure({
     }, 500);
     return () => clearTimeout(timer);
   }, [formData.companyName]);
+
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-bold text-gray-900">
           Import Configuration
         </h2>
-        <p className="text-base text-gray-600 mt-1">
+        <p className="text-base text-gray-700 mt-1">
           Set up your accounting parameters before uploading files.
         </p>
       </div>
 
       {/* Accounting Mode */}
       <div className="space-y-3">
-        <Label className="text-base font-medium text-gray-700">
+        <Label className="text-base font-medium text-gray-800">
           Accounting Mode
         </Label>
         <div className="grid grid-cols-2 gap-3">
@@ -290,7 +238,7 @@ function StepConfigure({
 
       {/* Company Name */}
       <div className="space-y-1.5">
-        <Label htmlFor="company-name" className="text-base font-medium text-gray-700">
+        <Label htmlFor="company-name" className="text-base font-medium text-gray-800">
           Tally Company Name
         </Label>
         <Input
@@ -300,51 +248,37 @@ function StepConfigure({
           onChange={(e) => onChange({ companyName: e.target.value })}
           className="border-gray-200"
         />
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-600">
           Must match exactly as configured in your Tally company.
         </p>
       </div>
 
       {/* Period */}
       <div className="space-y-1.5">
-        <Label className="text-base font-medium text-gray-700">
-          Financial Period
+        <Label className="text-base font-medium text-gray-800">
+          Financial Year
         </Label>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="period-from" className="text-sm text-gray-600">
-              From
-            </Label>
-            <Input
-              id="period-from"
-              type="date"
-              value={formData.periodFrom}
-              onChange={(e) => onChange({ periodFrom: e.target.value })}
-              className="border-gray-200 text-base"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="period-to" className="text-sm text-gray-600">
-              To
-            </Label>
-            <Input
-              id="period-to"
-              type="date"
-              value={formData.periodTo}
-              onChange={(e) => onChange({ periodTo: e.target.value })}
-              className="border-gray-200 text-base"
-            />
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          Typically the Indian financial year: 01 Apr – 31 Mar.
-        </p>
+        <select
+          className={SELECT_CLASSES}
+          value={`${formData.periodFrom}|${formData.periodTo}`}
+          onChange={(e) => {
+            const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
+            if (fy) onChange({ periodFrom: fy.from, periodTo: fy.to });
+          }}
+        >
+          <option value="|">Select financial year…</option>
+          {FY_OPTIONS.map((fy) => (
+            <option key={fy.label} value={`${fy.from}|${fy.to}`}>
+              {fy.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Prior Batch (Opening Balances) */}
       {priorBatches.length > 0 && (
         <div className="space-y-1.5">
-          <Label htmlFor="prior-batch" className="text-base font-medium text-gray-700">
+          <Label htmlFor="prior-batch" className="text-base font-medium text-gray-800">
             Opening Balances (Optional)
           </Label>
           <select
@@ -361,7 +295,7 @@ function StepConfigure({
               </option>
             ))}
           </select>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             {loadingPrior
               ? "Loading prior batches..."
               : "Carry forward closing cost lots from a prior financial year."}
@@ -412,42 +346,103 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 function StepUpload({
-  files,
-  onFilesAdded,
-  onRemoveFile,
+  batchUpload,
   onBack,
-  onNext,
+  onProcess,
+  formData,
+  onFormChange,
 }: {
-  files: UploadedFile[];
-  onFilesAdded: (f: File[]) => void;
-  onRemoveFile: (id: string) => void;
+  batchUpload: ReturnType<typeof useBatchUpload>;
   onBack: () => void;
-  onNext: () => void;
+  onProcess: () => Promise<void>;
+  formData: UploadFormData;
+  onFormChange: (d: Partial<UploadFormData>) => void;
 }) {
-  const hasTradebook = files.some((f) => f.detectedType === "Tradebook");
+  const [editingFY, setEditingFY] = useState(false);
+  const { state } = batchUpload;
 
-  const rawFiles = files.map((uf) => uf.file);
+  const fileList = Array.from(state.files.values());
+  const hasTradebook = fileList.some(
+    (f) => f.detectedType === 'tradebook' && f.status === 'uploaded'
+  );
+  const allUploaded = fileList.length > 0 && fileList.every((f) => f.status === 'uploaded');
+  const hasFailedOrPending = fileList.some((f) => f.status === 'failed' || f.status === 'pending');
+  const canProcess = state.batchStatus === 'uploading' && allUploaded && !hasFailedOrPending;
 
-  const handleDropzoneFileRemoved = (index: number) => {
-    const targetFile = files[index];
-    if (targetFile) {
-      onRemoveFile(targetFile.id);
-    }
+  const handleFilesAdded = (newFiles: File[]) => {
+    // Parallel uploads — do not await
+    newFiles.forEach((f) => batchUpload.uploadFile(f));
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-bold text-gray-900">Upload Files</h2>
-        <p className="text-base text-gray-600 mt-1">
+        <p className="text-base text-gray-700 mt-1">
           Upload your Zerodha export files. At minimum, a Tradebook file is required.
         </p>
+      </div>
+
+      {/* Configuration summary */}
+      <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3">
+        {!editingFY ? (
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold text-indigo-700">
+                {formatFYLabel(formData.periodFrom, formData.periodTo)}
+              </span>
+              <span className="text-gray-400">·</span>
+              <span className="text-gray-600 capitalize">{formData.accountingMode} mode</span>
+              {formData.companyName && (
+                <>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-600">{formData.companyName}</span>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditingFY(true)}
+              className="text-sm text-indigo-600 hover:underline shrink-0 ml-3"
+            >
+              Edit period
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 mt-2">
+            <select
+              className="h-9 rounded-lg border border-indigo-200 bg-white px-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              value={`${formData.periodFrom}|${formData.periodTo}`}
+              onChange={(e) => {
+                const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
+                if (fy) {
+                  onFormChange({ periodFrom: fy.from, periodTo: fy.to });
+                  setEditingFY(false);
+                }
+              }}
+            >
+              <option value="|">Select financial year…</option>
+              {FY_OPTIONS.map((fy) => (
+                <option key={fy.label} value={`${fy.from}|${fy.to}`}>
+                  {fy.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setEditingFY(false)}
+              className="text-sm text-gray-600 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* File requirements table */}
       <div className="rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+          <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
             Required &amp; Recommended Files
           </p>
         </div>
@@ -459,11 +454,10 @@ function StepUpload({
             >
               <div>
                 <p className="text-base font-medium text-gray-800">{req.type}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{req.note}</p>
+                <p className="text-sm text-gray-600 mt-0.5">{req.note}</p>
               </div>
               <span
-                className={`text-sm font-medium px-3 py-1.5 rounded-full border ${STATUS_BADGE[req.status]
-                  }`}
+                className={`text-sm font-medium px-3 py-1.5 rounded-full border ${STATUS_BADGE[req.status]}`}
               >
                 {req.status}
               </span>
@@ -472,82 +466,38 @@ function StepUpload({
         </div>
       </div>
 
-      {/* Dropzone */}
+      {/* Dropzone — no files prop; we render our own status list below */}
       <FileDropzone
-        onFilesAdded={onFilesAdded}
-        files={rawFiles}
-        onFileRemoved={handleDropzoneFileRemoved}
+        onFilesAdded={handleFilesAdded}
+        disabled={state.batchStatus !== 'uploading'}
       />
 
-      {/* File list */}
-      {files.length > 0 && (
+      {/* Per-file status list */}
+      {fileList.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
-            Uploaded Files ({files.length})
+          <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Files ({fileList.length})
           </p>
           <div className="space-y-2">
-            {files.map((uf) => (
-              <div
-                key={uf.id}
-                className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3"
-              >
-                <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-600"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-medium text-gray-900 truncate">
-                    {uf.file.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {formatBytes(uf.file.size)}
-                  </p>
-                </div>
-                <span
-                  className={`text-sm font-medium px-3 py-1.5 rounded-full border whitespace-nowrap ${FILE_TYPE_BADGE[uf.detectedType]
-                    }`}
-                >
-                  {uf.detectedType}
-                </span>
-                <button
-                  onClick={() => onRemoveFile(uf.id)}
-                  className="ml-1 w-8 h-8 rounded-md flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  aria-label="Remove file"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
+            {Array.from(state.files.entries()).map(([key, fs]) => (
+              <FileUploadStatus
+                key={key}
+                fileName={fs.file.name}
+                sizeBytes={fs.sizeBytes}
+                status={fs.status}
+                detectedType={fs.detectedType}
+                errorMessage={fs.errorMessage}
+                duplicateWarning={fs.duplicateWarning}
+                onRemove={() => batchUpload.removeFile(fs.file)}
+                onRetry={() => batchUpload.retryFile(fs.file)}
+              />
             ))}
           </div>
         </div>
       )}
 
-      {/* Validation message */}
-      {files.length > 0 && !hasTradebook && (
+      {/* Validation: tradebook required */}
+      {fileList.length > 0 && allUploaded && !hasTradebook && (
         <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <svg
             width="16"
@@ -567,6 +517,13 @@ function StepUpload({
           <p className="text-sm text-amber-700">
             A <strong>Tradebook</strong> file is required to proceed. Please upload it from Zerodha Console → Reports → Tradebook.
           </p>
+        </div>
+      )}
+
+      {/* Global batch error */}
+      {state.error && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-700">{state.error}</p>
         </div>
       )}
 
@@ -593,11 +550,11 @@ function StepUpload({
           Back
         </Button>
         <Button
-          onClick={onNext}
+          onClick={onProcess}
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-          disabled={!hasTradebook}
+          disabled={!canProcess || !hasTradebook}
         >
-          Start Processing
+          Process Files
           <svg
             width="16"
             height="16"
@@ -620,142 +577,60 @@ function StepUpload({
 
 // ─── Step 3: Processing ───────────────────────────────────────────────────────
 
-const STEP_ICONS: Record<ProcessingStatus, React.ReactNode> = {
-  pending: (
-    <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-  ),
-  running: (
-    <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-  ),
-  done: (
-    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-    </div>
-  ),
-  error: (
-    <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
-    </div>
-  ),
-};
-
 function StepProcessing({
-  steps,
+  batchStatus,
   errorMessage,
+  onRetry,
 }: {
-  steps: ProcessingStep[];
+  batchStatus: 'running' | 'failed';
   errorMessage: string | null;
+  onRetry: () => void;
 }) {
-  const doneCount = steps.filter((s) => s.status === "done").length;
-  const progress = (doneCount / steps.length) * 100;
-  const hasError = steps.some((s) => s.status === "error");
-  const isComplete = doneCount === steps.length;
-
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-bold text-gray-900">Processing</h2>
-        <p className="text-base text-gray-600 mt-1">
-          {isComplete
-            ? "All steps completed successfully."
-            : hasError
-              ? "An error occurred during processing."
-              : "Please wait while we process your files..."}
+        <p className="text-base text-gray-700 mt-1">
+          {batchStatus === 'running'
+            ? 'Please wait while we process your files…'
+            : 'An error occurred during processing.'}
         </p>
       </div>
 
-      <Progress value={progress} className="h-2" />
-
-      <div className="space-y-1">
-        {steps.map((step) => (
-          <div
-            key={step.id}
-            className={`flex items-center gap-3.5 rounded-lg px-5 py-4 transition-colors ${step.status === "running"
-                ? "bg-indigo-50 border border-indigo-100"
-                : step.status === "done"
-                  ? "bg-gray-50"
-                  : "bg-white"
-              }`}
-          >
-            {STEP_ICONS[step.status]}
-            <div className="flex-1">
-              <p
-                className={`text-base font-medium ${step.status === "running"
-                    ? "text-indigo-700"
-                    : step.status === "done"
-                      ? "text-gray-700"
-                      : step.status === "error"
-                        ? "text-red-600"
-                        : "text-gray-400"
-                  }`}
-              >
-                {step.label}
-              </p>
-            </div>
-            <span
-              className={`text-sm font-medium capitalize ${step.status === "running"
-                  ? "text-indigo-500"
-                  : step.status === "done"
-                    ? "text-emerald-600"
-                    : step.status === "error"
-                      ? "text-red-500"
-                      : "text-gray-300"
-                }`}
-            >
-              {step.status === "pending" ? "Queued" : step.status}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {hasError && errorMessage && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-red-500 mt-0.5 shrink-0"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <p className="text-sm text-red-700">{errorMessage}</p>
+      {batchStatus === 'running' && (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+          <div className="w-10 h-10 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <p className="text-base text-gray-600">Processing your files…</p>
+          <p className="text-sm text-gray-500">This usually takes a few seconds.</p>
         </div>
       )}
 
-      {!isComplete && !hasError && (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="w-3 h-3 rounded-full border border-gray-300 border-t-transparent animate-spin" />
-          This usually takes a few seconds.
+      {batchStatus === 'failed' && (
+        <div className="space-y-4">
+          <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-red-500 mt-0.5 shrink-0"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="text-sm text-red-700">{errorMessage ?? 'Processing failed. Please try again.'}</p>
+          </div>
+          <Button
+            onClick={onRetry}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            Try Again
+          </Button>
         </div>
       )}
     </div>
@@ -778,10 +653,10 @@ function StepResults({
           <h2 className="text-xl font-bold text-gray-900">
             Import Complete
           </h2>
-          <p className="text-base text-gray-600 mt-1">
+          <p className="text-base text-gray-700 mt-1">
             Review your reconciliation summary and download the output files.
           </p>
-          <p className="text-base text-gray-600">Batch: {result.batchId}</p>
+          <p className="text-base text-gray-700">Batch: {result.batchId}</p>
         </div>
         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
           <svg
@@ -822,8 +697,11 @@ function StepResults({
 
       {/* Reconciliation checks */}
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+        <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
           Reconciliation Checks
+        </p>
+        <p className="text-xs text-gray-400 mt-0.5 mb-1">
+          Warnings are informational — your Tally XML is ready to import regardless.
         </p>
         <div className="space-y-2">
           {result.checks.map((check) => {
@@ -877,7 +755,7 @@ function StepResults({
 
       {/* Downloads */}
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+        <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
           Download Tally XML Files
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -899,21 +777,11 @@ function StepResults({
                 <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
                   Masters XML
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   Ledger definitions &amp; groups ({result.ledgerCount} ledgers)
                 </p>
               </div>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -936,21 +804,11 @@ function StepResults({
                 <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
                   Masters XML
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   Ledger definitions &amp; groups ({result.ledgerCount} ledgers)
                 </p>
               </div>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -973,21 +831,11 @@ function StepResults({
                 <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
                   Transactions XML
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   {result.voucherCount} vouchers (Purchase &amp; Sales)
                 </p>
               </div>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -1008,21 +856,11 @@ function StepResults({
                 <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
                   Transactions XML
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   {result.voucherCount} vouchers (Purchase &amp; Sales)
                 </p>
               </div>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -1036,13 +874,13 @@ function StepResults({
       <div className="flex gap-3 pt-2">
         <Link
           href="/batches"
-          className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
         >
           View in Batches &rarr;
         </Link>
         <Link
           href="/dashboard"
-          className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
         >
           View Dashboard
         </Link>
@@ -1061,115 +899,57 @@ function StepResults({
 
 export default function UploadPage() {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<UploadFormData>({
     accountingMode: "investor",
     companyName: "",
     periodFrom: "",
     periodTo: "",
     priorBatchId: "",
   });
-  const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [processingSteps, setProcessingSteps] =
-    useState<ProcessingStep[]>(INITIAL_STEPS);
-  const [processingResult, setProcessingResult] =
-    useState<ProcessingResult | null>(null);
-  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
 
-  const handleFormChange = (data: Partial<FormData>) => {
+  const hook = useBatchUpload();
+
+  const handleFormChange = (data: Partial<UploadFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
-  const handleFilesAdded = (newFiles: File[]) => {
-    const mapped: UploadedFile[] = newFiles.map((f) => ({
-      id: `${f.name}-${Date.now()}-${Math.random()}`,
-      file: f,
-      detectedType: detectFileType(f.name),
-    }));
-    setFiles((prev) => {
-      const existing = new Set(prev.map((p) => p.file.name));
-      return [...prev, ...mapped.filter((m) => !existing.has(m.file.name))];
-    });
-  };
-
-  const handleRemoveFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
-  };
-
-  const runProcessing = useCallback(async () => {
-    setStep(3);
-    setProcessingError(null);
-    setProcessingSteps(INITIAL_STEPS);
-
-    if (files.length === 0) return;
-
-    // Animate steps as "running" sequentially for visual feedback
-    const stepIds = INITIAL_STEPS.map((s) => s.id);
-    const setStepStatus = (idx: number, status: ProcessingStatus) => {
-      setProcessingSteps((prev) => {
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], status };
-        return updated;
-      });
-    };
-
-    // Mark first step as running
-    setStepStatus(0, "running");
-
-    try {
-      const body = new globalThis.FormData();
-      for (const f of files) {
-        body.append("files", f.file);
-      }
-      body.append("companyName", formData.companyName);
-      body.append("accountingMode", formData.accountingMode);
-      body.append("periodFrom", formData.periodFrom);
-      body.append("periodTo", formData.periodTo);
-      if (formData.priorBatchId) {
-        body.append("priorBatchId", formData.priorBatchId);
-      }
-
-      const res = await fetch("/api/process", { method: "POST", body });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error ?? "Processing failed");
-      }
-
-      // Animate all steps to done sequentially
-      for (let i = 0; i < stepIds.length; i++) {
-        setStepStatus(i, "done");
-        if (i + 1 < stepIds.length) {
-          setStepStatus(i + 1, "running");
-        }
-        // Brief delay between steps for visual effect
-        await new Promise((r) => setTimeout(r, 200));
-      }
-
-      setProcessingResult(data as ProcessingResult);
-
-      // Small delay before showing results
-      await new Promise((r) => setTimeout(r, 300));
-      setStep(4);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setProcessingError(message);
-
-      // Mark current running step as error, leave rest pending
-      setProcessingSteps((prev) => {
-        const running = prev.findIndex((s) => s.status === "running");
-        if (running >= 0) {
-          const updated = [...prev];
-          updated[running] = { ...updated[running], status: "error" };
-          return updated;
-        }
-        return prev;
-      });
+  // Create batch when entering step 2
+  useEffect(() => {
+    if (step === 2) {
+      const config: BatchUploadConfig = {
+        companyName: formData.companyName,
+        accountingMode: formData.accountingMode,
+        periodFrom: formData.periodFrom || undefined,
+        periodTo: formData.periodTo || undefined,
+        priorBatchId: formData.priorBatchId || undefined,
+      };
+      hook.createBatch(config);
     }
-  }, [files, formData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  const handleProcess = useCallback(async () => {
+    setStep(3);
+    const result = await hook.startProcessing();
+    if (result) {
+      setProcessingResult(result);
+      setStep(4);
+    }
+    // If result is null, batchStatus is 'failed' and StepProcessing shows error
+  }, [hook]);
+
+  const handleRetryProcessing = useCallback(async () => {
+    const result = await hook.startProcessing();
+    if (result) {
+      setProcessingResult(result);
+      setStep(4);
+    }
+  }, [hook]);
 
   const handleReset = () => {
+    hook.reset();
     setStep(1);
-    setFiles([]);
     setFormData({
       accountingMode: "investor",
       companyName: "",
@@ -1177,9 +957,7 @@ export default function UploadPage() {
       periodTo: "",
       priorBatchId: "",
     });
-    setProcessingSteps(INITIAL_STEPS);
     setProcessingResult(null);
-    setProcessingError(null);
   };
 
   return (
@@ -1214,15 +992,19 @@ export default function UploadPage() {
           )}
           {step === 2 && (
             <StepUpload
-              files={files}
-              onFilesAdded={handleFilesAdded}
-              onRemoveFile={handleRemoveFile}
-              onBack={() => setStep(1)}
-              onNext={runProcessing}
+              batchUpload={hook}
+              onBack={() => { hook.reset(); setStep(1); }}
+              onProcess={handleProcess}
+              formData={formData}
+              onFormChange={handleFormChange}
             />
           )}
           {step === 3 && (
-            <StepProcessing steps={processingSteps} errorMessage={processingError} />
+            <StepProcessing
+              batchStatus={hook.state.batchStatus === 'running' ? 'running' : 'failed'}
+              errorMessage={hook.state.error}
+              onRetry={handleRetryProcessing}
+            />
           )}
           {step === 4 && processingResult && (
             <StepResults result={processingResult} onStartOver={handleReset} />

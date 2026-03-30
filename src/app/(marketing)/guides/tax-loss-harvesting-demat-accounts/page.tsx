@@ -99,9 +99,9 @@ export default function TaxLossHarvestingGuidePage() {
                         Since STCL can offset the higher 20% STCG bucket, securing those losses before the financial year ends (March 31st) is a widely deployed, completely legal strategy to improve take-home yield.
                     </p>
 
-                    <h2>The "Next-Day Delivery Buyback" Loophole</h2>
+                    <h2>The &ldquo;Next-Day Delivery Buyback&rdquo; Loophole</h2>
                     <p>
-                        In many international jurisdictions, selling a security at a loss and immediately rebuying it is classified as a "Wash Sale," thus nullifying the tax benefit. In India, there are currently no wash sale rules.
+                        In many international jurisdictions, selling a security at a loss and immediately rebuying it is classified as a &ldquo;Wash Sale,&rdquo; thus nullifying the tax benefit. In India, there are currently no wash sale rules.
                     </p>
                     <p>
                         A trader can theoretically sell an underperforming stock from their Zerodha account down by 15% on Monday, realize the loss to offset other gains, and then re-buy the exact same quantity of that stock on Tuesday.

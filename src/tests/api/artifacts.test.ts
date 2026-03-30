@@ -7,6 +7,10 @@ vi.mock('@/lib/db', () => ({
     getBatchRepository: () => repo,
 }));
 
+vi.mock('@/lib/supabase/auth-guard', () => ({
+    getAuthenticatedUserId: vi.fn().mockResolvedValue('test-user-id'),
+}));
+
 vi.mock('node:fs/promises', () => ({
     readFile: vi.fn(),
 }));

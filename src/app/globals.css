@@ -48,13 +48,30 @@
 }
 
 :root {
+  /* ── Brand tokens (Tradebooks AI) ── */
+  --tb-navy: #0B1F33;
+  --tb-blue: #2D9CDB;
+  --tb-green: #27AE60;
+  --tb-red: #EB5757;
+  --tb-grey: #6B7280;
+  --tb-white: #FFFFFF;
+
+  /* ── Typography scale ── */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --text-2xl: 36px;
+
+  /* ── Theme (shadcn) ── */
   --background: #ffffff;
-  --foreground: #0f1c2e;
+  --foreground: #0B1F33;
   --card: #ffffff;
-  --card-foreground: #1a1a2e;
+  --card-foreground: #0B1F33;
   --popover: #ffffff;
-  --popover-foreground: #1a1a2e;
-  --primary: #1e4fd8;
+  --popover-foreground: #0B1F33;
+  --primary: #0B1F33;
   --primary-foreground: #ffffff;
   --secondary: #eaedff;
   --secondary-foreground: #0f1c2e;
@@ -74,12 +91,12 @@
   --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: #0B1F33;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent-foreground: #0B1F33;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #2D9CDB;
 }
 
 .dark {
@@ -115,6 +132,25 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+/* ── Hero screen carousel animation ── */
+@keyframes heroScreen1 {
+  0%, 29%   { opacity: 1; }
+  33%, 100% { opacity: 0; }
+}
+
+@keyframes heroScreen2 {
+  0%, 33%  { opacity: 0; }
+  37%, 62% { opacity: 1; }
+  66%, 100% { opacity: 0; }
+}
+
+@keyframes heroScreen3 {
+  0%, 66%  { opacity: 0; }
+  70%, 96% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
 
 @layer base {
   * {

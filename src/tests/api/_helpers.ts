@@ -24,6 +24,10 @@ export function mockBatchRepo(): { [K in keyof BatchRepository]: ReturnType<type
         saveClosingLots: vi.fn(),
         getClosingLots: vi.fn().mockResolvedValue(null),
         listPriorBatches: vi.fn().mockResolvedValue([]),
+        updateFileStatus: vi.fn(),
+        getFilesByBatch: vi.fn().mockResolvedValue([]),
+        deleteFile: vi.fn(),
+        findDuplicateFile: vi.fn().mockResolvedValue(null),
     };
 }
 

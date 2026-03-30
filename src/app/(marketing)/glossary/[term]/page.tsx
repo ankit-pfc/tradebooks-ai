@@ -18,7 +18,7 @@ export async function generateStaticParams() {
 // Generate dynamic metadata
 export async function generateMetadata(
   { params }: Props,
-  parent: ResolvingMetadata
+  _parent: ResolvingMetadata
 ): Promise<Metadata> {
   const resolvedParams = await params;
   const termData = glossaryTerms.find((t) => t.slug === resolvedParams.term);

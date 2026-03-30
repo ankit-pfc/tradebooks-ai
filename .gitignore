@@ -47,6 +47,10 @@ next-env.d.ts
 # stale nested project artifact
 tradebooks-ai/
 
+# secrets
+tradebooks-ai-*.json
+.claude/secrets.json
+
 # local dev artifacts
 Zerodha reports sss/
 public/Subject.png
