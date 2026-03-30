@@ -278,9 +278,6 @@ export function buildSellVoucher(
     (sum, d) => sum.add(new Decimal(d.gain_or_loss)),
     new Decimal(0),
   );
-  // Net gain after sell charges (sell charges reduce gain for investors)
-  const netGainLoss = totalGainLoss.sub(totalCharges);
-
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
@@ -314,25 +311,25 @@ export function buildSellVoucher(
       }),
     );
 
-    // CR or DR: Gain / Loss — resolved via TallyProfile or hardcoded
-    const isGain = netGainLoss.greaterThanOrEqualTo(0);
+    // CR or DR: Gross capital gain/loss (charges are already expensed as separate DR lines above)
+    const isGain = totalGainLoss.greaterThanOrEqualTo(0);
     if (tallyProfile) {
       const gainLossLedger = resolveCapitalGainLedger(
         tallyProfile, symbol, holdingPeriodDays, isGain,
       ).name;
       if (isGain) {
-        lines.push(makeLine(draftId, lineNo++, gainLossLedger, netGainLoss, 'CR'));
+        lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss, 'CR'));
       } else {
-        lines.push(makeLine(draftId, lineNo++, gainLossLedger, netGainLoss.abs(), 'DR'));
+        lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss.abs(), 'DR'));
       }
     } else {
       const isLongTerm = holdingPeriodDays !== undefined && holdingPeriodDays > 365;
       if (isGain) {
         const gainLedger = isLongTerm ? L.LTCG_PROFIT.name : L.STCG_PROFIT.name;
-        lines.push(makeLine(draftId, lineNo++, gainLedger, netGainLoss, 'CR'));
+        lines.push(makeLine(draftId, lineNo++, gainLedger, totalGainLoss, 'CR'));
       } else {
         const lossLedger = isLongTerm ? L.LTCG_LOSS.name : L.STCG_LOSS.name;
-        lines.push(makeLine(draftId, lineNo++, lossLedger, netGainLoss.abs(), 'DR'));
+        lines.push(makeLine(draftId, lineNo++, lossLedger, totalGainLoss.abs(), 'DR'));
       }
     }
   } else {
