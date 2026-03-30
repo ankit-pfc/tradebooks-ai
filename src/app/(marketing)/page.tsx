@@ -18,6 +18,7 @@ import {
     Workflow,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { HeroScreenCarousel } from "@/components/landing/hero-screen-carousel";
 
 const heroStats = [
     { value: "Zerodha-first", label: "Built around the Console exports you already use" },
@@ -301,7 +302,7 @@ export default function LandingPage() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
             />
-            <section id="hero" className="bg-[#F7F8FA] py-20 sm:py-28">
+            <section id="hero" className="bg-[#F7F8FA] pt-8 pb-16 sm:pt-12 sm:pb-20">
                 <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:gap-16 lg:px-8">
                     {/* ── Left: Copy ── */}
                     <div>
@@ -349,64 +350,37 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    {/* ── Right: Advisor photo with floating product UI card ── */}
-                    <div className="relative hidden md:block">
+                    {/* ── Right: Browser screen carousel + model avatar ── */}
+                    <div className="relative hidden h-[520px] overflow-visible md:block lg:h-[600px]">
+                        {/* Ambient glow */}
                         <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-[#2D9CDB]/10 blur-3xl" />
                         <div className="pointer-events-none absolute -bottom-8 right-4 h-36 w-36 rounded-full bg-[#27AE60]/10 blur-3xl" />
 
-                        {/* Advisor photo — main visual */}
-                        <div className="relative h-[400px] overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.10)] lg:h-[520px]">
+                        {/* Model image — large, background */}
+                        <div className="absolute bottom-0 right-[-12%] z-0 h-[120%] w-[110%]">
                             <Image
-                                src="/hero-advisor.jpg"
-                                alt="Accountant reviewing TradeBooks AI output"
-                                width={700}
-                                height={1050}
+                                src="/Tradebooks subject.png"
+                                alt="Accountant using TradeBooks AI"
+                                fill
                                 priority
-                                sizes="(min-width: 1280px) 34vw, (min-width: 1024px) 40vw, 92vw"
-                                className="h-full w-full rounded-xl object-cover object-[center_15%]"
+                                unoptimized
+                                className="object-contain object-bottom"
                             />
+                            {/* Subtle bottom fade */}
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[8%] bg-gradient-to-t from-[#F7F8FA] to-transparent" />
                         </div>
 
-                        {/* Floating product UI card — bottom-left, not covering the advisor */}
-                        <div className="absolute -bottom-6 -left-10 z-10 w-[200px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white/95 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
-                            <div className="mb-2 flex items-center justify-between">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#475569]">Batch Preview</p>
-                                <span className="inline-flex items-center gap-1 rounded-full border border-[#2D9D78]/30 bg-[#2D9D78]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#2D9D78]">
-                                    <BadgeCheck className="h-2.5 w-2.5" /> 42 ready
-                                </span>
+                        {/* Laptop frame — foreground, lower-left */}
+                        <div className="absolute bottom-4 left-[-14%] z-20 flex w-[72%] flex-col" style={{ height: "50%" }}>
+                            {/* Screen bezel */}
+                            <div className="flex-1 overflow-hidden rounded-t-xl border border-b-0 border-[#2C2C2C] bg-[#1a1a1a] p-[3px]">
+                                <div className="h-full overflow-hidden rounded-t-lg bg-white">
+                                    <HeroScreenCarousel />
+                                </div>
                             </div>
-
-                            {/* Mini workflow */}
-                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FBFF] px-2 py-1.5">
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8] text-[9px] font-bold text-white">Z</div>
-                                <div className="h-px flex-1 bg-[#D6E3F3]" />
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8]/15 text-[9px] font-bold text-[#1E4FD8]">AI</div>
-                                <div className="h-px flex-1 bg-[#D6E3F3]" />
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#2D9D78]/15 text-[9px] font-bold text-[#2D9D78]">T</div>
-                            </div>
-
-                            {/* Compact voucher rows */}
-                            <div className="mt-1.5 space-y-1">
-                                {[
-                                    { symbol: "RELIANCE · CNC", amount: "₹24,580", ok: true },
-                                    { symbol: "HDFCBANK · MIS", amount: "₹8,120", ok: true },
-                                    { symbol: "INFY · CNC", amount: "₹12,040", ok: false },
-                                ].map((row) => (
-                                    <div key={row.symbol} className="flex items-center justify-between rounded-md border border-[#E2E8F0] bg-white px-2 py-1">
-                                        <p className="text-[10px] font-semibold text-[#1A1A2E]">{row.symbol}</p>
-                                        <div className="flex items-center gap-1.5">
-                                            <p className="text-[10px] font-semibold text-[#1A1A2E]">{row.amount}</p>
-                                            <span className={`inline-flex rounded-full px-1 py-px text-[8px] font-bold ${row.ok ? "bg-[#2D9D78]/10 text-[#2D9D78]" : "bg-amber-50 text-amber-600"}`}>
-                                                {row.ok ? "Ready" : "Review"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-[#F3F6FB] px-2 py-1">
-                                <p className="text-[9px] font-medium text-[#475569]">Exceptions: 2</p>
-                                <p className="text-[9px] font-semibold text-[#1E4FD8]">Export XML →</p>
+                            {/* Laptop base / chin */}
+                            <div className="relative h-3 rounded-b-lg bg-gradient-to-b from-[#D1D5DB] to-[#B0B5BC] shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
+                                <div className="absolute left-1/2 top-[3px] h-1 w-10 -translate-x-1/2 rounded-full bg-[#A0A5AD]" />
                             </div>
                         </div>
                     </div>

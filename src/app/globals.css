@@ -133,6 +133,24 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ── Hero screen carousel animation ── */
+@keyframes heroScreen1 {
+  0%, 29%   { opacity: 1; }
+  33%, 100% { opacity: 0; }
+}
+
+@keyframes heroScreen2 {
+  0%, 33%  { opacity: 0; }
+  37%, 62% { opacity: 1; }
+  66%, 100% { opacity: 0; }
+}
+
+@keyframes heroScreen3 {
+  0%, 66%  { opacity: 0; }
+  70%, 96% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
