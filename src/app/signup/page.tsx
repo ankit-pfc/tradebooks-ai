@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function SignupPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -20,6 +22,11 @@ export default function SignupPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
+
+        if (!agreedToTerms || !agreedToPrivacy) {
+            setError('You must agree to both the Terms of Service and Privacy Policy.');
+            return;
+        }
 
         const validation = validatePassword(password);
         if (!validation.valid) {
@@ -70,11 +77,22 @@ export default function SignupPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center px-4">
-            <Card className="w-full max-w-md">
+            <div className="w-full max-w-md">
+                <div className="mb-8 flex flex-col items-center gap-3">
+                    <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-1.5 rounded-full bg-[#1E4FD8]" aria-hidden="true" />
+                        <div>
+                            <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-[#6B7280]">TradeBooks</span>
+                            <span className="block -mt-0.5 text-xl font-bold tracking-tight text-[#0F1C2E]">AI</span>
+                        </div>
+                    </div>
+                    <p className="text-sm text-gray-500 text-center">Broker statements to Tally, automatically.</p>
+                </div>
+            <Card className="w-full">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Create an account</CardTitle>
                     <CardDescription>
-                        Sign up for TradeBooks AI
+                        Sign up for free — no credit card required
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -106,11 +124,42 @@ export default function SignupPage() {
                             <PasswordStrength password={password} />
                         </div>
 
+                        <div className="grid gap-3">
+                            <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={agreedToTerms}
+                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                    className="mt-0.5 shrink-0"
+                                />
+                                <span>
+                                    I agree to the{' '}
+                                    <Link href="/terms" target="_blank" className="underline underline-offset-4 hover:text-primary">
+                                        Terms of Service
+                                    </Link>
+                                </span>
+                            </label>
+                            <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={agreedToPrivacy}
+                                    onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                                    className="mt-0.5 shrink-0"
+                                />
+                                <span>
+                                    I agree to the{' '}
+                                    <Link href="/privacy" target="_blank" className="underline underline-offset-4 hover:text-primary">
+                                        Privacy Policy
+                                    </Link>
+                                </span>
+                            </label>
+                        </div>
+
                         {error && (
                             <p className="text-base text-red-600">{error}</p>
                         )}
 
-                        <Button type="submit" className="w-full h-12" disabled={loading}>
+                        <Button type="submit" className="w-full h-12" disabled={loading || !agreedToTerms || !agreedToPrivacy}>
                             {loading ? 'Creating account...' : 'Sign up'}
                         </Button>
                     </form>
@@ -123,6 +172,7 @@ export default function SignupPage() {
                     </p>
                 </CardContent>
             </Card>
+            </div>
         </div>
     );
 }
