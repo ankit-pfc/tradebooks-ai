@@ -9,20 +9,19 @@ interface LogoProps {
 
 export function Logo({ className, href = "/" }: LogoProps) {
   return (
-    <Link href={href} className={cn("flex items-center gap-2", className)}>
-      {/* 
-        This is a placeholder for the uploaded logo. 
-        Once public/logo.png is added by the user, this Image component will render it cleanly.
-      */}
-      <div className="relative h-10 w-[140px] sm:w-[160px]">
+    <Link href={href} className={cn("flex items-center gap-2.5", className)}>
+      <div className="relative h-8 w-8 sm:h-9 sm:w-9 shrink-0">
         <Image
-          src="/logo.png"
-          alt="Tradebooks AI Logo"
+          src="/icon.png"
+          alt="TradeBooks AI Icon"
           fill
-          className="object-contain object-left"
+          className="object-contain"
           priority
         />
       </div>
+      <span className="font-semibold text-[1.1rem] sm:text-xl tracking-tight text-slate-900 dark:text-white">
+        TradeBooks AI
+      </span>
     </Link>
   );
 }
