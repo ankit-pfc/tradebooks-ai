@@ -272,6 +272,7 @@ export const supabaseBatchRepository: BatchRepository = {
     async saveExportArtifacts(batchId, artifactsWithStoragePath) {
         const supabase = await createClient();
         const rows = artifactsWithStoragePath.map((a: ExportArtifactPersistenceInput) => ({
+            id: a.id,
             batch_id: batchId,
             artifact_type: a.artifact_type,
             file_name: a.file_name,
