@@ -27,20 +27,22 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Verify all uploaded files are ready
+    // Verify files are ready — skip failed files, block only on in-flight ones
     const files = await repo.getFilesByBatch(batchId);
-    if (files.length === 0) {
+    const uploadedFiles = files.filter((f) => f.status === 'uploaded');
+    const inFlight = files.filter((f) => f.status === 'pending' || f.status === 'uploading');
+
+    if (inFlight.length > 0) {
       return NextResponse.json(
-        { error: 'No files uploaded to this batch' },
+        {
+          error: `${inFlight.length} file(s) are still uploading: ${inFlight.map((f) => f.file_name).join(', ')}`,
+        },
         { status: 409 },
       );
     }
-    const notReady = files.filter((f) => f.status !== 'uploaded');
-    if (notReady.length > 0) {
+    if (uploadedFiles.length === 0) {
       return NextResponse.json(
-        {
-          error: `${notReady.length} file(s) are not ready: ${notReady.map((f) => `${f.file_name} (${f.status})`).join(', ')}`,
-        },
+        { error: 'No files successfully uploaded to this batch' },
         { status: 409 },
       );
     }
@@ -59,7 +61,7 @@ export async function POST(
     // Download files from storage and verify checksums
     const storage = getFileStorage();
     const pipelineFiles = await Promise.all(
-      files.map(async (f) => {
+      uploadedFiles.map(async (f) => {
         const storagePath = await repo.resolveUploadedFilePath(batchId, f.id);
         if (!storagePath) throw new Error(`Storage path missing for file ${f.id}`);
         const buffer = await storage.download(storagePath);

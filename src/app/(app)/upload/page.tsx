@@ -365,9 +365,10 @@ function StepUpload({
   const hasTradebook = fileList.some(
     (f) => f.detectedType === 'tradebook' && f.status === 'uploaded'
   );
-  const allUploaded = fileList.length > 0 && fileList.every((f) => f.status === 'uploaded');
-  const hasFailedOrPending = fileList.some((f) => f.status === 'failed' || f.status === 'pending');
-  const canProcess = state.batchStatus === 'uploading' && allUploaded && !hasFailedOrPending;
+  const hasInFlight = fileList.some((f) => f.status === 'pending' || f.status === 'uploading');
+  const hasUploaded = fileList.some((f) => f.status === 'uploaded');
+  const failedCount = fileList.filter((f) => f.status === 'failed').length;
+  const canProcess = state.batchStatus === 'uploading' && hasUploaded && !hasInFlight;
 
   const handleFilesAdded = (newFiles: File[]) => {
     // Parallel uploads — do not await
@@ -496,8 +497,32 @@ function StepUpload({
         </div>
       )}
 
+      {/* Failed files skip notice */}
+      {failedCount > 0 && hasUploaded && !hasInFlight && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-amber-600 mt-0.5 shrink-0"
+          >
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <p className="text-sm text-amber-700">
+            {failedCount} file{failedCount > 1 ? 's' : ''} failed to upload and will be skipped. You can retry or remove them above.
+          </p>
+        </div>
+      )}
+
       {/* Validation: tradebook required */}
-      {fileList.length > 0 && allUploaded && !hasTradebook && (
+      {fileList.length > 0 && !hasTradebook && hasUploaded && !hasInFlight && (
         <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <svg
             width="16"
