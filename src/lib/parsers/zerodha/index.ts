@@ -62,6 +62,7 @@ export { parseAgts } from './agts';
 export { parseLedger } from './ledger';
 
 export { parseContractNotes } from './contract-notes';
+export { parseContractNotesXml } from './contract-notes-xml';
 
 export { parseDividends } from './dividends';
 
@@ -111,6 +112,7 @@ import { parseHoldings } from './holdings';
 import { parseTaxPnl } from './taxpnl';
 import { parseAgts } from './agts';
 import { parseContractNotes } from './contract-notes';
+import { parseContractNotesXml } from './contract-notes-xml';
 import { parseLedger } from './ledger';
 
 /**
@@ -157,6 +159,10 @@ export function parseZerodhaFile(
       return { type: 'agts', data: parseAgts(fileBuffer, fileName) };
 
     case 'contract_note':
+      // XML files start with '<' (0x3c); XLSX files start with PK zip magic (0x50 0x4b)
+      if (fileBuffer[0] === 0x3c) {
+        return { type: 'contract_note', data: parseContractNotesXml(fileBuffer, fileName) };
+      }
       return { type: 'contract_note', data: parseContractNotes(fileBuffer, fileName) };
 
     case 'ledger':

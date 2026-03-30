@@ -5,5 +5,7 @@ export const ALLOWED_MIME_TYPES = new Set([
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/pdf',
+  'text/xml',
+  'application/xml',
   'application/octet-stream', // fallback — detection handles actual validation
 ]);
