@@ -100,7 +100,29 @@ Do not widen scope unless dependency/handoff notes require it.
 - M3: Functional V1 (real processing + export)
 - M4: Hosted beta (deploy + observability + smoke checks)
 
-## 10) Decision log
+## 10) Repository hygiene rules
+These apply to every commit, by every agent and contributor. Violations must be fixed before merging.
+
+### Never commit
+- `temp_cache/`, `node_modules/`, `.next/`, `out/`, `dist/`, `build/` — generated/cached output
+- `.env`, `.env.local`, `.env*` — secrets and environment config
+- `*.pem`, `tradebooks-ai-*.json` — credentials
+- `.DS_Store`, `*.tsbuildinfo`, `next-env.d.ts` — OS and tooling noise
+- Any file >500KB that is not a production image asset
+
+### Images in `public/`
+- Use WebP for all photographic/hero images (not SVG/icons)
+- PNG allowed for logos and icons only, must be under 300KB
+- Do not commit raw design exports or high-res source files
+
+### Before every commit
+```bash
+npm run build   # must pass
+npm run lint    # must pass
+npm run test:run  # must pass
+```
+
+## 11) Decision log
 - Canonical high-level guide = `AGENTS.md`
 - `CLAUDE.md` is retained as a pointer for tool compatibility
 - Execution plans split by module in `docs/execution`
