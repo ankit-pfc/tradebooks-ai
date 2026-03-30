@@ -77,11 +77,23 @@ export default function SignupPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center px-4">
-            <Card className="w-full max-w-md">
+            <div className="w-full max-w-md">
+                <div className="mb-8 flex flex-col items-center gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                            </svg>
+                        </div>
+                        <span className="text-xl font-semibold text-gray-900">TradeBooks AI</span>
+                    </div>
+                    <p className="text-sm text-gray-500 text-center">Broker statements to Tally, automatically.</p>
+                </div>
+            <Card className="w-full">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Create an account</CardTitle>
                     <CardDescription>
-                        Sign up for TradeBooks AI
+                        Sign up for free — no credit card required
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -161,6 +173,7 @@ export default function SignupPage() {
                     </p>
                 </CardContent>
             </Card>
+            </div>
         </div>
     );
 }
