@@ -46,3 +46,6 @@ next-env.d.ts
 
 # stale nested project artifact
 tradebooks-ai/
+
+# secrets
+tradebooks-ai-*.json

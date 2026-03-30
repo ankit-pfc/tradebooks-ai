@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Lock, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { MarketingHeader } from "@/components/landing/marketing-header";
+import { Logo } from "@/components/ui/logo";
 
 export default function MarketingLayout({
   children,
@@ -19,24 +20,7 @@ export default function MarketingLayout({
           <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2D9CDB]">
-                  <svg
-                    className="h-4 w-4 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <span className="text-white font-medium">Tradebooks</span>{" "}
-                <span className="text-[#2D9CDB] font-semibold">AI</span>
+                <Logo />
               </div>
               <p className="text-base leading-relaxed">
                 Broker statements to Tally, automatically. Built for Indian CAs,

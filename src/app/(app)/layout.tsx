@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Logo } from "@/components/ui/logo";
 
 const navItems = [
   {
@@ -145,25 +146,7 @@ export default function AppLayout({
       <aside className="w-72 shrink-0 flex flex-col bg-white border-r border-gray-200">
         {/* Logo */}
         <div className="h-[72px] flex items-center px-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-            </div>
-            <span className="font-semibold text-gray-900 text-base">
-              TradeBooks AI
-            </span>
-          </div>
+          <Logo />
         </div>
 
         {/* Navigation */}
