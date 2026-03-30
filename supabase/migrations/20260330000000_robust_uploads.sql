@@ -24,3 +24,6 @@ CREATE INDEX IF NOT EXISTS idx_batch_files_content_hash
 -- Index for per-status queries (e.g. "all failed files in a batch")
 CREATE INDEX IF NOT EXISTS idx_batch_files_status
   ON batch_files(batch_id, status);
+
+-- Change column default so future INSERTs without explicit status land in 'uploading'
+ALTER TABLE batches ALTER COLUMN status SET DEFAULT 'uploading';

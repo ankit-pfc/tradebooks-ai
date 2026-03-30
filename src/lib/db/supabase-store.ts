@@ -110,6 +110,7 @@ export const supabaseBatchRepository: BatchRepository = {
                 period_to: input.period_to,
                 prior_batch_id: input.prior_batch_id ?? null,
                 fy_label: input.fy_label ?? null,
+                status: 'uploading',
             })
             .select()
             .single();
