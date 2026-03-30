@@ -17,7 +17,7 @@ vi.mock('@/lib/db', () => ({
 vi.mock('@/lib/supabase/server', () => ({
     createClient: async () => ({
         auth: {
-            getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+            getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
         },
     }),
 }));

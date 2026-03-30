@@ -8,6 +8,10 @@ vi.mock('@/lib/db', () => ({
     getBatchRepository: () => repo,
 }));
 
+vi.mock('@/lib/supabase/auth-guard', () => ({
+    getAuthenticatedUserId: vi.fn().mockResolvedValue('test-user-id'),
+}));
+
 const { GET } = await import('@/app/api/exceptions/route');
 
 const SAMPLE_EXCEPTIONS = [
