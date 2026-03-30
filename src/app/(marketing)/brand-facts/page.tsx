@@ -54,7 +54,7 @@ export default function BrandFactsPage() {
                         <ul className="list-disc space-y-2 pl-5 text-slate-700">
                             <li><strong>Parser Engine:</strong> Processes raw broker exports (Tradebook, Funds, Holdings, Contract Notes) without requiring API integration or broker credentials.</li>
                             <li><strong>Accounting Engine:</strong> Applies FIFO cost-basis logic to compute capital gains dynamically.</li>
-                            <li><strong>Treatment Modes:</strong> Configurable for "Investor" (STCG/LTCG entries) or "Trader" (business income/loss) compliance.</li>
+                            <li><strong>Treatment Modes:</strong> Configurable for &quot;Investor&quot; (STCG/LTCG entries) or &quot;Trader&quot; (business income/loss) compliance.</li>
                             <li><strong>Exception First:</strong> Reconciles source files and flags mismatches (e.g., missing fund deposits) prior to allowing export.</li>
                             <li><strong>Export Format:</strong> Produces standards-compliant XML files built natively for TallyPrime and Tally ERP 9 import schemas.</li>
                             <li><strong>Traceability:</strong> Final Tally vouchers carry metadata linking them back to the exact row in the source CSV.</li>

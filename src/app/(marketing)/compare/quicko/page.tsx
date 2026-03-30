@@ -5,10 +5,8 @@ import {
     BadgeCheck,
     AlertTriangle,
     ShieldCheck,
-    FileSpreadsheet,
     Scale,
-    CheckCircle2,
-    XCircle
+    CheckCircle2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -122,11 +120,11 @@ export default function TradeBooksVsQuicko() {
                                 </li>
                                 <li className="flex gap-3">
                                     <CheckCircle2 className="h-5 w-5 shrink-0 text-slate-400 mt-0.5" />
-                                    <span>You don't care about maintaining double-entry accounting ledgers or balance sheets.</span>
+                                    <span>You don&apos;t care about maintaining double-entry accounting ledgers or balance sheets.</span>
                                 </li>
                                 <li className="flex gap-3">
                                     <CheckCircle2 className="h-5 w-5 shrink-0 text-slate-400 mt-0.5" />
-                                    <span>You aren't using Tally Prime or ERP 9 for your business operations.</span>
+                                    <span>You aren&apos;t using Tally Prime or ERP 9 for your business operations.</span>
                                 </li>
                             </ul>
                         </div>
@@ -201,7 +199,7 @@ export default function TradeBooksVsQuicko() {
                             </div>
                             <div className="md:w-2/3 text-[#374151] leading-relaxed">
                                 <p className="mb-4">
-                                    Quicko's engine is designed to bypass the accounting ledger. It reads broker data and maps it directly into ITR tax forms. This is highly efficient for retail users who only care about the final tax calculation.
+                                    Quicko&apos;s engine is designed to bypass the accounting ledger. It reads broker data and maps it directly into ITR tax forms. This is highly efficient for retail users who only care about the final tax calculation.
                                 </p>
                                 <p>
                                     TradeBooks AI is an <strong>accounting automation layer</strong>. It does not file taxes. Instead, it reads the complex Zerodha exports, applies configurable Investor/Trader logic, and translates those rows into proper double-entry Journal and Receipt vouchers for Tally. It ensures the business logs are immaculate before a CA even begins the tax filing process.

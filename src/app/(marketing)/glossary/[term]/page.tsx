@@ -1,4 +1,4 @@
-import { Metadata, ResolvingMetadata } from 'next';
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { glossaryTerms } from '@/data/glossary';
@@ -17,8 +17,7 @@ export async function generateStaticParams() {
 
 // Generate dynamic metadata
 export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
+  { params }: Props
 ): Promise<Metadata> {
   const resolvedParams = await params;
   const termData = glossaryTerms.find((t) => t.slug === resolvedParams.term);
