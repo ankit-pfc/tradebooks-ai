@@ -104,6 +104,30 @@ describe('allocateCharges', () => {
     expect(result[1].stt).toBe('75.00');
   });
 
+  it('falls back to proportional brokerage when all brokerage_per_unit are zero', () => {
+    // XML contract notes do not carry per-unit brokerage rates — they only have
+    // aggregate brokerage in grandtotals.  When all brokerage_per_unit = 0,
+    // the allocator must distribute charges.brokerage proportionally by trade
+    // value so no brokerage is silently dropped.
+    //
+    // Trade A: 10 * 100 = 1000 (25%)
+    // Trade B: 30 * 100 = 3000 (75%)
+    // Aggregate brokerage: 100 → A gets 25, B gets 75
+    const trades = [
+      makeTrade({ trade_no: '2001', quantity: '10', gross_rate: '100.00', brokerage_per_unit: '0' }),
+      makeTrade({ trade_no: '2002', quantity: '30', gross_rate: '100.00', brokerage_per_unit: '0' }),
+    ];
+    const charges = makeCharges({ brokerage: '100.00' });
+    const result = allocateCharges(trades, charges);
+
+    expect(result[0].brokerage).toBe('25.00');
+    expect(result[1].brokerage).toBe('75.00');
+
+    // Sum must equal the aggregate exactly
+    const total = new Decimal(result[0].brokerage).add(new Decimal(result[1].brokerage));
+    expect(total.toFixed(2)).toBe('100.00');
+  });
+
   it('uses per-unit brokerage calculation, not proportional', () => {
     // Trade A: brokerage_per_unit=0.10, qty=10 -> 1.00
     // Trade B: brokerage_per_unit=0.20, qty=5  -> 1.00

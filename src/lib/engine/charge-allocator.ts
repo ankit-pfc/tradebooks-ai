@@ -112,11 +112,21 @@ export function allocateCharges(
   const sebiSplits = proportionalSplit(dec(charges.sebi_fees), tradeValues);
   const stampSplits = proportionalSplit(dec(charges.stamp_duty), tradeValues);
 
+  // Brokerage: prefer per-unit rates from the trade rows (XLSX contract notes carry
+  // these). When all per-unit rates are zero but the aggregate brokerage is non-zero
+  // (XML contract notes only have aggregate totals), fall back to proportional split
+  // by trade value so the charge is still distributed correctly.
+  const perUnitBrokerages = trades.map((t) =>
+    dec(t.brokerage_per_unit).mul(dec(t.quantity)).abs(),
+  );
+  const totalPerUnit = perUnitBrokerages.reduce((s, b) => s.add(b), new Decimal(0));
+  const brokerageSplits = !totalPerUnit.isZero()
+    ? perUnitBrokerages
+    : proportionalSplit(dec(charges.brokerage), tradeValues);
+
   // 3. Build allocations
   return trades.map((trade, i) => {
-    const qty = dec(trade.quantity);
-    const brokeragePerUnit = dec(trade.brokerage_per_unit);
-    const brokerage = brokeragePerUnit.mul(qty).abs().toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const brokerage = brokerageSplits[i].toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 
     return {
       trade_no: trade.trade_no,

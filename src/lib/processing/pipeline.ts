@@ -19,7 +19,7 @@ import {
 } from '@/lib/engine/accounting-policy';
 import { AccountingMode } from '@/lib/types/accounting';
 import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
-import { generateFullExport } from '@/lib/export/tally-xml';
+import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
 import { getBatchRepository, getSettingsRepository } from '@/lib/db';
 import { getFileStorage } from '@/lib/storage/file-storage';
 import { matchTrades } from '@/lib/engine/trade-matcher';
@@ -232,11 +232,27 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   // Step 7: Build vouchers, collect ledger masters, generate XML
   const vouchers = buildVouchers(events, profile, tracker, tallyProfile);
   const ledgers = collectRequiredLedgers(events, profile, { tallyProfile });
+
+  // Collect unique stock item names from inventory lines so Tally receives
+  // explicit STOCKITEM master definitions and does not need to auto-create them.
+  const stockItemNames = new Set<string>();
+  for (const v of vouchers) {
+    for (const line of v.lines ?? []) {
+      if (line.quantity !== null && line.rate !== null) {
+        stockItemNames.add(line.ledger_name);
+      }
+    }
+  }
+  const stockItems: StockItemMasterInput[] = Array.from(stockItemNames).map((name) => ({
+    name,
+  }));
+
   const { mastersXml, transactionsXml } = generateFullExport(
     vouchers,
     ledgers,
     companyName,
     tallyProfile.customGroups,
+    stockItems,
   );
 
   // Step 8: Build reconciliation checks

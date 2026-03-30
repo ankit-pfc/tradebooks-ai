@@ -35,6 +35,13 @@ export interface GroupMasterInput {
   parent: string;
 }
 
+export interface StockItemMasterInput {
+  /** Exact Tally stock item name (must match STOCKITEMNAME in INVENTORYENTRIES). */
+  name: string;
+  /** Base unit of measure. Defaults to "Nos" (numbers) for equity shares. */
+  baseUnit?: string;
+}
+
 /**
  * VoucherDraft augmented with its resolved line items.
  * The core VoucherDraft type intentionally omits lines (they live in a
@@ -136,6 +143,7 @@ export function generateMastersXml(
   ledgerNames: LedgerMasterInput[],
   companyName: string,
   groups?: GroupMasterInput[],
+  stockItems?: StockItemMasterInput[],
 ): string {
   const { root, requestData } = buildEnvelope('All Masters', companyName);
 
@@ -193,6 +201,34 @@ export function generateMastersXml(
     const langList = ledgerEle.ele('LANGUAGENAME.LIST');
     langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(ledger.name);
     langList.ele('LANGUAGEID').txt(' 1033');
+  }
+
+  // Emit STOCKITEM masters so Tally does not need to auto-create them.
+  // This is required for versions of Tally that do not auto-create stock items
+  // when referenced in INVENTORYENTRIES.LIST inside vouchers.
+  if (stockItems && stockItems.length > 0) {
+    for (const item of stockItems) {
+      const msg = requestData.ele('TALLYMESSAGE', {
+        'xmlns:UDF': 'TallyUDF',
+      });
+
+      const itemEle = msg.ele('STOCKITEM', {
+        NAME: item.name,
+        RESERVEDNAME: '',
+        ACTION: 'Create',
+      });
+
+      itemEle
+        .ele('NAME.LIST')
+        .ele('NAME')
+        .txt(item.name);
+
+      itemEle.ele('BASEUNIT').txt(item.baseUnit ?? 'Nos');
+
+      const langList = itemEle.ele('LANGUAGENAME.LIST');
+      langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(item.name);
+      langList.ele('LANGUAGEID').txt(' 1033');
+    }
   }
 
   return root.end({ prettyPrint: true });
@@ -335,9 +371,10 @@ export function generateFullExport(
   ledgers: LedgerMasterInput[],
   companyName: string,
   groups?: GroupMasterInput[],
+  stockItems?: StockItemMasterInput[],
 ): FullExportResult {
   return {
-    mastersXml: generateMastersXml(ledgers, companyName, groups),
+    mastersXml: generateMastersXml(ledgers, companyName, groups, stockItems),
     transactionsXml: generateVouchersXml(vouchers, companyName),
   };
 }

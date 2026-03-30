@@ -86,6 +86,15 @@ describe('buildSecurityIdFromDescription', () => {
     expect(buildSecurityIdFromDescription('BSE', 'INFY'))
       .toBe('BSE:INFY');
   });
+
+  it('correctly handles XML instrument_id descriptions (exchange prefix already stripped)', () => {
+    // XML contract notes use "NSE:BOSCHLTD - EQ / ISIN..." as instrument_id.
+    // The XML parser strips the "NSE:" prefix before passing to security_description,
+    // so this function receives "BOSCHLTD - EQ / ISIN..." and must return "NSE:BOSCHLTD".
+    // Without the strip, the raw instrument_id would yield "NSE:NSE:BOSCHLTD".
+    expect(buildSecurityIdFromDescription('NSE', 'BOSCHLTD - EQ / INE323A01026'))
+      .toBe('NSE:BOSCHLTD');
+  });
 });
 
 // ---------------------------------------------------------------------------

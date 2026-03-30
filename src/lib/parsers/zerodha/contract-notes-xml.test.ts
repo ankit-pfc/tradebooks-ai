@@ -10,6 +10,37 @@ const XML_FILE = path.resolve(
 );
 const HAS_LOCAL_DATA = fs.existsSync(XML_FILE);
 
+/** Minimal valid XML contract note with one sell trade. */
+function makeMinimalXml(instrumentId: string, segmentId = 'NSE-EQ'): Buffer {
+  return Buffer.from(
+    `<contract_note version="0.1">
+  <contracts>
+    <contract>
+      <id>CNT-TEST-001</id>
+      <timestamp>2024-01-15</timestamp>
+      <trades>
+        <trade segment_id="${segmentId}" instrument_id="${instrumentId}">
+          <id>TR001</id>
+          <order_id>ORD001</order_id>
+          <timestamp>10:00:00</timestamp>
+          <type>S</type>
+          <quantity>-3</quantity>
+          <average_price>19200.00</average_price>
+          <value>-57600.00</value>
+        </trade>
+      </trades>
+      <grandtotals>
+        <grandtotal><name>Brokerage</name><value>0.01</value></grandtotal>
+        <grandtotal><name>Securities Transaction Tax</name><value>58.00</value></grandtotal>
+        <grandtotal><name>Exchange Transaction Charges</name><value>1.93</value></grandtotal>
+        <grandtotal><name>Integrated GST</name><value>0.36</value></grandtotal>
+      </grandtotals>
+    </contract>
+  </contracts>
+</contract_note>`,
+  );
+}
+
 describe('parseContractNotesXml', () => {
   it('throws on empty buffer', () => {
     expect(() =>
@@ -28,6 +59,32 @@ describe('parseContractNotesXml', () => {
     expect(() =>
       parseContractNotesXml(xml, 'wrong.xml'),
     ).toThrow(/contract_note/);
+  });
+
+  it('strips exchange prefix from instrument_id in security_description', () => {
+    // instrument_id "NSE:BOSCHLTD - EQ / INE323A01026" must yield
+    // security_description "BOSCHLTD - EQ / INE323A01026" (no "NSE:" prefix).
+    // If the prefix is kept, buildSecurityIdFromDescription produces
+    // "NSE:NSE:BOSCHLTD" which breaks FIFO cost lot lookups.
+    const result = parseContractNotesXml(
+      makeMinimalXml('NSE:BOSCHLTD - EQ / INE323A01026'),
+      'test.xml',
+    );
+
+    const trade = result.trades[0];
+    expect(trade.security_description).toBe('BOSCHLTD - EQ / INE323A01026');
+    expect(trade.security_description).not.toMatch(/^NSE:/i);
+    expect(trade.exchange).toBe('NSE');
+  });
+
+  it('handles instrument_id without exchange prefix unchanged', () => {
+    // If the source does not include "exchange:" prefix, the description
+    // should pass through as-is.
+    const result = parseContractNotesXml(
+      makeMinimalXml('BOSCHLTD - EQ / INE323A01026'),
+      'test.xml',
+    );
+    expect(result.trades[0].security_description).toBe('BOSCHLTD - EQ / INE323A01026');
   });
 });
 

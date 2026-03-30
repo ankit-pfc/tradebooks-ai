@@ -194,12 +194,19 @@ export function parseContractNotesXml(
         buySell = parseFloat(rawQty) < 0 ? 'S' : 'B';
       }
 
+      // instrument_id format: "NSE:BOSCHLTD - EQ / ISIN123456789012"
+      // Strip the exchange prefix so buildSecurityIdFromDescription receives just
+      // the symbol portion (e.g. "BOSCHLTD - EQ / ISIN..."), otherwise the
+      // downstream function produces a double-prefixed id like "NSE:NSE:BOSCHLTD".
+      const colonIdx = instrumentId.indexOf(':');
+      const symbolDescription = colonIdx >= 0 ? instrumentId.slice(colonIdx + 1) : instrumentId;
+
       const tradeRow: ZerodhaContractNoteTradeRow = {
         order_no: str(t.order_id),
         order_time: str(t.timestamp),
         trade_no: str(t.id),
         trade_time: str(t.timestamp),
-        security_description: instrumentId,
+        security_description: symbolDescription,
         buy_sell: buySell,
         quantity: absStr(t.quantity),
         exchange: exchangeFromSegment(segmentId),
