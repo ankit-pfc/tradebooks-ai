@@ -333,26 +333,21 @@ function StepConfigure({
         <Label className="text-base font-medium text-gray-700">
           Financial Year
         </Label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {FY_OPTIONS.map((fy) => {
-            const isSelected =
-              formData.periodFrom === fy.from && formData.periodTo === fy.to;
-            return (
-              <button
-                key={fy.label}
-                type="button"
-                onClick={() => onChange({ periodFrom: fy.from, periodTo: fy.to })}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
-                  isSelected
-                    ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 text-indigo-700"
-                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                {fy.label}
-              </button>
-            );
-          })}
-        </div>
+        <select
+          className={SELECT_CLASSES}
+          value={`${formData.periodFrom}|${formData.periodTo}`}
+          onChange={(e) => {
+            const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
+            if (fy) onChange({ periodFrom: fy.from, periodTo: fy.to });
+          }}
+        >
+          <option value="|">Select financial year…</option>
+          {FY_OPTIONS.map((fy) => (
+            <option key={fy.label} value={`${fy.from}|${fy.to}`}>
+              {fy.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Prior Batch (Opening Balances) */}
@@ -489,31 +484,32 @@ function StepUpload({
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-indigo-700">Select Financial Year</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {FY_OPTIONS.map((fy) => {
-                const isSelected =
-                  formData.periodFrom === fy.from && formData.periodTo === fy.to;
-                return (
-                  <button
-                    key={fy.label}
-                    type="button"
-                    onClick={() => {
-                      onFormChange({ periodFrom: fy.from, periodTo: fy.to });
-                      setEditingFY(false);
-                    }}
-                    className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
-                      isSelected
-                        ? "border-indigo-500 bg-indigo-100 text-indigo-700"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50"
-                    }`}
-                  >
-                    {fy.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex items-center gap-2 mt-2">
+            <select
+              className="h-9 rounded-lg border border-indigo-200 bg-white px-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              value={`${formData.periodFrom}|${formData.periodTo}`}
+              onChange={(e) => {
+                const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
+                if (fy) {
+                  onFormChange({ periodFrom: fy.from, periodTo: fy.to });
+                  setEditingFY(false);
+                }
+              }}
+            >
+              <option value="|">Select financial year…</option>
+              {FY_OPTIONS.map((fy) => (
+                <option key={fy.label} value={`${fy.from}|${fy.to}`}>
+                  {fy.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setEditingFY(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>
@@ -898,6 +894,9 @@ function StepResults({
       <div className="space-y-2">
         <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
           Reconciliation Checks
+        </p>
+        <p className="text-xs text-gray-400 mt-0.5 mb-1">
+          Warnings are informational — your Tally XML is ready to import regardless.
         </p>
         <div className="space-y-2">
           {result.checks.map((check) => {
