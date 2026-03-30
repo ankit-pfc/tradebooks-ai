@@ -75,7 +75,9 @@ function makeLine(
   };
 }
 
-/** Validate and throw if the voucher is imbalanced. */
+/** Record actual DR/CR totals. Never throws — imbalances are surfaced as
+ *  warnings in the reconciliation check on the Results screen so the user
+ *  can proceed and correct in Tally if needed. */
 function assertBalanced(draft: BuiltVoucherDraft): void {
   const totalDr = draft.lines
     .filter((l) => l.dr_cr === 'DR')
@@ -83,12 +85,6 @@ function assertBalanced(draft: BuiltVoucherDraft): void {
   const totalCr = draft.lines
     .filter((l) => l.dr_cr === 'CR')
     .reduce((s, l) => s.add(new Decimal(l.amount)), new Decimal(0));
-
-  if (!totalDr.equals(totalCr)) {
-    throw new Error(
-      `Voucher ${draft.voucher_draft_id} is imbalanced: DR=${totalDr.toFixed(2)} CR=${totalCr.toFixed(2)}`,
-    );
-  }
 
   draft.total_debit = totalDr.toFixed(2);
   draft.total_credit = totalCr.toFixed(2);

@@ -86,6 +86,29 @@ function detectFileType(filename: string): FileType {
   return "Unknown";
 }
 
+// Indian FY options: April 1 YYYY → March 31 YYYY+1
+// Covers FY 2018-19 through FY 2025-26 (current)
+const FY_OPTIONS: Array<{ label: string; from: string; to: string }> = Array.from(
+  { length: 8 },
+  (_, i) => {
+    const startYear = 2018 + i;
+    const endYear = startYear + 1;
+    return {
+      label: `FY ${startYear}-${String(endYear).slice(-2)}`,
+      from: `${startYear}-04-01`,
+      to: `${endYear}-03-31`,
+    };
+  },
+).reverse(); // most recent first
+
+function formatFYLabel(from: string, to: string): string {
+  if (!from || !to) return 'Period not set';
+  const sy = parseInt(from.slice(0, 4), 10);
+  const ey = parseInt(to.slice(0, 4), 10);
+  if (isNaN(sy) || isNaN(ey)) return 'Period not set';
+  return `FY ${sy}-${String(ey).slice(-2)}`;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -308,37 +331,28 @@ function StepConfigure({
       {/* Period */}
       <div className="space-y-1.5">
         <Label className="text-base font-medium text-gray-700">
-          Financial Period
+          Financial Year
         </Label>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="period-from" className="text-sm text-gray-600">
-              From
-            </Label>
-            <Input
-              id="period-from"
-              type="date"
-              value={formData.periodFrom}
-              onChange={(e) => onChange({ periodFrom: e.target.value })}
-              className="border-gray-200 text-base"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="period-to" className="text-sm text-gray-600">
-              To
-            </Label>
-            <Input
-              id="period-to"
-              type="date"
-              value={formData.periodTo}
-              onChange={(e) => onChange({ periodTo: e.target.value })}
-              className="border-gray-200 text-base"
-            />
-          </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {FY_OPTIONS.map((fy) => {
+            const isSelected =
+              formData.periodFrom === fy.from && formData.periodTo === fy.to;
+            return (
+              <button
+                key={fy.label}
+                type="button"
+                onClick={() => onChange({ periodFrom: fy.from, periodTo: fy.to })}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
+                  isSelected
+                    ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 text-indigo-700"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {fy.label}
+              </button>
+            );
+          })}
         </div>
-        <p className="text-sm text-gray-500">
-          Typically the Indian financial year: 01 Apr – 31 Mar.
-        </p>
       </div>
 
       {/* Prior Batch (Opening Balances) */}
@@ -417,13 +431,18 @@ function StepUpload({
   onRemoveFile,
   onBack,
   onNext,
+  formData,
+  onFormChange,
 }: {
   files: UploadedFile[];
   onFilesAdded: (f: File[]) => void;
   onRemoveFile: (id: string) => void;
   onBack: () => void;
   onNext: () => void;
+  formData: FormData;
+  onFormChange: (d: Partial<FormData>) => void;
 }) {
+  const [editingFY, setEditingFY] = useState(false);
   const hasTradebook = files.some((f) => f.detectedType === "Tradebook");
 
   const rawFiles = files.map((uf) => uf.file);
@@ -442,6 +461,61 @@ function StepUpload({
         <p className="text-base text-gray-600 mt-1">
           Upload your Zerodha export files. At minimum, a Tradebook file is required.
         </p>
+      </div>
+
+      {/* Configuration summary */}
+      <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3">
+        {!editingFY ? (
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold text-indigo-700">
+                {formatFYLabel(formData.periodFrom, formData.periodTo)}
+              </span>
+              <span className="text-gray-400">·</span>
+              <span className="text-gray-600 capitalize">{formData.accountingMode} mode</span>
+              {formData.companyName && (
+                <>
+                  <span className="text-gray-400">·</span>
+                  <span className="text-gray-600">{formData.companyName}</span>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditingFY(true)}
+              className="text-sm text-indigo-600 hover:underline shrink-0 ml-3"
+            >
+              Edit period
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-indigo-700">Select Financial Year</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {FY_OPTIONS.map((fy) => {
+                const isSelected =
+                  formData.periodFrom === fy.from && formData.periodTo === fy.to;
+                return (
+                  <button
+                    key={fy.label}
+                    type="button"
+                    onClick={() => {
+                      onFormChange({ periodFrom: fy.from, periodTo: fy.to });
+                      setEditingFY(false);
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
+                      isSelected
+                        ? "border-indigo-500 bg-indigo-100 text-indigo-700"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50"
+                    }`}
+                  >
+                    {fy.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* File requirements table */}
@@ -1219,6 +1293,8 @@ export default function UploadPage() {
               onRemoveFile={handleRemoveFile}
               onBack={() => setStep(1)}
               onNext={runProcessing}
+              formData={formData}
+              onFormChange={handleFormChange}
             />
           )}
           {step === 3 && (
