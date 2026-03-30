@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { NextResponse } from 'next/server';
 import { getBatchRepository } from '@/lib/db';
+import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 
 const CONTENT_TYPES: Record<string, string> = {
   '.xml': 'application/xml',
@@ -14,6 +15,11 @@ export async function GET(
   { params }: { params: Promise<{ batchId: string; artifactId: string }> },
 ) {
   try {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { batchId, artifactId } = await params;
     const repo = getBatchRepository();
     const filePath = await repo.resolveArtifactPath(batchId, artifactId);

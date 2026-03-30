@@ -1,18 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { getSettingsRepository } from '@/lib/db';
 import { DEFAULT_USER_SETTINGS } from '@/lib/db/settings-repository';
+import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import type { UserSettings } from '@/lib/types/domain';
-
-async function getAuthenticatedUserId(): Promise<string | null> {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET() {
   try {

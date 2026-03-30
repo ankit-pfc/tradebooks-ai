@@ -3,9 +3,15 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
-    title: "Pricing | TradeBooks AI",
+    title: "Pricing",
     description:
         "Simple pricing based on the number of client books you manage. Start free and scale your CA practice's Zerodha-to-Tally workflow without per-transaction fees.",
+    alternates: { canonical: '/pricing' },
+    openGraph: {
+        title: "Pricing | TradeBooks AI",
+        description: "Simple pricing based on the number of client books you manage. Start free and scale your CA practice's Zerodha-to-Tally workflow.",
+        url: '/pricing',
+    },
 };
 
 const tiers = [
@@ -65,7 +71,7 @@ export default function PricingPage() {
                             </ul>
                             <Link
                                 href={tier.href}
-                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-base font-semibold ${tier.featured ? "bg-[#0B1F33] text-white hover:bg-[#132d47]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
+                                className={`mt-8 block rounded-lg px-4 py-3 text-center text-base font-semibold ${tier.featured ? "bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "bg-slate-100 text-slate-900 hover:bg-slate-200"}`}
                             >
                                 {tier.cta}
                             </Link>

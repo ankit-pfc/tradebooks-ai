@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBatchRepository } from '@/lib/db';
+import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import type { AppBatchStatus } from '@/lib/types';
 
 const VALID_STATUSES: AppBatchStatus[] = [
@@ -12,6 +13,11 @@ const VALID_STATUSES: AppBatchStatus[] = [
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const repo = getBatchRepository();
     const statusParam = request.nextUrl.searchParams.get('status');
     const allBatches = await repo.listBatches();

@@ -35,7 +35,21 @@ import type {
   ZerodhaDividendRow,
   ParseMetadata,
 } from '@/lib/parsers/zerodha/types';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
+import { rateLimit } from '@/lib/rate-limit';
+
+// ---------------------------------------------------------------------------
+// Upload security constants
+// ---------------------------------------------------------------------------
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const ALLOWED_MIME_TYPES = new Set([
+  'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/pdf',
+  'application/octet-stream', // fallback — detection handles actual validation
+]);
 
 // ---------------------------------------------------------------------------
 // Types for parsed file collection
@@ -62,25 +76,26 @@ interface ParsedFileSet {
 }
 
 // ---------------------------------------------------------------------------
-// Auth helper
-// ---------------------------------------------------------------------------
-
-async function getAuthenticatedUserId(): Promise<string | null> {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit: 10 uploads per hour per user
+    const rl = rateLimit(`upload:${userId}`, { interval: 60 * 60 * 1000, limit: 10 });
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please try again later.' },
+        { status: 429 },
+      );
+    }
+
     const form = await request.formData();
 
     const companyName = form.get('companyName') as string | null;
@@ -110,6 +125,22 @@ export async function POST(request: NextRequest) {
         { error: 'At least one file is required' },
         { status: 400 },
       );
+    }
+
+    // File size and MIME type validation
+    for (const file of uploadFiles) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `File "${file.name}" exceeds the 50MB size limit` },
+          { status: 400 },
+        );
+      }
+      if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
+        return NextResponse.json(
+          { error: `File "${file.name}" has unsupported type: ${file.type}` },
+          { status: 400 },
+        );
+      }
     }
 
     // 1. Read and detect all files
@@ -230,9 +261,7 @@ export async function POST(request: NextRequest) {
       matchResult = matchTrades(parsedFileSet.tradebook.rows, cnTradesWithDate);
     }
 
-    // 5. Resolve user identity and load settings
-    const userId = await getAuthenticatedUserId() ?? 'demo-user';
-
+    // 5. Load user settings and resolve accounting profile
     let profile = accountingMode === 'trader' ? TRADER_DEFAULT : INVESTOR_DEFAULT;
 
     // Load user settings to build profile (form data overrides)

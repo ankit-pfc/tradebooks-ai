@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /** Paths that never require authentication. */
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/privacy', '/terms'];
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/login/verify-mfa', '/privacy', '/terms'];
 
 function isPublicPath(pathname: string): boolean {
     return (
@@ -65,11 +65,29 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url);
     }
 
-    // Redirect authenticated users away from login/signup
+    // Redirect authenticated users away from login/signup (but not verify-mfa)
     if (user && (pathname === '/login' || pathname === '/signup')) {
         const url = request.nextUrl.clone();
         url.pathname = '/dashboard';
         return NextResponse.redirect(url);
+    }
+
+    // MFA enforcement: if user has TOTP factors but hasn't verified yet (aal1),
+    // redirect to the MFA verification page
+    if (user && !isPublicPath(pathname)) {
+        const { data: aalData } =
+            await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (
+            aalData &&
+            aalData.nextLevel === 'aal2' &&
+            aalData.currentLevel === 'aal1'
+        ) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/login/verify-mfa';
+            url.searchParams.set('redirectTo', pathname);
+            return NextResponse.redirect(url);
+        }
     }
 
     return supabaseResponse;

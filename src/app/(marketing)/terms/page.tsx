@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Terms of Service | TradeBooks AI",
+    title: "Terms of Service",
     description: "Terms and conditions for using TradeBooks AI's Zerodha-to-Tally accounting utility.",
+    alternates: { canonical: '/terms' },
 };
 
 export default function TermsPage() {

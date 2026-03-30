@@ -38,17 +38,16 @@ export default function MarketingLayout({
                 <span className="text-white font-medium">Tradebooks</span>{" "}
                 <span className="text-[#2D9CDB] font-semibold">AI</span>
               </div>
-              <p className="text-sm font-normal text-[#6B7280] tracking-wide mt-1">Ledger Intelligence</p>
-              <p className="mt-2 text-base leading-relaxed">
+              <p className="text-base leading-relaxed">
                 Broker statements to Tally, automatically. Built for Indian CAs,
                 accountants, and traders.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1 text-sm text-slate-200">
-                  <Lock className="h-3.5 w-3.5 text-[#27AE60]" /> SSL Secured
+                  <Lock className="h-3.5 w-3.5 text-[#2D9D78]" /> SSL Secured
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1 text-sm text-slate-200">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[#27AE60]" /> SOC-style Controls
+                  <ShieldCheck className="h-3.5 w-3.5 text-[#2D9D78]" /> SOC-style Controls
                 </span>
               </div>
             </div>
@@ -116,7 +115,7 @@ export default function MarketingLayout({
                   </Link>
                 </li>
                 <li className="inline-flex items-center gap-1 text-slate-300">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#27AE60]" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#2D9D78]" />
                   Data retention controls
                 </li>
               </ul>

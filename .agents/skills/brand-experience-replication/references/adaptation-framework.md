@@ -1,66 +1,81 @@
-# Adaptation Framework (Universal vs Sadhaka-specific)
+# Adaptation Framework — Tradebooks AI Brand System
 
 ## Purpose
 
-Help agents transfer the system across domains while avoiding cargo-cult copying.
+Help agents extend the Tradebooks AI brand system across new surfaces, audience segments, and product phases without loss of professional positioning or accuracy-first identity.
 
 ## What is universal (preserve)
 
-1. Trust-before-conversion sequencing
-2. Clear narrative progression (promise → mechanism → proof → ask)
-3. Premium restraint in UI and motion
+1. Accuracy-before-conversion sequencing — prove reliability before asking for action
+2. Clear narrative progression: problem → mechanism → proof → offer → ask
+3. Professional restraint in UI — no startup hype, no decorative excess
 4. One primary CTA intent per major section
-5. Consistent tokenized design language
+5. Consistently tokenized design language (navy, teal, semantic states)
+6. Domain-native vocabulary used naturally throughout
 
-## What is Sadhaka-specific (adapt)
+## What is Tradebooks AI-specific (adapt as product evolves)
 
-- Spiritual/heritage trust cues
-- Category-specific vocabulary and metaphors
-- Source-specific examples and social proof contexts
-- Cultural references that do not transfer across products
+- Broker specificity — currently Zerodha-first; will expand to Groww, Upstox, ICICI Direct
+- Export format specificity — Zerodha Console CSV; may expand to XLSX, API pull
+- Audience segment emphasis — individual trader vs CA vs prop desk may shift by campaign
+- Feature emphasis — FIFO engine vs bulk batch vs exception UI may vary by page
+- Proof types available — CA testimonials grow over time; early on, methodology must carry more weight
 
-## What to never copy literally
+## What to never copy literally from other brand systems
 
-- Headlines, body copy, and testimonials
-- Distinctive branded phrases tied to canonical identity
-- Iconography/illustrations that imply wrong category promises
+- Headlines or body copy from spiritual/lifestyle brands that have a different category promise
+- Any iconography or visual metaphors that imply the wrong product function
+- Trust cues from unrelated categories (e.g., medical authority signals, academic lineage)
 
 ## Adaptation workflow
 
 1. **Define target context**
-   - category, audience, problem intensity, buying mode
+   - Which audience segment? (trader / CA / firm)
+   - What is their buying mode? (discovery / evaluation / ready to act)
+   - What is the primary surface? (landing page / email / app onboarding / in-app upgrade)
+
 2. **Map trust translation**
-   - spiritual/heritage cues → domain cues (compliance, expertise, outcomes, guarantees)
-3. **Rebuild homepage sequence**
-   - keep structure, rewrite every message in domain language
+   - What specific reliability signals matter to this segment?
+   - Trader: "Will my STCG/LTCG be right?" → show FIFO explanation + sample output
+   - CA: "Can I trust this for client data?" → show methodology + privacy + professional endorsements
+   - Prop desk: "Can it handle 10,000 trades?" → show batch processing capability + error handling
+
+3. **Rebuild surface sequence**
+   - Keep problem → mechanism → proof → offer → CTA → FAQ structure
+   - Rewrite every message in the language of this specific segment
+   - CAs speak differently than retail traders — adjust vocabulary accordingly
+
 4. **Recast components and tokens**
-   - keep behavior patterns, adapt visual metaphors and content density
+   - Keep behavioral patterns (trust chip rail, pipeline steps, testimonials)
+   - Adapt content density to surface (landing pages: spacious; app: compact)
+   - Keep the same color system regardless of surface
+
 5. **Run guardrail QA**
-   - check for literal copy and category mismatch
+   - Check: is there any vague AI language?
+   - Check: are semantic state colors correct (green = done, amber = exception)?
+   - Check: does the CTA ask before mechanism is explained?
+   - Check: is any claim unverifiable or overpromised?
 
-## Domain translation guide
+## Domain translation guide (for future expansion)
 
-### SaaS
-- Trust cues: uptime, integrations, security, customer logos, benchmark metrics
-- CTA: start trial / request demo
+### When adapting for CAs specifically
+- Trust cues: methodology transparency, bulk/multi-client batch support, data privacy, professional peer endorsements
+- CTA: "Try for a Client" / "Request Demo for Your Practice"
 
-### Services
-- Trust cues: methodology, case studies, credentials, process transparency
-- CTA: book consult / get proposal
+### When adapting for Prop Desks
+- Trust cues: volume capacity, F&O handling, exception surface with bulk resolve
+- CTA: "Talk to Us" / "Schedule a Demo"
 
-### Consumer apps
-- Trust cues: user ratings, ease-of-use proof, onboarding simplicity, social proof
-- CTA: download / start free
+### When adapting for new broker support launch
+- Lead with: compatibility proof for the new broker's export format
+- Trust cue: "Same accuracy engine, now with [Broker] support"
+- CTA: "Try with [Broker] data"
 
-### Education brands
-- Trust cues: outcomes, curriculum quality, instructor credibility, learner proof
-- CTA: enroll / view curriculum
-
-## Replicate vs adapt matrix template
+## Replicate vs adapt matrix
 
 | Layer | Replicate (principle) | Adapt (execution) | Never copy |
-|------|------------------------|-------------------|------------|
-| Positioning | Emotional clarity | Category language | Canonical taglines |
-| Narrative | Section sequencing | Section details | Canonical copy |
-| Visual system | Token architecture | Palette/imagery nuance | Distinct branded assets |
-| Conversion | Trust-before-ask | CTA labels/paths | CTA text verbatim |
+|-------|----------------------|-------------------|------------|
+| Positioning | Accuracy-first, professional | Audience-specific pain language | Taglines from other brands |
+| Narrative | Problem → mechanism → proof → ask | Segment-specific emphasis | Generic SaaS copy |
+| Visual system | Navy/teal/semantic-state tokens | Content density (landing vs app) | Consumer-app palette or styling |
+| Conversion | Mechanism-before-ask | CTA label and destination | Countdown urgency tactics |

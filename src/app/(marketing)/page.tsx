@@ -264,10 +264,44 @@ const faqs = [
     },
 ];
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'TradeBooks AI',
+  applicationCategory: 'FinanceApplication',
+  operatingSystem: 'Web',
+  description: 'Converts Zerodha broker exports to Tally-importable XML with FIFO cost basis, exception-first reconciliation, and row-level traceability.',
+  url: 'https://tradebooks.ai',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'INR',
+    description: 'Free plan with 1 active entity',
+  },
+};
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
 export default function LandingPage() {
     return (
         <>
-            <section id="hero" className="bg-[#F9FAFB] py-20 sm:py-28">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
+            <section id="hero" className="bg-[#F7F8FA] py-20 sm:py-28">
                 <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:gap-16 lg:px-8">
                     {/* ── Left: Copy ── */}
                     <div>
@@ -299,17 +333,17 @@ export default function LandingPage() {
 
                         <div className="mt-8 flex max-w-xl flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3.5">
                             <div className="flex items-center gap-1.5">
-                                <Scale className="h-4 w-4 shrink-0 text-[#2D9CDB]" />
+                                <Scale className="h-4 w-4 shrink-0 text-[#1E4FD8]" />
                                 <span className="text-sm font-medium text-[#374151]">{trustBarItems[0]}</span>
                                 <span className="ml-2.5 h-4 w-px bg-[#D1D5DB]" />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Lock className="h-4 w-4 shrink-0 text-[#2D9CDB]" />
+                                <Lock className="h-4 w-4 shrink-0 text-[#1E4FD8]" />
                                 <span className="text-sm font-medium text-[#374151]">{trustBarItems[1]}</span>
                                 <span className="ml-2.5 h-4 w-px bg-[#D1D5DB]" />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Plug className="h-4 w-4 shrink-0 text-[#2D9CDB]" />
+                                <Plug className="h-4 w-4 shrink-0 text-[#1E4FD8]" />
                                 <span className="text-sm font-medium text-[#374151]">{trustBarItems[2]}</span>
                             </div>
                         </div>
@@ -337,18 +371,18 @@ export default function LandingPage() {
                         <div className="absolute -bottom-6 -left-10 z-10 w-[200px] overflow-hidden rounded-xl border border-[#E5E7EB] bg-white/95 p-2.5 shadow-[0_20px_50px_rgba(15,23,42,0.18)] backdrop-blur-sm">
                             <div className="mb-2 flex items-center justify-between">
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#475569]">Batch Preview</p>
-                                <span className="inline-flex items-center gap-1 rounded-full border border-[#27AE60]/30 bg-[#27AE60]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#27AE60]">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#2D9D78]/30 bg-[#2D9D78]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#2D9D78]">
                                     <BadgeCheck className="h-2.5 w-2.5" /> 42 ready
                                 </span>
                             </div>
 
                             {/* Mini workflow */}
-                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-2 py-1.5">
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#0B1F33] text-[9px] font-bold text-white">Z</div>
-                                <div className="h-px flex-1 bg-[#E5E7EB]" />
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#2D9CDB]/15 text-[9px] font-bold text-[#2D9CDB]">AI</div>
-                                <div className="h-px flex-1 bg-[#E5E7EB]" />
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#27AE60]/15 text-[9px] font-bold text-[#27AE60]">T</div>
+                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FBFF] px-2 py-1.5">
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8] text-[9px] font-bold text-white">Z</div>
+                                <div className="h-px flex-1 bg-[#D6E3F3]" />
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#1E4FD8]/15 text-[9px] font-bold text-[#1E4FD8]">AI</div>
+                                <div className="h-px flex-1 bg-[#D6E3F3]" />
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#2D9D78]/15 text-[9px] font-bold text-[#2D9D78]">T</div>
                             </div>
 
                             {/* Compact voucher rows */}
@@ -358,11 +392,11 @@ export default function LandingPage() {
                                     { symbol: "HDFCBANK · MIS", amount: "₹8,120", ok: true },
                                     { symbol: "INFY · CNC", amount: "₹12,040", ok: false },
                                 ].map((row) => (
-                                    <div key={row.symbol} className="flex items-center justify-between rounded-md border border-[#E5E7EB] bg-white px-2 py-1">
-                                        <p className="text-[10px] font-semibold text-[#0B1F33]">{row.symbol}</p>
+                                    <div key={row.symbol} className="flex items-center justify-between rounded-md border border-[#E2E8F0] bg-white px-2 py-1">
+                                        <p className="text-[10px] font-semibold text-[#1A1A2E]">{row.symbol}</p>
                                         <div className="flex items-center gap-1.5">
-                                            <p className="text-[10px] font-semibold text-[#0B1F33]">{row.amount}</p>
-                                            <span className={`inline-flex rounded-full px-1 py-px text-[8px] font-bold ${row.ok ? "bg-[#27AE60]/10 text-[#27AE60]" : "bg-amber-50 text-amber-600"}`}>
+                                            <p className="text-[10px] font-semibold text-[#1A1A2E]">{row.amount}</p>
+                                            <span className={`inline-flex rounded-full px-1 py-px text-[8px] font-bold ${row.ok ? "bg-[#2D9D78]/10 text-[#2D9D78]" : "bg-amber-50 text-amber-600"}`}>
                                                 {row.ok ? "Ready" : "Review"}
                                             </span>
                                         </div>
@@ -370,9 +404,9 @@ export default function LandingPage() {
                                 ))}
                             </div>
 
-                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-[#F9FAFB] px-2 py-1">
+                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-[#F3F6FB] px-2 py-1">
                                 <p className="text-[9px] font-medium text-[#475569]">Exceptions: 2</p>
-                                <p className="text-[9px] font-semibold text-[#2D9CDB]">Export XML →</p>
+                                <p className="text-[9px] font-semibold text-[#1E4FD8]">Export XML →</p>
                             </div>
                         </div>
                     </div>
@@ -382,7 +416,7 @@ export default function LandingPage() {
             <section id="output-flow" className="border-b border-[#E5E7EB] bg-white py-14 sm:py-16">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#475569]">The output, at a glance</p>
-                    <h2 className="mt-3 text-center font-sans text-2xl font-bold tracking-tight text-[#0B1F33] sm:text-3xl">
+                    <h2 className="mt-3 text-center font-sans text-2xl font-bold tracking-tight text-[#1A1A2E] sm:text-3xl">
                         From broker export to Tally-importable XML
                     </h2>
                     <div className="mt-8 grid gap-4 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
@@ -390,7 +424,7 @@ export default function LandingPage() {
                             <>
                                 <article key={step.title} className={`rounded-2xl border p-5 ${step.tone}`}>
                                     <p className="text-xs font-bold uppercase tracking-[0.1em]">Step 0{idx + 1}</p>
-                                    <h3 className="mt-2 text-xl font-semibold text-[#0B1F33]">{step.title}</h3>
+                                    <h3 className="mt-2 text-xl font-semibold text-[#1A1A2E]">{step.title}</h3>
                                     <p className="mt-2 text-base leading-7">{step.text}</p>
                                 </article>
                                 {idx < outputFlow.length - 1 && (
@@ -407,8 +441,8 @@ export default function LandingPage() {
             <section id="stats" className="border-y border-[#E5E7EB] bg-white py-8">
                 <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:grid-cols-3 sm:px-6 lg:px-8">
                     {heroStats.map((stat) => (
-                        <div key={stat.label} className="rounded-xl border border-[#E5E7EB] bg-white px-5 py-4 text-center">
-                            <p className="text-3xl font-extrabold tracking-tight text-[#0B1F33]">{stat.value}</p>
+                        <div key={stat.label} className="rounded-xl border border-[#E2E8F0] bg-white px-5 py-4 text-center">
+                            <p className="text-3xl font-extrabold tracking-tight text-[#1A1A2E]">{stat.value}</p>
                             <p className="mt-1.5 text-sm leading-6 text-[#374151]">{stat.label}</p>
                         </div>
                     ))}
@@ -427,7 +461,7 @@ export default function LandingPage() {
                                 className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 text-center"
                             >
                                 <p className="inline-flex items-center text-base font-semibold text-[#475569]">
-                                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded bg-[#2D9CDB]/10 text-xs font-bold text-[#2D9CDB]">
+                                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded bg-[#1E4FD8]/10 text-xs font-bold text-[#1E4FD8]">
                                         {item.logo}
                                     </span>
                                     {item.name}
@@ -471,14 +505,14 @@ export default function LandingPage() {
                     </p>
                     <div className="mt-10 grid gap-5 md:grid-cols-2">
                         {testimonials.map((item) => (
-                            <article key={item.name} className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+                            <article key={item.name} className="rounded-2xl border border-[#D6E3F3] bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
                                 <p className="text-base leading-8 text-[#334155]">“{item.quote}”</p>
                                 <div className="mt-5 flex items-center gap-3">
                                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1F33] text-base font-bold text-white">
                                         {item.avatar}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-semibold text-[#0B1F33]">{item.name}</p>
+                                        <p className="text-sm font-semibold text-[#1A1A2E]">{item.name}</p>
                                         <p className="text-sm tracking-[0.04em] text-[#475569]">{item.role}</p>
                                     </div>
                                 </div>
@@ -496,19 +530,19 @@ export default function LandingPage() {
                     </p>
                     <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
                         {processSteps.map((step, idx) => (
-                            <div key={step.title} className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-7 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#2D9CDB]/15 text-[#2D9CDB]">
+                            <div key={step.title} className="rounded-2xl border border-[#E2E8F0] bg-[#F7F8FA] p-7 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#1E4FD8]/15 text-[#1E4FD8]">
                                     {idx === 0 && <FileSpreadsheet className="h-5 w-5" />}
                                     {idx === 1 && <Workflow className="h-5 w-5" />}
                                     {idx === 2 && <ShieldCheck className="h-5 w-5" />}
                                     {idx === 3 && <Send className="h-5 w-5" />}
                                 </div>
-                                <p className="mt-4 text-xs font-bold tracking-[0.14em] text-[#2D9CDB]">STEP 0{idx + 1}</p>
-                                <h3 className="mt-2 text-lg font-semibold text-[#0B1F33]">{step.title}</h3>
+                                <p className="mt-4 text-xs font-bold tracking-[0.14em] text-[#1E4FD8]">STEP 0{idx + 1}</p>
+                                <h3 className="mt-2 text-lg font-semibold text-[#1A1A2E]">{step.title}</h3>
                                 <p className="mt-2 text-base leading-7 text-[#374151]">{step.text}</p>
-                                <div className="mt-4 space-y-2 rounded-lg border border-[#E5E7EB] bg-white p-3 text-sm text-[#42526b]">
-                                    <p className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5 text-[#2D9CDB]" /> Time: {step.eta}</p>
-                                    <p className="inline-flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-[#27AE60]" /> Outcome: {step.outcome}</p>
+                                <div className="mt-4 space-y-2 rounded-lg border border-[#D6E3F3] bg-white p-3 text-sm text-[#42526b]">
+                                    <p className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5 text-[#1E4FD8]" /> Time: {step.eta}</p>
+                                    <p className="inline-flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-[#2D9D78]" /> Outcome: {step.outcome}</p>
                                 </div>
                             </div>
                         ))}
@@ -526,7 +560,7 @@ export default function LandingPage() {
 
             <section id="who-its-for" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Who it’s for</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Who it’s for</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         Pick the profile closest to your workflow and see where TradeBooks AI fits best.
                     </p>
@@ -545,7 +579,7 @@ export default function LandingPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="text-lg font-semibold text-[#0B1F33]">{persona.title}</h3>
+                                <h3 className="text-lg font-semibold text-[#1A1A2E]">{persona.title}</h3>
                                 <p className="mt-3 text-sm leading-7 text-[#374151]">{persona.text}</p>
                                 <p className="mt-3 text-sm leading-7 text-[#334155]">{persona.outcome}</p>
                                 <Link href="/upload" className="mt-5 inline-flex items-center text-sm font-semibold text-[#2D9CDB] group-hover:text-[#132d47]">
@@ -559,7 +593,7 @@ export default function LandingPage() {
 
             <section id="proof" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">See exactly what gets exported</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">See exactly what gets exported</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         Practical, row-level evidence from source file to Tally-ready XML output — with exceptions surfaced before export.
                     </p>
@@ -621,7 +655,7 @@ export default function LandingPage() {
 
             <section id="features" className="bg-white py-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Built for accounting precision, not just parsing</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Built for accounting precision, not just parsing</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         These are the workflow safeguards that reduce manual rework and improve close confidence.
                     </p>
@@ -631,7 +665,7 @@ export default function LandingPage() {
                                 <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.08em] text-[#2D9CDB]">
                                     <BadgeCheck className="h-4 w-4" /> Core capability
                                 </p>
-                                <h3 className="mt-3 text-xl font-semibold text-[#0B1F33]">{feature.title}</h3>
+                                <h3 className="mt-3 text-xl font-semibold text-[#1A1A2E]">{feature.title}</h3>
                                 <p className="mt-3 text-sm leading-7 text-[#374151]">{feature.text}</p>
                             </article>
                         ))}
@@ -641,10 +675,10 @@ export default function LandingPage() {
 
             <section id="comparison" className="bg-white pb-20">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Compared to alternatives</h2>
-                    <div className="mt-8 overflow-hidden rounded-2xl border border-[#E5E7EB]">
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Compared to alternatives</h2>
+                    <div className="mt-8 overflow-hidden rounded-2xl border border-[#E2E8F0]">
                         <table className="w-full text-left text-base">
-                            <thead className="bg-[#F9FAFB] text-[#0B1F33]">
+                            <thead className="bg-[#F7F8FA] text-[#1A1A2E]">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">Criteria</th>
                                     <th className="px-4 py-3 font-semibold">Manual Excel</th>
@@ -652,14 +686,14 @@ export default function LandingPage() {
                                     <th className="px-4 py-3 font-semibold bg-[#EBF5FB]">
                                         <div className="inline-flex items-center gap-2">
                                             TradeBooks AI
-                                            <span className="rounded-full border border-[#2D9CDB]/25 bg-[#2D9CDB]/10 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.08em] text-[#2D9CDB]">
+                                            <span className="rounded-full border border-[#387ED1]/25 bg-[#387ED1]/10 px-2 py-0.5 text-xs font-bold uppercase tracking-[0.08em] text-[#387ED1]">
                                                 ✓ Recommended
                                             </span>
                                         </div>
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[#E5E7EB] bg-white text-[#374151]">
+                            <tbody className="divide-y divide-[#E2E8F0] bg-white text-[#374151]">
                                 {comparisonRows.map((row) => (
                                     <tr key={row[0]}>
                                         {row.map((cell, idx) => (
@@ -675,12 +709,15 @@ export default function LandingPage() {
                             </tbody>
                         </table>
                     </div>
+                    <p className="mt-6 text-center text-sm text-[#475569]">
+                        Looking for a retail tax filing tool instead of Tally bookkeeping? <Link href="/compare/quicko" className="font-semibold text-[#1E4FD8] hover:underline">Read our TradeBooks AI vs Quicko breakdown.</Link>
+                    </p>
                 </div>
             </section>
 
             <section id="pricing" className="bg-white py-20">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#0B1F33] sm:text-[36px]">Simple pricing for every close stage</h2>
+                    <h2 className="font-sans text-center text-3xl font-bold tracking-tight text-[#1A1A2E] sm:text-[36px]">Simple pricing for every close stage</h2>
                     <p className="mx-auto mt-3 max-w-3xl text-center leading-8 text-[#374151]">
                         Start free to validate your workflow, then move to Pro once your team is ready for production exports.
                     </p>
@@ -708,7 +745,7 @@ export default function LandingPage() {
                                 </ul>
                                 <Link
                                     href={plan.href}
-                                    className={`mt-7 inline-flex h-11 w-full items-center justify-center rounded-lg border text-base font-semibold transition-colors ${plan.featured ? "border-[#2D9CDB] bg-[#2D9CDB] text-white hover:bg-[#132d47]" : "border-[#E5E7EB] text-[#0B1F33] hover:bg-[#F9FAFB]"}`}
+                                    className={`mt-7 inline-flex h-11 w-full items-center justify-center rounded-lg border text-base font-semibold transition-colors ${plan.featured ? "border-[#387ED1] bg-[#387ED1] text-white hover:bg-[#2f6db7]" : "border-[#C7D7EC] text-[#1A1A2E] hover:bg-[#F7F8FA]"}`}
                                 >
                                     {plan.cta}
                                 </Link>

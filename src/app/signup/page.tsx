@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { validatePassword } from '@/lib/auth/password-validation';
+import { PasswordStrength } from '@/components/auth/password-strength';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +20,13 @@ export default function SignupPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError(null);
+
+        const validation = validatePassword(password);
+        if (!validation.valid) {
+            setError(validation.errors.join('. '));
+            return;
+        }
+
         setLoading(true);
 
         const supabase = createClient();
@@ -88,12 +97,13 @@ export default function SignupPage() {
                                 id="password"
                                 type="password"
                                 required
-                                minLength={6}
+                                minLength={8}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="At least 6 characters"
+                                placeholder="At least 8 characters"
                                 autoComplete="new-password"
                             />
+                            <PasswordStrength password={password} />
                         </div>
 
                         {error && (
