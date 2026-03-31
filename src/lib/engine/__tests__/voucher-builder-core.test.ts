@@ -8,6 +8,7 @@ import {
   buildCorporateActionVoucher,
 } from '../voucher-builder';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../accounting-policy';
+import { ChargeTreatment } from '../../types/accounting';
 import { EventType } from '../../types/events';
 import { VoucherType } from '../../types/vouchers';
 import { makeBuyEvent, makeSellEvent, makeChargeEvent, makeEvent } from '../../../tests/helpers/factories';
@@ -316,5 +317,96 @@ describe('buildCorporateActionVoucher', () => {
     expect(drInv?.amount).toBe('5000.00');
     const crBank = findLine(voucher!.lines, 'Bank', 'CR');
     expect(crBank?.amount).toBe('5000.00');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 3 — Capitalized BUY RATE must use effective cost-per-unit
+// ---------------------------------------------------------------------------
+describe('buildBuyVoucher — capitalize RATE reflects all-in cost', () => {
+  it('RATE = (gross + charges) / qty, not just gross/qty', () => {
+    // 10 shares @ 2500 = 25000 gross; charges = 500; effective = 25500/10 = 2550.00
+    const event = makeBuyEvent({ quantity: '10', rate: '2500.00', gross_amount: '25000.00' });
+    const charges = [makeChargeEvent(EventType.STT, '200.00'), makeChargeEvent(EventType.BROKERAGE, '300.00')];
+    const capitalizeProfile = { ...INVESTOR_DEFAULT, charge_treatment: ChargeTreatment.CAPITALIZE };
+    const voucher = buildBuyVoucher(event, capitalizeProfile, charges);
+
+    const drLine = voucher.lines.find(l => l.dr_cr === 'DR')!;
+    expect(drLine.amount).toBe('25500.00');   // gross + charges
+    expect(drLine.rate).toBe('2550.00');       // (25500) / 10
+    expect(drLine.quantity).toBe('10');
+  });
+
+  it('RATE differs from event.rate when charges are present', () => {
+    const event = makeBuyEvent({ quantity: '5', rate: '1000.00', gross_amount: '5000.00' });
+    const charges = [makeChargeEvent(EventType.STT, '250.00')];
+    const capitalizeProfile = { ...INVESTOR_DEFAULT, charge_treatment: ChargeTreatment.CAPITALIZE };
+    const voucher = buildBuyVoucher(event, capitalizeProfile, charges);
+
+    const drLine = voucher.lines.find(l => l.dr_cr === 'DR')!;
+    // effective = (5000 + 250) / 5 = 1050.00
+    expect(drLine.rate).toBe('1050.00');
+    expect(drLine.rate).not.toBe(event.rate);
+  });
+
+  it('RATE equals event.rate when there are no charges', () => {
+    const event = makeBuyEvent({ quantity: '10', rate: '2500.00', gross_amount: '25000.00' });
+    const capitalizeProfile = { ...INVESTOR_DEFAULT, charge_treatment: ChargeTreatment.CAPITALIZE };
+    const voucher = buildBuyVoucher(event, capitalizeProfile, []);
+
+    const drLine = voucher.lines.find(l => l.dr_cr === 'DR')!;
+    expect(drLine.rate).toBe('2500.00');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 5 — Zero-cost disposal must not produce 0.00-amount asset lines
+// ---------------------------------------------------------------------------
+describe('buildSellVoucher — zero-cost disposal', () => {
+  const zeroCostDisposals = [{
+    lot_id: 'UNKNOWN',
+    quantity_sold: '10',
+    unit_cost: '0',
+    total_cost: '0',
+    gain_or_loss: '26000.00',
+  }];
+
+  it('investor mode: no asset CR line when totalCostBasis = 0', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
+
+    const assetLine = voucher.lines.find(l => l.ledger_name.includes('Investment') && l.dr_cr === 'CR');
+    expect(assetLine).toBeUndefined();
+  });
+
+  it('investor mode: voucher is balanced without asset line', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
+
+  it('investor mode: full gross booked as gain', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
+
+    const gainLine = voucher.lines.find(l => l.ledger_name.includes('Capital Gain') && l.dr_cr === 'CR');
+    expect(gainLine?.amount).toBe('26000.00');
+  });
+
+  it('trader mode: no stockLedger CR or cost DR when totalCostBasis = 0', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
+
+    const stockLine = voucher.lines.find(l => l.ledger_name.includes('Shares-in-Trade') && l.dr_cr === 'CR');
+    expect(stockLine).toBeUndefined();
+
+    const costLine = voucher.lines.find(l => l.ledger_name.includes('Cost of Shares Sold') && l.dr_cr === 'DR');
+    expect(costLine).toBeUndefined();
+  });
+
+  it('trader mode: voucher is balanced without cost lines', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
+    expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 });
