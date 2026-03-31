@@ -173,12 +173,17 @@ export function buildBuyVoucher(
   let lineNo = 1;
 
   if (capitalize) {
-    // Single DR line: asset absorbs the total inclusive of charges
+    // Single DR line: asset absorbs the total inclusive of charges.
+    // RATE must reflect the all-in cost per unit so Tally's stock valuation
+    // (RATE × QTY) matches the actual capitalised amount.
+    const capitalizedAmount = grossAmount.add(totalCharges);
+    const capitalizedQty = new Decimal(event.quantity).abs();
+    const effectiveRate = capitalizedAmount.div(capitalizedQty).toDecimalPlaces(2).toFixed(2);
     lines.push(
-      makeLine(draftId, lineNo++, assetLedger, grossAmount.add(totalCharges), 'DR', {
+      makeLine(draftId, lineNo++, assetLedger, capitalizedAmount, 'DR', {
         security_id: event.security_id,
         quantity: event.quantity,
-        rate: event.rate,
+        rate: effectiveRate,
       }),
     );
   } else {
@@ -302,14 +307,19 @@ export function buildSellVoucher(
       }
     }
 
-    // CR: Investment account at cost basis
-    lines.push(
-      makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', {
-        security_id: event.security_id,
-        quantity: event.quantity,
-        rate: event.rate,
-      }),
-    );
+    // CR: Investment account at cost basis.
+    // Omit entirely when cost = 0 (zero-cost / partial-data disposal) — a
+    // zero-amount ledger line with INVENTORYENTRIES can confuse Tally.  The
+    // full gross is already captured in the gain/loss line below.
+    if (totalCostBasis.greaterThan(0)) {
+      lines.push(
+        makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', {
+          security_id: event.security_id,
+          quantity: event.quantity,
+          rate: event.rate,
+        }),
+      );
+    }
 
     // CR or DR: Gain / Loss at GROSS (before sell charges).
     //
@@ -363,22 +373,26 @@ export function buildSellVoucher(
       }
     }
 
-    // DR: Cost of Shares Sold
-    lines.push(
-      makeLine(draftId, lineNo++, L.COST_OF_SHARES_SOLD.name, totalCostBasis, 'DR'),
-    );
+    // DR: Cost of Shares Sold (omit when cost = 0 — partial-data disposal)
+    if (totalCostBasis.greaterThan(0)) {
+      lines.push(
+        makeLine(draftId, lineNo++, L.COST_OF_SHARES_SOLD.name, totalCostBasis, 'DR'),
+      );
+    }
 
     // CR: Trading Sales at gross
     lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
 
-    // CR: Shares-in-Trade at cost basis
-    lines.push(
-      makeLine(draftId, lineNo++, stockLedger, totalCostBasis, 'CR', {
-        security_id: event.security_id,
-        quantity: event.quantity,
-        rate: event.rate,
-      }),
-    );
+    // CR: Shares-in-Trade at cost basis (omit when cost = 0)
+    if (totalCostBasis.greaterThan(0)) {
+      lines.push(
+        makeLine(draftId, lineNo++, stockLedger, totalCostBasis, 'CR', {
+          security_id: event.security_id,
+          quantity: event.quantity,
+          rate: event.rate,
+        }),
+      );
+    }
   }
 
   const qty = new Decimal(event.quantity).abs();
