@@ -1,6 +1,7 @@
 import { detectFileType } from '@/lib/parsers/zerodha/detect';
 import { parseTradebook } from '@/lib/parsers/zerodha/tradebook';
 import { parseContractNotes } from '@/lib/parsers/zerodha/contract-notes';
+import { parseContractNotesXml } from '@/lib/parsers/zerodha/contract-notes-xml';
 import { parseFundsStatement } from '@/lib/parsers/zerodha/funds-statement';
 import { parseDividends } from '@/lib/parsers/zerodha/dividends';
 import {
@@ -10,6 +11,7 @@ import {
 } from '@/lib/engine/canonical-events';
 import { CostLotTracker } from '@/lib/engine/cost-lots';
 import { buildVouchers } from '@/lib/engine/voucher-builder';
+import { mergeSameRatePurchaseVouchers } from '@/lib/engine/voucher-merger';
 import {
   INVESTOR_DEFAULT,
   TRADER_DEFAULT,
@@ -146,7 +148,10 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
         break;
       }
       case 'contract_note': {
-        const parsed = parseContractNotes(f.buffer, f.fileName);
+        const isXml = f.buffer[0] === 0x3c; // '<' — Zerodha Console XML format
+        const parsed = isXml
+          ? parseContractNotesXml(f.buffer, f.fileName)
+          : parseContractNotes(f.buffer, f.fileName);
         const sheets = pairContractNoteData(
           parsed.trades,
           parsed.charges,
@@ -230,7 +235,8 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   }
 
   // Step 7: Build vouchers, collect ledger masters, generate XML
-  const vouchers = buildVouchers(events, profile, tracker, tallyProfile);
+  const rawVouchers = buildVouchers(events, profile, tracker, tallyProfile);
+  const vouchers = mergeSameRatePurchaseVouchers(rawVouchers);
   const ledgers = collectRequiredLedgers(events, profile, { tallyProfile });
 
   // Collect unique stock item names from inventory lines so Tally receives
