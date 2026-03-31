@@ -33,9 +33,9 @@ describe('collectRequiredLedgers — no TallyProfile', () => {
     const names = ledgers.map(l => l.name);
     expect(names).toContain('Investment in Equity Shares - NSE:RELIANCE');
     expect(names).toContain('Investment in Equity Shares - NSE:TCS');
-    // None should affect stock for investor
+    // Investment ledgers must have affects_stock=true (Bug 1 fix)
     const investmentLedger = ledgers.find(l => l.name.includes('Investment in Equity'));
-    expect(investmentLedger?.affects_stock).toBe(false);
+    expect(investmentLedger?.affects_stock).toBe(true);
   });
 
   it('TRADER + SCRIPT_LEVEL produces per-script stock-in-trade with affects_stock=true', () => {

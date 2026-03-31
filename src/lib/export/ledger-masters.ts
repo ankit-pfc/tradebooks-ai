@@ -17,7 +17,7 @@ import type { AccountingProfile, TallyProfile } from '../types/accounting';
 import { AccountingMode, LedgerStrategy } from '../types/accounting';
 import type { LedgerMasterInput } from './tally-xml';
 import * as L from '../constants/ledger-names';
-import { collectProfileLedgers } from '../engine/ledger-resolver';
+import { collectProfileLedgers, resolveInvestmentLedger } from '../engine/ledger-resolver';
 
 // ---------------------------------------------------------------------------
 // Fixed ledger catalogue
@@ -149,10 +149,17 @@ function collectLedgersFromProfile(
     Array.from(dividendSymbols),
   );
 
+  // Investment/asset ledgers must have affects_stock: true so Tally updates
+  // its stock register on PURCHASE vouchers — without this, SALES are silently
+  // skipped because Tally sees zero stock for every scrip.
+  const investmentLedgerNames = new Set(
+    Array.from(tradeSymbols).map((sym) => resolveInvestmentLedger(tallyProfile, sym).name),
+  );
+
   return collected.ledgers.map((def) => ({
     name: def.name,
     parent_group: def.group,
-    affects_stock: false,
+    affects_stock: investmentLedgerNames.has(def.name),
   }));
 }
 
@@ -205,7 +212,7 @@ export function collectRequiredLedgers(
     for (const symbol of symbols) {
       if (profile.mode === AccountingMode.INVESTOR) {
         const def = L.investmentLedger(symbol);
-        add({ name: def.name, parent_group: def.group, affects_stock: false });
+        add({ name: def.name, parent_group: def.group, affects_stock: true });
       } else {
         const def = L.stockInTradeLedger(symbol);
         add({ name: def.name, parent_group: def.group, affects_stock: true });
@@ -214,7 +221,7 @@ export function collectRequiredLedgers(
   } else {
     // POOLED — single ledger for all securities.
     if (profile.mode === AccountingMode.INVESTOR) {
-      add({ name: L.POOLED_INVESTMENT.name, parent_group: L.POOLED_INVESTMENT.group, affects_stock: false });
+      add({ name: L.POOLED_INVESTMENT.name, parent_group: L.POOLED_INVESTMENT.group, affects_stock: true });
     } else {
       add({ name: L.POOLED_STOCK_IN_TRADE.name, parent_group: L.POOLED_STOCK_IN_TRADE.group, affects_stock: true });
     }
