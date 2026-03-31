@@ -34,7 +34,7 @@ import {
   resolveDividendLedger,
 } from './ledger-resolver';
 
-type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
+export type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -291,7 +291,7 @@ export function buildSellVoucher(
     const netProceeds = grossAmount.sub(totalCharges);
     lines.push(makeLine(draftId, lineNo++, brokerName, netProceeds, 'DR'));
 
-    // DR: charge ledgers (expensed)
+    // DR: charge ledgers (expensed separately)
     for (const ce of chargeEvents) {
       const chargeLedger = tallyProfile
         ? resolveChargeLedger(tallyProfile, ce.event_type).name
@@ -311,7 +311,16 @@ export function buildSellVoucher(
       }),
     );
 
-    // CR or DR: Gross capital gain/loss (charges are already expensed as separate DR lines above)
+    // CR or DR: Gain / Loss at GROSS (before sell charges).
+    //
+    // Sell charges are already posted as separate DR lines above, so they
+    // reduce P&L through their own expense ledgers. Using gross gain here
+    // keeps the voucher balanced:
+    //   Total DR = netProceeds + Σcharges = grossAmount
+    //   Total CR = costBasis  + grossGainLoss = grossAmount  ✓
+    //
+    // If netGainLoss (gross − charges) were used instead, the voucher would
+    // be short by Σcharges on the CR side, breaking double-entry balance.
     const isGain = totalGainLoss.greaterThanOrEqualTo(0);
     if (tallyProfile) {
       const gainLossLedger = resolveCapitalGainLedger(
