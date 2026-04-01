@@ -183,6 +183,21 @@ describe('buildSellVoucher — investor', () => {
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, lossDisposals, 100);
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
+
+  it('inventory RATE is cost-per-unit, not sale price', () => {
+    // qty=10, totalCostBasis=25000 → rate must be 2500, not 2600 (sale price)
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], costDisposals, 100);
+
+    const crAsset = voucher.lines.find(l => l.ledger_name.includes('Investment') && l.dr_cr === 'CR')!;
+    expect(crAsset).toBeDefined();
+    const qty = Math.abs(parseFloat(crAsset.quantity!));
+    const rate = parseFloat(crAsset.rate!);
+    const amount = parseFloat(crAsset.amount);
+    expect(Math.abs(qty * rate - amount)).toBeLessThan(0.01);
+    // cost-per-unit should be 2500, not the sale price 2600
+    expect(crAsset.rate).not.toBe('2600.00');
+  });
 });
 
 describe('buildSellVoucher — trader', () => {
@@ -202,6 +217,20 @@ describe('buildSellVoucher — trader', () => {
     expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeDefined();
     expect(findLine(voucher.lines, 'Shares-in-Trade', 'CR')).toBeDefined();
     expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
+
+  it('inventory RATE is cost-per-unit, not sale price', () => {
+    // qty=10, totalCostBasis=25000 → rate must be 2500, not 2600 (sale price)
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], costDisposals);
+
+    const stockLine = voucher.lines.find(l => l.ledger_name.includes('Shares-in-Trade') && l.dr_cr === 'CR')!;
+    expect(stockLine).toBeDefined();
+    const qty = Math.abs(parseFloat(stockLine.quantity!));
+    const rate = parseFloat(stockLine.rate!);
+    const amount = parseFloat(stockLine.amount);
+    expect(Math.abs(qty * rate - amount)).toBeLessThan(0.01);
+    expect(stockLine.rate).not.toBe('2600.00');
   });
 });
 
@@ -360,7 +389,9 @@ describe('buildBuyVoucher — capitalize RATE reflects all-in cost', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug 5 — Zero-cost disposal must not produce 0.00-amount asset lines
+// Zero-cost disposals (bonus shares, incomplete purchase history)
+// The stock CR line must still be emitted so Tally sees an inventory movement.
+// RATE=0 and AMOUNT=0 is valid in Tally; omitting the line entirely is not.
 // ---------------------------------------------------------------------------
 describe('buildSellVoucher — zero-cost disposal', () => {
   const zeroCostDisposals = [{
@@ -371,15 +402,18 @@ describe('buildSellVoucher — zero-cost disposal', () => {
     gain_or_loss: '26000.00',
   }];
 
-  it('investor mode: no asset CR line when totalCostBasis = 0', () => {
+  it('investor mode: asset CR line is present with amount=0 and rate=0', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
 
     const assetLine = voucher.lines.find(l => l.ledger_name.includes('Investment') && l.dr_cr === 'CR');
-    expect(assetLine).toBeUndefined();
+    expect(assetLine).toBeDefined();
+    expect(assetLine?.amount).toBe('0.00');
+    expect(assetLine?.rate).toBe('0');
+    expect(assetLine?.quantity).toBe('-10');
   });
 
-  it('investor mode: voucher is balanced without asset line', () => {
+  it('investor mode: voucher is balanced with zero-cost asset line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
     expect(voucher.total_debit).toBe(voucher.total_credit);
@@ -393,18 +427,21 @@ describe('buildSellVoucher — zero-cost disposal', () => {
     expect(gainLine?.amount).toBe('26000.00');
   });
 
-  it('trader mode: no stockLedger CR or cost DR when totalCostBasis = 0', () => {
+  it('trader mode: stock CR is present with amount=0; cost DR is absent', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
 
     const stockLine = voucher.lines.find(l => l.ledger_name.includes('Shares-in-Trade') && l.dr_cr === 'CR');
-    expect(stockLine).toBeUndefined();
+    expect(stockLine).toBeDefined();
+    expect(stockLine?.amount).toBe('0.00');
+    expect(stockLine?.rate).toBe('0');
 
+    // Cost of Shares Sold DR is correctly omitted at zero cost (no expense to post)
     const costLine = voucher.lines.find(l => l.ledger_name.includes('Cost of Shares Sold') && l.dr_cr === 'DR');
     expect(costLine).toBeUndefined();
   });
 
-  it('trader mode: voucher is balanced without cost lines', () => {
+  it('trader mode: voucher is balanced with zero-cost stock line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
     expect(voucher.total_debit).toBe(voucher.total_credit);

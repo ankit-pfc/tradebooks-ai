@@ -308,15 +308,20 @@ export function buildSellVoucher(
     }
 
     // CR: Investment account at cost basis.
-    // Omit entirely when cost = 0 (zero-cost / partial-data disposal) — a
-    // zero-amount ledger line with INVENTORYENTRIES can confuse Tally.  The
-    // full gross is already captured in the gain/loss line below.
-    if (totalCostBasis.greaterThan(0)) {
+    // Always emit this line so Tally sees a stock movement for every sale.
+    // RATE must be cost-per-unit (totalCostBasis / qty) so that
+    // qty × rate = AMOUNT — Tally validates this and skips the voucher if it
+    // doesn't reconcile. For zero-cost disposals rate = 0 which Tally accepts.
+    {
+      const absQty = new Decimal(event.quantity).abs();
+      const costPerUnit = absQty.greaterThan(0)
+        ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
+        : '0';
       lines.push(
         makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', {
           security_id: event.security_id,
           quantity: event.quantity,
-          rate: event.rate,
+          rate: costPerUnit,
         }),
       );
     }
@@ -383,13 +388,21 @@ export function buildSellVoucher(
     // CR: Trading Sales at gross
     lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
 
-    // CR: Shares-in-Trade at cost basis (omit when cost = 0)
-    if (totalCostBasis.greaterThan(0)) {
+    // CR: Shares-in-Trade at cost basis.
+    // Always emit this line so Tally sees a stock movement for every sale.
+    // RATE must be cost-per-unit (totalCostBasis / qty) so that
+    // qty × rate = AMOUNT — Tally validates this and skips the voucher if it
+    // doesn't reconcile. For zero-cost disposals rate = 0 which Tally accepts.
+    {
+      const absQty = new Decimal(event.quantity).abs();
+      const costPerUnit = absQty.greaterThan(0)
+        ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
+        : '0';
       lines.push(
         makeLine(draftId, lineNo++, stockLedger, totalCostBasis, 'CR', {
           security_id: event.security_id,
           quantity: event.quantity,
-          rate: event.rate,
+          rate: costPerUnit,
         }),
       );
     }
