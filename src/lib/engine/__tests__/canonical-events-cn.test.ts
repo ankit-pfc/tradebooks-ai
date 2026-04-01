@@ -119,7 +119,7 @@ describe('contractNoteToEvents', () => {
 
     expect(tradeEvents).toHaveLength(1);
     expect(tradeEvents[0].event_type).toBe(EventType.BUY_TRADE);
-    expect(tradeEvents[0].security_id).toBe('NSE:RELIANCE');
+    expect(tradeEvents[0].security_id).toBe('EQ:RELIANCE');
     expect(tradeEvents[0].quantity).toBe('10');
     expect(tradeEvents[0].rate).toBe('2500');
     expect(tradeEvents[0].gross_amount).toBe('25000.00');

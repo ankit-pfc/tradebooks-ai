@@ -47,11 +47,26 @@ function buildHash(...fields: string[]): string {
   return createHash('sha256').update(fields.join('|')).digest('hex');
 }
 
-/** Build the canonical security_id used throughout the engine.
- *  Convention: "{exchange}:{symbol}" — keeps it human-readable and unique
- *  across exchanges.
+/**
+ * Returns true for equity-delivery segments where BSE and NSE are fungible.
+ * Covers: "EQ" (standard equity), "BE" (BSE Book Entry / delivery), "EQUITY"
+ * (PDF contract notes), and "NSE-EQ" / "BSE-EQ" (XML contract notes).
  */
-function buildSecurityId(exchange: string, symbol: string): string {
+function isEquitySegment(segment: string): boolean {
+  const s = segment.trim().toUpperCase();
+  return s === 'EQ' || s === 'BE' || s === 'EQUITY' || s.endsWith('-EQ');
+}
+
+/** Build the canonical security_id used throughout the engine.
+ *  For equity segments (EQ, BE, Equity, NSE-EQ …) the exchange prefix is
+ *  replaced with "EQ" so that a buy on NSE and a sell on BSE of the same
+ *  scrip share a single FIFO lot queue.
+ *  All other segments (FO, CDS, MCX …) keep the full "EXCHANGE:SYMBOL" key.
+ */
+function buildSecurityId(exchange: string, symbol: string, segment?: string): string {
+  if (segment && isEquitySegment(segment)) {
+    return `EQ:${symbol.trim().toUpperCase()}`;
+  }
   return `${exchange.trim().toUpperCase()}:${symbol.trim().toUpperCase()}`;
 }
 
@@ -113,7 +128,7 @@ export function tradebookRowToEvents(
   const grossAmount = qty.mul(price);
 
   const eventDate = normaliseDate(row.trade_date);
-  const securityId = buildSecurityId(row.exchange, row.symbol);
+  const securityId = buildSecurityId(row.exchange, row.symbol, row.segment);
 
   // Signed quantity: positive for buys, negative for sells (accounting convention)
   const signedQty =
@@ -383,15 +398,19 @@ const CHARGE_EVENT_MAP: Array<{
  * tradebooks use symbols like "RELIANCE". We normalise to
  * "{exchange}:{FIRST_WORD}" which matches the tradebook convention
  * for ~90% of Zerodha equities.
+ *
+ * When `segment` indicates an equity segment (EQ, BE, Equity, NSE-EQ …) the
+ * exchange prefix is replaced with "EQ" so BSE/NSE lots remain fungible.
  */
 export function buildSecurityIdFromDescription(
   exchange: string,
   description: string,
+  segment?: string,
 ): string {
   const cleaned = description.trim().toUpperCase();
   // Use the first word as the symbol approximation
   const firstWord = cleaned.split(/\s+/)[0] || cleaned;
-  return `${exchange.trim().toUpperCase()}:${firstWord}`;
+  return buildSecurityId(exchange, firstWord, segment);
 }
 
 /**
@@ -417,7 +436,7 @@ export function contractNoteToEvents(
   for (let i = 0; i < trades.length; i++) {
     const trade = trades[i];
     const alloc = allocations[i];
-    const securityId = buildSecurityIdFromDescription(trade.exchange, trade.security_description);
+    const securityId = buildSecurityIdFromDescription(trade.exchange, trade.security_description, trade.segment);
 
     const qty = new Decimal(trade.quantity);
     const price = new Decimal(trade.gross_rate);

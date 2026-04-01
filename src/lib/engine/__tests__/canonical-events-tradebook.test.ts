@@ -67,13 +67,22 @@ describe('tradebookRowToEvents', () => {
     expect(events[0].event_date).toBe('2024-06-15');
   });
 
-  it('builds security_id as EXCHANGE:SYMBOL uppercased', () => {
+  it('builds security_id as EQ:SYMBOL for equity segment (exchange-normalised)', () => {
     const events = tradebookRowToEvents(
-      makeTradebookRow({ exchange: 'nse', symbol: 'reliance' }),
+      makeTradebookRow({ exchange: 'nse', symbol: 'reliance', segment: 'EQ' }),
       'batch-1',
       'file-1',
     );
-    expect(events[0].security_id).toBe('NSE:RELIANCE');
+    expect(events[0].security_id).toBe('EQ:RELIANCE');
+  });
+
+  it('preserves EXCHANGE:SYMBOL for non-equity segments', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'NSE', symbol: 'NIFTY24DECFUT', segment: 'FO' }),
+      'batch-1',
+      'file-1',
+    );
+    expect(events[0].security_id).toBe('NSE:NIFTY24DECFUT');
   });
 
   it('sets charge_amount to "0"', () => {
@@ -289,5 +298,42 @@ describe('buildCanonicalEvents', () => {
       fileIds: { corporateActions: 'f1' },
     });
     expect(events.some(e => e.event_type === EventType.BONUS_SHARES)).toBe(true);
+  });
+});
+
+describe('cross-exchange equity normalisation', () => {
+  it('assigns the same security_id to NSE and BSE trades for the same equity scrip', () => {
+    const buyOnNse = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'NSE', symbol: 'RELIANCE', segment: 'EQ', trade_type: 'buy' }),
+      'b', 'f',
+    );
+    const sellOnBse = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'BSE', symbol: 'RELIANCE', segment: 'EQ', trade_type: 'sell' }),
+      'b', 'f',
+    );
+    expect(buyOnNse[0].security_id).toBe('EQ:RELIANCE');
+    expect(sellOnBse[0].security_id).toBe('EQ:RELIANCE');
+  });
+
+  it('normalises BSE Book Entry segment (BE) to EQ: prefix', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'BSE', symbol: 'INFY', segment: 'BE' }),
+      'b', 'f',
+    );
+    expect(events[0].security_id).toBe('EQ:INFY');
+  });
+
+  it('does not normalise futures/options — exchange stays in the key', () => {
+    const nse = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'NSE', symbol: 'NIFTY24DECFUT', segment: 'FO' }),
+      'b', 'f',
+    );
+    const bse = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'BSE', symbol: 'NIFTY24DECFUT', segment: 'FO' }),
+      'b', 'f',
+    );
+    expect(nse[0].security_id).toBe('NSE:NIFTY24DECFUT');
+    expect(bse[0].security_id).toBe('BSE:NIFTY24DECFUT');
+    expect(nse[0].security_id).not.toBe(bse[0].security_id);
   });
 });
