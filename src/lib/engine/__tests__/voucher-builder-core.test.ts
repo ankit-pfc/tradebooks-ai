@@ -146,6 +146,43 @@ describe('buildSellVoucher — investor', () => {
     const crAsset = findLine(voucher.lines, 'Investment in Equity Shares', 'CR');
     expect(crAsset?.amount).toBe('25000.00');
   });
+
+  it('voucher is balanced WITH charges', () => {
+    // gross=26000, cost=25000, gain=1000, charges=60.36
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [
+      makeChargeEvent(EventType.STT, '25.00'),
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.GST_ON_CHARGES, '15.36'),
+    ];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('26000.00');
+  });
+
+  it('capital gain ledger shows gross gain (before charges)', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [makeChargeEvent(EventType.STT, '50.00')];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
+
+    const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
+    // Gross gain = 1000.00, NOT net of charges (950.00)
+    expect(gainLine?.amount).toBe('1000.00');
+  });
+
+  it('loss case is balanced WITH charges', () => {
+    const lossDisposals = [{
+      lot_id: 'lot-1',
+      quantity_sold: '10',
+      unit_cost: '2700.000000',
+      total_cost: '27000.00',
+      gain_or_loss: '-1000.00',
+    }];
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [makeChargeEvent(EventType.STT, '25.00'), makeChargeEvent(EventType.BROKERAGE, '20.00')];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, lossDisposals, 100);
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
 });
 
 describe('buildSellVoucher — trader', () => {
