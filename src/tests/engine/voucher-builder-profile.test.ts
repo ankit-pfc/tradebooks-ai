@@ -104,6 +104,7 @@ describe('buildSellVoucher with TallyProfile', () => {
   });
   const costDisposals = [{
     lot_id: 'lot-1',
+    acquisition_date: '2024-01-15',
     quantity_sold: '5',
     unit_cost: '2500.00',
     total_cost: '12500.00',
@@ -135,6 +136,7 @@ describe('buildSellVoucher with TallyProfile', () => {
   it('resolves loss ledger for negative gain', () => {
     const lossDisposals = [{
       lot_id: 'lot-1',
+      acquisition_date: '2024-01-15',
       quantity_sold: '5',
       unit_cost: '2700.00',
       total_cost: '13500.00',

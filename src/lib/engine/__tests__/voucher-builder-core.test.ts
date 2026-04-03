@@ -6,11 +6,14 @@ import {
   buildSettlementVoucher,
   buildDividendVoucher,
   buildCorporateActionVoucher,
+  buildVouchers,
 } from '../voucher-builder';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../accounting-policy';
 import { ChargeTreatment } from '../../types/accounting';
 import { EventType } from '../../types/events';
 import { VoucherType } from '../../types/vouchers';
+import { CostLotTracker } from '../cost-lots';
+import { TradeClassification } from '../trade-classifier';
 import { makeBuyEvent, makeSellEvent, makeChargeEvent, makeEvent } from '../../../tests/helpers/factories';
 
 function findLine(lines: { ledger_name: string; dr_cr: string }[], partial: string, drCr: 'DR' | 'CR') {
@@ -87,12 +90,82 @@ describe('buildBuyVoucher — trader EXPENSE', () => {
   });
 });
 
+describe('deriveEffectiveProfile routing via build vouchers', () => {
+  it('preserves backward compatibility when classification is absent', () => {
+    const event = makeBuyEvent({
+      trade_classification: undefined,
+      trade_product: undefined,
+      gross_amount: '25000.00',
+      quantity: '10',
+      rate: '2500.00',
+    });
+    const charges = [makeChargeEvent(EventType.BROKERAGE, '20.00')];
+
+    const voucher = buildBuyVoucher(event, TRADER_DEFAULT, charges);
+
+    expect(findLine(voucher.lines, 'Shares-in-Trade', 'DR')?.amount).toBe('25000.00');
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+    expect(findLine(voucher.lines, 'Investment in Equity Shares', 'DR')).toBeUndefined();
+  });
+
+  it('routes investment-classified buys to investor + hybrid even under trader profile', () => {
+    const event = makeBuyEvent({
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      gross_amount: '25000.00',
+      quantity: '10',
+      rate: '2500.00',
+    });
+    const charges = [makeChargeEvent(EventType.BROKERAGE, '20.00')];
+
+    const voucher = buildBuyVoucher(event, TRADER_DEFAULT, charges);
+
+    expect(findLine(voucher.lines, 'Investment in Equity Shares', 'DR')?.amount).toBe('25020.00');
+    expect(findLine(voucher.lines, 'Shares-in-Trade', 'DR')).toBeUndefined();
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')).toBeUndefined();
+  });
+
+  it('routes speculative sells to trader structure even under investor profile', () => {
+    const event = makeSellEvent({
+      trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+      trade_product: 'MIS',
+      gross_amount: '26000.00',
+    });
+    const costDisposals = [{
+      lot_id: 'lot-1',
+      acquisition_date: '2024-06-01',
+      quantity_sold: '10',
+      unit_cost: '2500.000000',
+      total_cost: '25000.00',
+      gain_or_loss: '1000.00',
+    }];
+
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], costDisposals, 0);
+
+    expect(findLine(voucher.lines, 'Trading Sales', 'CR')).toBeDefined();
+    expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeDefined();
+    expect(voucher.lines.some((line) => line.ledger_name.includes('Speculative'))).toBe(false);
+  });
+
+  it('adds MTF review flag to narrative while keeping investor-style purchase treatment', () => {
+    const event = makeBuyEvent({
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'MTF',
+    });
+    const voucher = buildBuyVoucher(event, TRADER_DEFAULT, [makeChargeEvent(EventType.BROKERAGE, '20.00')]);
+
+    expect(voucher.narrative).toContain('Review: MTF financing treatment');
+    expect(findLine(voucher.lines, 'Investment in Equity Shares', 'DR')).toBeDefined();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // buildSellVoucher
 // ---------------------------------------------------------------------------
 describe('buildSellVoucher — investor', () => {
   const costDisposals = [{
     lot_id: 'lot-1',
+    acquisition_date: '2024-06-01',
     quantity_sold: '10',
     unit_cost: '2500.000000',
     total_cost: '25000.00',
@@ -120,6 +193,7 @@ describe('buildSellVoucher — investor', () => {
   it('books loss ledger for negative gain', () => {
     const lossDisposals = [{
       lot_id: 'lot-1',
+      acquisition_date: '2024-06-01',
       quantity_sold: '10',
       unit_cost: '2500.000000',
       total_cost: '25000.00',
@@ -173,6 +247,7 @@ describe('buildSellVoucher — investor', () => {
   it('loss case is balanced WITH charges', () => {
     const lossDisposals = [{
       lot_id: 'lot-1',
+      acquisition_date: '2024-06-01',
       quantity_sold: '10',
       unit_cost: '2700.000000',
       total_cost: '27000.00',
@@ -188,6 +263,7 @@ describe('buildSellVoucher — investor', () => {
 describe('buildSellVoucher — trader', () => {
   const costDisposals = [{
     lot_id: 'lot-1',
+    acquisition_date: '2024-06-01',
     quantity_sold: '10',
     unit_cost: '2500.000000',
     total_cost: '25000.00',
@@ -365,6 +441,7 @@ describe('buildBuyVoucher — capitalize RATE reflects all-in cost', () => {
 describe('buildSellVoucher — zero-cost disposal', () => {
   const zeroCostDisposals = [{
     lot_id: 'UNKNOWN',
+    acquisition_date: '2024-06-15',
     quantity_sold: '10',
     unit_cost: '0',
     total_cost: '0',
@@ -408,5 +485,453 @@ describe('buildSellVoucher — zero-cost disposal', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
     expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
+});
+
+describe('buildVouchers holding period routing', () => {
+  it('routes long-term sell vouchers to LTCG when disposal lots are older than 365 days', () => {
+    const tracker = new CostLotTracker();
+    const vouchers = buildVouchers(
+      [
+        makeBuyEvent({
+          event_date: '2023-01-01',
+          quantity: '10',
+          rate: '2500.00',
+          gross_amount: '25000.00',
+          trade_product: 'CNC',
+        }),
+        makeSellEvent({
+          event_date: '2024-06-15',
+          quantity: '-10',
+          rate: '2600.00',
+          gross_amount: '26000.00',
+          trade_product: 'CNC',
+        }),
+      ],
+      INVESTOR_DEFAULT,
+      tracker,
+    );
+
+    const saleVoucher = vouchers.find((voucher) => voucher.voucher_type === VoucherType.SALES);
+    expect(saleVoucher).toBeDefined();
+    expect(
+      saleVoucher?.lines.some(
+        (line) =>
+          line.dr_cr === 'CR' &&
+          line.ledger_name.includes('Long Term Capital Gain on Sale of Shares'),
+      ),
+    ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Session / Phase 3 — STT exclusion in buildVouchers
+// ---------------------------------------------------------------------------
+describe('buildVouchers — excludes STT from all accounting entries', () => {
+  it('investor buy cost basis excludes STT while remaining balanced', () => {
+    const tracker = new CostLotTracker();
+    const buyEvent = makeBuyEvent({
+      event_date: '2024-06-15',
+      external_ref: 'T001',
+      contract_note_ref: 'CN001',
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+    });
+    const brokerage = makeChargeEvent(EventType.BROKERAGE, '20.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T001',
+      contract_note_ref: 'CN001',
+    });
+    const stt = makeChargeEvent(EventType.STT, '2.50', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T001',
+      contract_note_ref: 'CN001',
+    });
+
+    const [voucher] = buildVouchers([buyEvent, brokerage, stt], INVESTOR_DEFAULT, tracker);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('25020.00');
+
+    const capitalizedLine = voucher.lines.find((line) => line.dr_cr === 'DR')!;
+    expect(capitalizedLine.amount).toBe('25020.00');
+    expect(capitalizedLine.rate).toBe('2502.00');
+
+    expect(voucher.lines.some((line) => line.ledger_name.includes('Stt'))).toBe(false);
+    expect(voucher.source_event_ids).toContain(buyEvent.event_id);
+    expect(voucher.source_event_ids).toContain(brokerage.event_id);
+    expect(voucher.source_event_ids).not.toContain(stt.event_id);
+
+    const openLot = tracker.getOpenLots('NSE:RELIANCE')[0];
+    expect(openLot?.effective_unit_cost).toBe('2502.000000');
+  });
+
+  it('trader buy expense lines exclude STT while brokerage still posts and balances', () => {
+    const tracker = new CostLotTracker();
+    const buyEvent = makeBuyEvent({
+      event_date: '2024-06-15',
+      external_ref: 'T002',
+      contract_note_ref: 'CN002',
+    });
+    const brokerage = makeChargeEvent(EventType.BROKERAGE, '20.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T002',
+      contract_note_ref: 'CN002',
+    });
+    const stt = makeChargeEvent(EventType.STT, '10.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T002',
+      contract_note_ref: 'CN002',
+    });
+
+    const [voucher] = buildVouchers([buyEvent, brokerage, stt], TRADER_DEFAULT, tracker);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('25020.00');
+    expect(findLine(voucher.lines, 'Shares-in-Trade', 'DR')?.amount).toBe('25000.00');
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+    expect(findLine(voucher.lines, 'Securities Transaction Tax', 'DR')).toBeUndefined();
+    expect(voucher.lines.some((line) => line.ledger_name.includes('Stt'))).toBe(false);
+  });
+
+  it('buy vouchers still include stamp duty while excluding STT', () => {
+    const tracker = new CostLotTracker();
+    const buyEvent = makeBuyEvent({
+      event_date: '2024-06-15',
+      external_ref: 'T002A',
+      contract_note_ref: 'CN002A',
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+    });
+    const brokerage = makeChargeEvent(EventType.BROKERAGE, '20.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T002A',
+      contract_note_ref: 'CN002A',
+    });
+    const stampDuty = makeChargeEvent(EventType.STAMP_DUTY, '3.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T002A',
+      contract_note_ref: 'CN002A',
+    });
+    const stt = makeChargeEvent(EventType.STT, '10.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T002A',
+      contract_note_ref: 'CN002A',
+    });
+
+    const [voucher] = buildVouchers([buyEvent, brokerage, stampDuty, stt], TRADER_DEFAULT, tracker);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('25023.00');
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+    expect(findLine(voucher.lines, 'Stamp Duty', 'DR')?.amount).toBe('3.00');
+    expect(findLine(voucher.lines, 'Securities Transaction Tax', 'DR')).toBeUndefined();
+    expect(voucher.source_event_ids).toContain(stampDuty.event_id);
+    expect(voucher.source_event_ids).not.toContain(stt.event_id);
+  });
+
+  it('sell vouchers exclude STT expense posting and remain balanced', () => {
+    const tracker = new CostLotTracker();
+    const buyEvent = makeBuyEvent({
+      event_date: '2024-06-14',
+      external_ref: 'T003-B',
+      contract_note_ref: 'CN003',
+    });
+    const sellEvent = makeSellEvent({
+      event_date: '2024-06-15',
+      external_ref: 'T003-S',
+      contract_note_ref: 'CN004',
+      gross_amount: '26000.00',
+      quantity: '-10',
+      rate: '2600.00',
+    });
+    const sellBrokerage = makeChargeEvent(EventType.BROKERAGE, '20.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T003-S',
+      contract_note_ref: 'CN004',
+    });
+    const sellStt = makeChargeEvent(EventType.STT, '25.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T003-S',
+      contract_note_ref: 'CN004',
+    });
+
+    const vouchers = buildVouchers(
+      [buyEvent, sellEvent, sellBrokerage, sellStt],
+      TRADER_DEFAULT,
+      tracker,
+    );
+
+    expect(vouchers).toHaveLength(2);
+
+    const sellVoucher = vouchers[1];
+    expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
+    expect(sellVoucher.total_debit).toBe('51000.00');
+    expect(findLine(sellVoucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+    expect(findLine(sellVoucher.lines, 'Securities Transaction Tax', 'DR')).toBeUndefined();
+    expect(sellVoucher.lines.some((line) => line.ledger_name.includes('Stt'))).toBe(false);
+    expect(findLine(sellVoucher.lines, 'Zerodha', 'DR')?.amount).toBe('25980.00');
+  });
+
+  it('sell vouchers exclude both STT and stamp duty while retaining other charges', () => {
+    const tracker = new CostLotTracker();
+    const buyEvent = makeBuyEvent({
+      event_date: '2024-06-14',
+      external_ref: 'T004-B',
+      contract_note_ref: 'CN005',
+    });
+    const sellEvent = makeSellEvent({
+      event_date: '2024-06-15',
+      external_ref: 'T004-S',
+      contract_note_ref: 'CN006',
+      gross_amount: '26000.00',
+      quantity: '-10',
+      rate: '2600.00',
+    });
+    const sellBrokerage = makeChargeEvent(EventType.BROKERAGE, '20.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T004-S',
+      contract_note_ref: 'CN006',
+    });
+    const sellGst = makeChargeEvent(EventType.GST_ON_CHARGES, '3.60', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T004-S',
+      contract_note_ref: 'CN006',
+    });
+    const sellSebi = makeChargeEvent(EventType.SEBI_CHARGE, '0.25', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T004-S',
+      contract_note_ref: 'CN006',
+    });
+    const sellStampDuty = makeChargeEvent(EventType.STAMP_DUTY, '3.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T004-S',
+      contract_note_ref: 'CN006',
+    });
+    const sellStt = makeChargeEvent(EventType.STT, '25.00', 'NSE:RELIANCE', {
+      event_date: '2024-06-15',
+      external_ref: 'T004-S',
+      contract_note_ref: 'CN006',
+    });
+
+    const vouchers = buildVouchers(
+      [buyEvent, sellEvent, sellBrokerage, sellGst, sellSebi, sellStampDuty, sellStt],
+      TRADER_DEFAULT,
+      tracker,
+    );
+
+    expect(vouchers).toHaveLength(2);
+
+    const sellVoucher = vouchers[1];
+    expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
+    expect(sellVoucher.total_debit).toBe('51000.00');
+    expect(findLine(sellVoucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+    expect(findLine(sellVoucher.lines, 'GST on Brokerage', 'DR')?.amount).toBe('3.60');
+    expect(findLine(sellVoucher.lines, 'SEBI Turnover Fees', 'DR')?.amount).toBe('0.25');
+    expect(findLine(sellVoucher.lines, 'Stamp Duty', 'DR')).toBeUndefined();
+    expect(findLine(sellVoucher.lines, 'Securities Transaction Tax', 'DR')).toBeUndefined();
+    expect(sellVoucher.lines.some((line) => line.ledger_name.includes('Stamp Duty'))).toBe(false);
+    expect(findLine(sellVoucher.lines, 'Zerodha', 'DR')?.amount).toBe('25976.15');
+    expect(sellVoucher.source_event_ids).toContain(sellBrokerage.event_id);
+    expect(sellVoucher.source_event_ids).toContain(sellGst.event_id);
+    expect(sellVoucher.source_event_ids).toContain(sellSebi.event_id);
+    expect(sellVoucher.source_event_ids).not.toContain(sellStampDuty.event_id);
+    expect(sellVoucher.source_event_ids).not.toContain(sellStt.event_id);
+  });
+});
+
+describe('buildVouchers — mixed batch per-trade profile branching', () => {
+  it('generates different voucher structures for CNC, MIS, and NRML in the same batch', () => {
+    const tracker = new CostLotTracker();
+    const events = [
+      makeBuyEvent({
+        event_date: '2024-06-10',
+        security_id: 'NSE:CNCSTOCK',
+        external_ref: 'CNC-BUY',
+        trade_classification: TradeClassification.INVESTMENT,
+        trade_product: 'CNC',
+        quantity: '10',
+        rate: '100.00',
+        gross_amount: '1000.00',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '5.00', 'NSE:CNCSTOCK', {
+        event_date: '2024-06-10',
+        external_ref: 'CNC-BUY',
+        trade_classification: TradeClassification.INVESTMENT,
+      }),
+      makeSellEvent({
+        event_date: '2024-06-10',
+        security_id: 'NSE:CNCSTOCK',
+        external_ref: 'CNC-SELL',
+        trade_classification: TradeClassification.INVESTMENT,
+        trade_product: 'CNC',
+        quantity: '-10',
+        rate: '110.00',
+        gross_amount: '1100.00',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '5.00', 'NSE:CNCSTOCK', {
+        event_date: '2024-06-10',
+        external_ref: 'CNC-SELL',
+        trade_classification: TradeClassification.INVESTMENT,
+      }),
+      makeBuyEvent({
+        event_date: '2024-06-11',
+        security_id: 'NSE:MISSTOCK',
+        external_ref: 'MIS-BUY',
+        trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+        trade_product: 'MIS',
+        quantity: '8',
+        rate: '200.00',
+        gross_amount: '1600.00',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '8.00', 'NSE:MISSTOCK', {
+        event_date: '2024-06-11',
+        external_ref: 'MIS-BUY',
+        trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+      }),
+      makeSellEvent({
+        event_date: '2024-06-11',
+        security_id: 'NSE:MISSTOCK',
+        external_ref: 'MIS-SELL',
+        trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+        trade_product: 'MIS',
+        quantity: '-8',
+        rate: '210.00',
+        gross_amount: '1680.00',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '8.00', 'NSE:MISSTOCK', {
+        event_date: '2024-06-11',
+        external_ref: 'MIS-SELL',
+        trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+      }),
+      makeBuyEvent({
+        event_date: '2024-06-12',
+        security_id: 'NSE:NRMLSTOCK',
+        external_ref: 'NRML-BUY',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+        trade_product: 'NRML',
+        quantity: '6',
+        rate: '300.00',
+        gross_amount: '1800.00',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '6.00', 'NSE:NRMLSTOCK', {
+        event_date: '2024-06-12',
+        external_ref: 'NRML-BUY',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+      }),
+      makeSellEvent({
+        event_date: '2024-06-13',
+        security_id: 'NSE:NRMLSTOCK',
+        external_ref: 'NRML-SELL',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+        trade_product: 'NRML',
+        quantity: '-6',
+        rate: '315.00',
+        gross_amount: '1890.00',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '6.00', 'NSE:NRMLSTOCK', {
+        event_date: '2024-06-13',
+        external_ref: 'NRML-SELL',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+      }),
+    ];
+
+    const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
+
+    expect(vouchers).toHaveLength(6);
+
+    const cncBuy = vouchers.find((voucher) => voucher.external_reference === 'CNC-BUY')!;
+    const cncSell = vouchers.find((voucher) => voucher.external_reference === 'CNC-SELL')!;
+    const misBuy = vouchers.find((voucher) => voucher.external_reference === 'MIS-BUY')!;
+    const misSell = vouchers.find((voucher) => voucher.external_reference === 'MIS-SELL')!;
+    const nrmlBuy = vouchers.find((voucher) => voucher.external_reference === 'NRML-BUY')!;
+    const nrmlSell = vouchers.find((voucher) => voucher.external_reference === 'NRML-SELL')!;
+
+    expect(findLine(cncBuy.lines, 'Investment in Equity Shares', 'DR')).toBeDefined();
+    expect(findLine(cncBuy.lines, 'Shares-in-Trade', 'DR')).toBeUndefined();
+
+    expect(findLine(cncSell.lines, 'Investment in Equity Shares', 'CR')).toBeDefined();
+    expect(cncSell.lines.some((line) => line.ledger_name.includes('Speculative'))).toBe(false);
+
+    expect(findLine(misBuy.lines, 'Shares-in-Trade', 'DR')).toBeDefined();
+    expect(findLine(misBuy.lines, 'Brokerage', 'DR')?.amount).toBe('8.00');
+
+    expect(findLine(misSell.lines, 'Trading Sales', 'CR')).toBeDefined();
+    expect(findLine(misSell.lines, 'Cost of Shares Sold', 'DR')).toBeDefined();
+
+    expect(findLine(nrmlBuy.lines, 'Shares-in-Trade', 'DR')).toBeDefined();
+    expect(findLine(nrmlSell.lines, 'Trading Sales', 'CR')).toBeDefined();
+  });
+});
+
+describe('buildVouchers — same-day CNC and parser overrides', () => {
+  it('keeps same-day CNC round-trip on investor/STCG path instead of trader routing', () => {
+    const tracker = new CostLotTracker();
+    const vouchers = buildVouchers([
+      makeBuyEvent({
+        event_date: '2024-06-15',
+        security_id: 'NSE:SBIN',
+        external_ref: 'CNC-DAY-BUY',
+        trade_classification: TradeClassification.INVESTMENT,
+        trade_product: 'CNC',
+        quantity: '10',
+        rate: '100.00',
+        gross_amount: '1000.00',
+      }),
+      makeSellEvent({
+        event_date: '2024-06-15',
+        security_id: 'NSE:SBIN',
+        external_ref: 'CNC-DAY-SELL',
+        trade_classification: TradeClassification.INVESTMENT,
+        trade_product: 'CNC',
+        quantity: '-10',
+        rate: '110.00',
+        gross_amount: '1100.00',
+      }),
+    ], INVESTOR_DEFAULT, tracker);
+
+    expect(vouchers).toHaveLength(2);
+
+    const sellVoucher = vouchers.find((voucher) => voucher.external_reference === 'CNC-DAY-SELL')!;
+    expect(findLine(sellVoucher.lines, 'Investment in Equity Shares', 'CR')?.amount).toBe('1000.00');
+    expect(findLine(sellVoucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR')?.amount).toBe('100.00');
+    expect(findLine(sellVoucher.lines, 'Trading Sales', 'CR')).toBeUndefined();
+    expect(findLine(sellVoucher.lines, 'Cost of Shares Sold', 'DR')).toBeUndefined();
+  });
+
+  it('routes commodity-override CNC trades through trader ledgers even under investor profile', () => {
+    const tracker = new CostLotTracker();
+    const vouchers = buildVouchers([
+      makeBuyEvent({
+        event_date: '2024-06-16',
+        security_id: 'MCX:GOLDPETAL',
+        external_ref: 'MCX-BUY',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+        trade_product: 'CNC',
+        quantity: '2',
+        rate: '50000.00',
+        gross_amount: '100000.00',
+      }),
+      makeSellEvent({
+        event_date: '2024-06-17',
+        security_id: 'MCX:GOLDPETAL',
+        external_ref: 'MCX-SELL',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+        trade_product: 'CNC',
+        quantity: '-2',
+        rate: '51000.00',
+        gross_amount: '102000.00',
+      }),
+    ], INVESTOR_DEFAULT, tracker);
+
+    const buyVoucher = vouchers.find((voucher) => voucher.external_reference === 'MCX-BUY')!;
+    const sellVoucher = vouchers.find((voucher) => voucher.external_reference === 'MCX-SELL')!;
+
+    expect(findLine(buyVoucher.lines, 'Shares-in-Trade', 'DR')?.amount).toBe('100000.00');
+    expect(findLine(buyVoucher.lines, 'Investment in Equity Shares', 'DR')).toBeUndefined();
+    expect(findLine(sellVoucher.lines, 'Trading Sales', 'CR')?.amount).toBe('102000.00');
+    expect(findLine(sellVoucher.lines, 'Cost of Shares Sold', 'DR')?.amount).toBe('100000.00');
   });
 });

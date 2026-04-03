@@ -53,6 +53,14 @@ vi.mock('@/lib/storage/file-storage', () => ({
 
 const FIXTURE_PATH = resolve(process.cwd(), 'src/tests/fixtures/zerodha-tradebook-sample.csv');
 const tradebookBuffer = readFileSync(FIXTURE_PATH);
+const mixedProductTradebookBuffer = Buffer.from([
+    'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+    '2024-06-15,NSE,EQ,SBIN,INE062A01020,BUY,10,100.00,CNC,T100,ORD100,09:15:00',
+    '2024-06-15,NSE,EQ,SBIN,INE062A01020,SELL,10,110.00,CNC,T101,ORD101,14:30:00',
+    '2024-06-16,MCX,COM,GOLDPETAL,NA,BUY,2,50000.00,CNC,T102,ORD102,10:00:00',
+    '2024-06-17,MCX,COM,GOLDPETAL,NA,SELL,2,51000.00,CNC,T103,ORD103,11:00:00',
+    '2024-06-18,NSE,EQ,INFY,INE009A01021,BUY,5,1500.00,MTF,T104,ORD104,12:00:00',
+].join('\n'));
 
 const BASE_INPUT: PipelineInput = {
     userId: 'user-001',
@@ -140,6 +148,40 @@ describe('runProcessingPipeline — happy path (tradebook)', () => {
         expect(artifacts).toHaveLength(2);
         expect(artifacts[0].artifact_type).toBe('masters_xml');
         expect(artifacts[1].artifact_type).toBe('transactions_xml');
+    });
+
+    it('processes a mixed-product tradebook end-to-end and emits expected XML voucher structures', async () => {
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            files: [
+                {
+                    fileId: 'file-mixed-001',
+                    fileName: 'mixed-product-tradebook.csv',
+                    buffer: mixedProductTradebookBuffer,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.classificationSummary.INVESTMENT).toBe(3);
+        expect(result.classificationSummary.NON_SPECULATIVE_BUSINESS).toBe(2);
+        expect(result.classificationSummary.SPECULATIVE_BUSINESS).toBe(0);
+        expect(result.classificationSummary.mtf_trades).toBe(1);
+
+        const mtfCheck = result.checks.find((check) => check.check_name === 'MTF Review');
+        expect(mtfCheck?.status).toBe('WARNING');
+        expect(mtfCheck?.details).toContain('MTF trade event');
+
+        expect(result.transactionsXml).toContain('Sale of SBIN');
+        expect(result.transactionsXml).toContain('STCG ON SBIN');
+        expect(result.transactionsXml).toContain('Trading Sales');
+        expect(result.transactionsXml).toContain('Cost of Shares Sold');
+        expect(result.transactionsXml).toContain('Review: MTF financing treatment');
+
+        expect(result.mastersXml).toContain('SBIN-SH');
+        expect(result.mastersXml).toContain('GOLDPETAL-SH');
+        expect(result.mastersXml).toContain('Trading Sales');
+        expect(result.mastersXml).toContain('STCG ON SBIN');
     });
 });
 

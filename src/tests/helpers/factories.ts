@@ -27,6 +27,8 @@ export function makeEvent(
     event_id: crypto.randomUUID(),
     import_batch_id: 'batch-1',
     event_type,
+    trade_classification: undefined,
+    trade_product: undefined,
     event_date: '2024-06-15',
     settlement_date: null,
     security_id: 'NSE:RELIANCE',

@@ -62,6 +62,7 @@ describe('CostLotTracker', () => {
       tracker.addLot(makeBuyEvent({ quantity: '10', rate: '2600', event_date: '2024-02-01' }));
       const disposals = tracker.disposeLots(makeSellEvent({ quantity: '-5', rate: '2700' }), 'FIFO');
       expect(disposals).toHaveLength(1);
+      expect(disposals[0].acquisition_date).toBe('2024-01-01');
       expect(disposals[0].unit_cost).toBe('2500.000000'); // oldest lot
       expect(disposals[0].quantity_sold).toBe('5');
     });
@@ -138,6 +139,7 @@ describe('CostLotTracker', () => {
       );
       expect(disposals).toHaveLength(1);
       expect(disposals[0].lot_id).toBe('WEIGHTED_AVERAGE');
+      expect(disposals[0].acquisition_date).toBe('2024-06-15');
       expect(disposals[0].unit_cost).toBe('2550.000000');
       // gain = 5*(2700-2550) = 750
       expect(disposals[0].gain_or_loss).toBe('750.00');

@@ -10,6 +10,7 @@
 import Decimal from 'decimal.js';
 import { createHash } from 'crypto';
 import { EventType, type CanonicalEvent } from '../types/events';
+import { classifyTrade } from './trade-classifier';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -122,6 +123,7 @@ export function tradebookRowToEvents(
   const eventId = crypto.randomUUID();
   const eventType =
     row.trade_type === 'buy' ? EventType.BUY_TRADE : EventType.SELL_TRADE;
+  const tradeClassification = classifyTrade(row.product, row.segment, row.exchange);
 
   const qty = new Decimal(row.quantity);
   const price = new Decimal(row.price);
@@ -146,6 +148,8 @@ export function tradebookRowToEvents(
     event_id: eventId,
     import_batch_id: batchId,
     event_type: eventType,
+    trade_classification: tradeClassification,
+    trade_product: row.product?.trim().toUpperCase() || undefined,
     event_date: eventDate,
     settlement_date: null, // T+1/T+2 settlement date not present in tradebook rows
     security_id: securityId,
@@ -269,6 +273,7 @@ export function dividendRowToEvents(
     event_id: crypto.randomUUID(),
     import_batch_id: batchId,
     event_type: EventType.DIVIDEND,
+    trade_product: undefined,
     event_date: eventDate,
     settlement_date: null,
     security_id: securityId,
@@ -290,6 +295,7 @@ export function dividendRowToEvents(
       event_id: crypto.randomUUID(),
       import_batch_id: batchId,
       event_type: EventType.TDS_ON_DIVIDEND,
+      trade_product: undefined,
       event_date: eventDate,
       settlement_date: null,
       security_id: securityId,
@@ -358,6 +364,7 @@ export function corporateActionToEvents(
     event_id: crypto.randomUUID(),
     import_batch_id: batchId,
     event_type: eventType,
+    trade_product: undefined,
     event_date: eventDate,
     settlement_date: null,
     security_id: action.security_id,
@@ -384,13 +391,13 @@ const CHARGE_EVENT_MAP: Array<{
   eventType: EventType;
   chargeType: string;
 }> = [
-  { field: 'brokerage', eventType: EventType.BROKERAGE, chargeType: 'BROKERAGE' },
-  { field: 'stt', eventType: EventType.STT, chargeType: 'STT' },
-  { field: 'exchange_charges', eventType: EventType.EXCHANGE_CHARGE, chargeType: 'EXCHANGE_CHARGE' },
-  { field: 'clearing_charges', eventType: EventType.EXCHANGE_CHARGE, chargeType: 'CLEARING_CHARGE' },
-  { field: 'sebi_fees', eventType: EventType.SEBI_CHARGE, chargeType: 'SEBI_CHARGE' },
-  { field: 'stamp_duty', eventType: EventType.STAMP_DUTY, chargeType: 'STAMP_DUTY' },
-];
+    { field: 'brokerage', eventType: EventType.BROKERAGE, chargeType: 'BROKERAGE' },
+    { field: 'stt', eventType: EventType.STT, chargeType: 'STT' },
+    { field: 'exchange_charges', eventType: EventType.EXCHANGE_CHARGE, chargeType: 'EXCHANGE_CHARGE' },
+    { field: 'clearing_charges', eventType: EventType.EXCHANGE_CHARGE, chargeType: 'CLEARING_CHARGE' },
+    { field: 'sebi_fees', eventType: EventType.SEBI_CHARGE, chargeType: 'SEBI_CHARGE' },
+    { field: 'stamp_duty', eventType: EventType.STAMP_DUTY, chargeType: 'STAMP_DUTY' },
+  ];
 
 /**
  * Build a security_id from a contract-note security description.
@@ -444,6 +451,7 @@ export function contractNoteToEvents(
 
     const eventType = trade.buy_sell === 'B' ? EventType.BUY_TRADE : EventType.SELL_TRADE;
     const signedQty = eventType === EventType.BUY_TRADE ? qty : qty.negated();
+    const tradeClassification = classifyTrade(undefined, trade.segment, trade.exchange);
 
     const tradeHash = buildHash(
       trade.trade_no,
@@ -458,6 +466,8 @@ export function contractNoteToEvents(
       event_id: crypto.randomUUID(),
       import_batch_id: batchId,
       event_type: eventType,
+      trade_classification: tradeClassification,
+      trade_product: undefined,
       event_date: eventDate,
       settlement_date: null,
       security_id: securityId,
@@ -482,6 +492,8 @@ export function contractNoteToEvents(
         event_id: crypto.randomUUID(),
         import_batch_id: batchId,
         event_type: chargeEventType,
+        trade_classification: tradeClassification,
+        trade_product: undefined,
         event_date: eventDate,
         settlement_date: null,
         security_id: securityId,
@@ -507,6 +519,8 @@ export function contractNoteToEvents(
         event_id: crypto.randomUUID(),
         import_batch_id: batchId,
         event_type: EventType.GST_ON_CHARGES,
+        trade_classification: tradeClassification,
+        trade_product: undefined,
         event_date: eventDate,
         settlement_date: null,
         security_id: securityId,

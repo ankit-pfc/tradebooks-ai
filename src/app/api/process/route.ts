@@ -213,6 +213,7 @@ export async function POST(request: NextRequest) {
       ledgerCount: result.ledgerCount,
       checks: result.checks,
       summary: result.summary,
+      classificationSummary: result.classificationSummary,
       mastersXml: result.mastersXml,
       transactionsXml: result.transactionsXml,
       mastersArtifactId: result.mastersArtifactId,

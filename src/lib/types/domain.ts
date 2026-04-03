@@ -54,6 +54,13 @@ export interface ProcessingSummary {
     passed: number;
     warnings: number;
     failed: number;
+    classification_summary?: {
+        INVESTMENT: number;
+        SPECULATIVE_BUSINESS: number;
+        NON_SPECULATIVE_BUSINESS: number;
+        PROFILE_DRIVEN: number;
+        mtf_trades: number;
+    };
 }
 
 export interface BatchProcessingResult {

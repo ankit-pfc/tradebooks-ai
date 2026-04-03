@@ -3,6 +3,7 @@ import { collectRequiredLedgers } from '../../lib/export/ledger-masters';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../../lib/engine/accounting-policy';
 import { LedgerStrategy } from '../../lib/types/accounting';
 import { makeBuyEvent, makeSellEvent } from '../helpers/factories';
+import { TradeClassification } from '../../lib/engine/trade-classifier';
 
 describe('collectRequiredLedgers — no TallyProfile', () => {
   it('always includes broker and bank ledgers', () => {
@@ -95,5 +96,26 @@ describe('collectRequiredLedgers — no TallyProfile', () => {
     const ledgers = collectRequiredLedgers(events, INVESTOR_DEFAULT);
     // Should still have base ledgers
     expect(ledgers.length).toBeGreaterThan(0);
+  });
+
+  it('includes both investor and trader ledger families for mixed-classification batches', () => {
+    const events = [
+      makeBuyEvent({
+        security_id: 'NSE:RELIANCE',
+        trade_classification: TradeClassification.INVESTMENT,
+      }),
+      makeBuyEvent({
+        security_id: 'NSE:TCS',
+        trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+      }),
+    ];
+
+    const ledgers = collectRequiredLedgers(events, INVESTOR_DEFAULT);
+    const names = ledgers.map(l => l.name);
+
+    expect(names).toContain('Investment in Equity Shares - NSE:RELIANCE');
+    expect(names).toContain('Shares-in-Trade - NSE:TCS');
+    expect(names).toContain('Trading Sales');
+    expect(names).toContain('Short Term Capital Gain on Sale of Shares');
   });
 });

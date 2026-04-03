@@ -107,6 +107,7 @@ describe('buildAuctionAdjustmentVoucher', () => {
     });
     const disposals: CostDisposal[] = [{
       lot_id: 'lot-1',
+      acquisition_date: '2024-01-15',
       quantity_sold: '100',
       unit_cost: '200.000000',
       total_cost: '20000.00',
@@ -132,6 +133,7 @@ describe('buildAuctionAdjustmentVoucher', () => {
     });
     const disposals: CostDisposal[] = [{
       lot_id: 'lot-1',
+      acquisition_date: '2024-01-15',
       quantity_sold: '100',
       unit_cost: '200.000000',
       total_cost: '20000.00',
@@ -156,6 +158,7 @@ describe('buildAuctionAdjustmentVoucher', () => {
     });
     const disposals: CostDisposal[] = [{
       lot_id: 'UNKNOWN',
+      acquisition_date: '2024-06-15',
       quantity_sold: '100',
       unit_cost: '0',
       total_cost: '0',

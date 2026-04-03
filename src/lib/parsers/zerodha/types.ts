@@ -23,6 +23,7 @@
  *   "Trade Type"           -> trade_type
  *   "Quantity"             -> quantity     (numeric string)
  *   "Price"                -> price        (numeric string)
+ *   "Product"              -> product      (optional)
  *   "Trade ID"             -> trade_id
  *   "Order ID"             -> order_id
  *   "Order Execution Time" -> order_execution_time
@@ -39,6 +40,8 @@ export interface ZerodhaTradebookRow {
   quantity: string;
   /** Numeric string — safe to pass to `new Decimal(price)` */
   price: string;
+  /** Product code (e.g. "CNC", "MIS", "NRML") when present in the export */
+  product?: string;
   trade_id: string;
   order_id: string;
   order_execution_time: string;

@@ -42,6 +42,7 @@ const REQUIRED_HEADERS = [
 
 /** Either form of the symbol column header is acceptable. */
 const SYMBOL_HEADERS = ['Symbol/Scrip', 'Symbol'] as const;
+const ALLOWED_PRODUCTS = new Set(['CNC', 'MIS', 'NRML', 'MTF', 'BO', 'CO']);
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -68,6 +69,7 @@ function normaliseHeader(raw: string): keyof ZerodhaTradebookRow | null {
     'trade type': 'trade_type',
     quantity: 'quantity',
     price: 'price',
+    product: 'product',
     'trade id': 'trade_id',
     'order id': 'order_id',
     'order execution time': 'order_execution_time',
@@ -102,6 +104,15 @@ function parseTradeType(value: string, rowIndex: number): 'buy' | 'sell' {
   if (lower === 'buy' || lower === 'sell') return lower;
   throw new Error(
     `Unexpected trade_type "${value}" at data row ${rowIndex + 1} — expected "buy" or "sell"`
+  );
+}
+
+function parseProduct(value: string, rowIndex: number): string | undefined {
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return undefined;
+  if (ALLOWED_PRODUCTS.has(normalized)) return normalized;
+  throw new Error(
+    `Unexpected product "${value}" at data row ${rowIndex + 1} — expected one of ${Array.from(ALLOWED_PRODUCTS).join(', ')}`,
   );
 }
 
@@ -150,6 +161,9 @@ function buildRows(headerRow: string[], dataRows: string[][]): ZerodhaTradebookR
 
       if (field === 'quantity' || field === 'price') {
         raw[field] = parseNumeric(cellValue, field, i);
+      } else if (field === 'product') {
+        const product = parseProduct(cellValue, i);
+        if (product) raw[field] = product;
       } else if (field === 'amount') {
         // amount is optional and may be empty
         if (cellValue) raw[field] = parseNumeric(cellValue, field, i);
@@ -225,7 +239,7 @@ function parseCsv(buffer: Buffer): ZerodhaTradebookRow[] {
   if (headerIdx === -1) {
     throw new Error(
       'Could not locate the tradebook header row. ' +
-        `Expected columns: ${[...REQUIRED_HEADERS, 'Symbol/Scrip or Symbol'].join(', ')}`
+      `Expected columns: ${[...REQUIRED_HEADERS, 'Symbol/Scrip or Symbol'].join(', ')}`
     );
   }
 
@@ -267,7 +281,7 @@ function parseXlsx(buffer: Buffer): ZerodhaTradebookRow[] {
   if (headerIdx === -1) {
     throw new Error(
       'Could not locate the tradebook header row in XLSX. ' +
-        `Expected columns: ${[...REQUIRED_HEADERS, 'Symbol/Scrip or Symbol'].join(', ')}`
+      `Expected columns: ${[...REQUIRED_HEADERS, 'Symbol/Scrip or Symbol'].join(', ')}`
     );
   }
 

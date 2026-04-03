@@ -284,6 +284,7 @@ describe('POST /api/process', () => {
         expect(body.mastersXml).toContain('<ENVELOPE>');
         expect(body.transactionsXml).toContain('<ENVELOPE>');
         expect(body.chargeSource).toBe('none');
+        expect(body.classificationSummary).toBeDefined();
 
         // Verify persistence calls
         expect(batchRepo.createBatch).toHaveBeenCalledOnce();

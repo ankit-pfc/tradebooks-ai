@@ -20,6 +20,8 @@ import { EventType, type CanonicalEvent, type CostLot } from '../types/events';
 export interface CostDisposal {
   /** The cost lot that was (partially or fully) consumed. */
   lot_id: string;
+  /** Acquisition date of the consumed lot in YYYY-MM-DD format. */
+  acquisition_date: string;
   /** Quantity consumed from this lot as a decimal string. */
   quantity_sold: string;
   /** Effective unit cost of the lot as a decimal string. */
@@ -311,6 +313,7 @@ export class CostLotTracker {
 
       disposals.push({
         lot_id: lot.cost_lot_id,
+        acquisition_date: lot.acquisition_date,
         quantity_sold: consumed.toFixed(),
         unit_cost: unitCost.toFixed(6),
         total_cost: totalCost.toFixed(2),
@@ -331,7 +334,7 @@ export class CostLotTracker {
     if (remaining.greaterThan(0)) {
       throw new Error(
         `disposeLots (FIFO): sell quantity exceeds open lots for ${securityId}. ` +
-          `Excess: ${remaining.toFixed()}`,
+        `Excess: ${remaining.toFixed()}`,
       );
     }
 
@@ -386,6 +389,7 @@ export class CostLotTracker {
     // Return a single aggregated disposal record
     const disposal: CostDisposal = {
       lot_id: 'WEIGHTED_AVERAGE',
+      acquisition_date: openLots[0]?.acquisition_date ?? '',
       quantity_sold: sellQty.toFixed(),
       unit_cost: weightedUnitCost.toFixed(6),
       total_cost: costForSell.toFixed(2),

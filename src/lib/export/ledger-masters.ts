@@ -18,6 +18,7 @@ import { AccountingMode, LedgerStrategy } from '../types/accounting';
 import type { LedgerMasterInput } from './tally-xml';
 import * as L from '../constants/ledger-names';
 import { collectProfileLedgers, resolveInvestmentLedger } from '../engine/ledger-resolver';
+import { TradeClassification } from '../engine/trade-classifier';
 
 // ---------------------------------------------------------------------------
 // Fixed ledger catalogue
@@ -156,11 +157,69 @@ function collectLedgersFromProfile(
     Array.from(tradeSymbols).map((sym) => resolveInvestmentLedger(tallyProfile, sym).name),
   );
 
-  return collected.ledgers.map((def) => ({
+  const hasBusinessClassifiedTrades = events.some(
+    (event) =>
+      event.trade_classification === TradeClassification.SPECULATIVE_BUSINESS ||
+      event.trade_classification === TradeClassification.NON_SPECULATIVE_BUSINESS,
+  );
+
+  const hasInvestmentClassifiedTrades = events.some(
+    (event) => event.trade_classification === TradeClassification.INVESTMENT,
+  );
+
+  const supplementalLedgers: LedgerMasterInput[] = [];
+
+  if (hasBusinessClassifiedTrades) {
+    supplementalLedgers.push(
+      { name: L.TRADING_SALES.name, parent_group: L.TRADING_SALES.group, affects_stock: false },
+      {
+        name: L.COST_OF_SHARES_SOLD.name,
+        parent_group: L.COST_OF_SHARES_SOLD.group,
+        affects_stock: false,
+      },
+    );
+  }
+
+  if (hasInvestmentClassifiedTrades) {
+    supplementalLedgers.push(
+      { name: L.STCG_PROFIT.name, parent_group: L.STCG_PROFIT.group, affects_stock: false },
+      { name: L.STCG_LOSS.name, parent_group: L.STCG_LOSS.group, affects_stock: false },
+      { name: L.LTCG_PROFIT.name, parent_group: L.LTCG_PROFIT.group, affects_stock: false },
+      { name: L.LTCG_LOSS.name, parent_group: L.LTCG_LOSS.group, affects_stock: false },
+    );
+  }
+
+  return [...collected.ledgers.map((def) => ({
     name: def.name,
     parent_group: def.group,
     affects_stock: investmentLedgerNames.has(def.name),
-  }));
+  })), ...supplementalLedgers].filter(
+    (ledger, index, all) => all.findIndex((candidate) => candidate.name === ledger.name) === index,
+  );
+}
+
+function getRequiredModes(events: CanonicalEvent[], fallbackMode: AccountingMode): Set<AccountingMode> {
+  const modes = new Set<AccountingMode>();
+
+  for (const event of events) {
+    switch (event.trade_classification) {
+      case TradeClassification.INVESTMENT:
+        modes.add(AccountingMode.INVESTOR);
+        break;
+      case TradeClassification.SPECULATIVE_BUSINESS:
+      case TradeClassification.NON_SPECULATIVE_BUSINESS:
+        modes.add(AccountingMode.TRADER);
+        break;
+      default:
+        break;
+    }
+  }
+
+  if (modes.size === 0) {
+    modes.add(fallbackMode);
+  }
+
+  return modes;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,31 +264,39 @@ export function collectRequiredLedgers(
   add({ name: L.AMC_CHARGES.name, parent_group: L.AMC_CHARGES.group, affects_stock: false });
   add({ name: L.MISC_CHARGES.name, parent_group: L.MISC_CHARGES.group, affects_stock: false });
 
+  const requiredModes = getRequiredModes(events, profile.mode);
+
   // 4. Security (investment / stock-in-trade) ledgers.
   if (profile.ledger_strategy === LedgerStrategy.SCRIPT_LEVEL) {
     const symbols = extractUniqueSymbols(events, options.symbolMap);
 
     for (const symbol of symbols) {
-      if (profile.mode === AccountingMode.INVESTOR) {
+      if (requiredModes.has(AccountingMode.INVESTOR)) {
         const def = L.investmentLedger(symbol);
         add({ name: def.name, parent_group: def.group, affects_stock: true });
-      } else {
+      }
+
+      if (requiredModes.has(AccountingMode.TRADER)) {
         const def = L.stockInTradeLedger(symbol);
         add({ name: def.name, parent_group: def.group, affects_stock: true });
       }
     }
   } else {
     // POOLED — single ledger for all securities.
-    if (profile.mode === AccountingMode.INVESTOR) {
+    if (requiredModes.has(AccountingMode.INVESTOR)) {
       add({ name: L.POOLED_INVESTMENT.name, parent_group: L.POOLED_INVESTMENT.group, affects_stock: true });
-    } else {
+    }
+
+    if (requiredModes.has(AccountingMode.TRADER)) {
       add({ name: L.POOLED_STOCK_IN_TRADE.name, parent_group: L.POOLED_STOCK_IN_TRADE.group, affects_stock: true });
     }
   }
 
   // 5. P&L ledgers (mode-dependent).
-  for (const pnlLedger of getPnlLedgers(profile.mode)) {
-    add(pnlLedger);
+  for (const mode of requiredModes) {
+    for (const pnlLedger of getPnlLedgers(mode)) {
+      add(pnlLedger);
+    }
   }
 
   return result;

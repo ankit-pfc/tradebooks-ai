@@ -33,6 +33,7 @@ import {
   resolveChargeLedger,
   resolveDividendLedger,
 } from './ledger-resolver';
+import { TradeClassification } from './trade-classifier';
 
 export type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
 
@@ -99,6 +100,70 @@ function shouldCapitalizeBuyCharges(profile: AccountingProfile): boolean {
   );
 }
 
+export function deriveEffectiveProfile(
+  profile: AccountingProfile,
+  event: CanonicalEvent,
+): AccountingProfile {
+  switch (event.trade_classification) {
+    case TradeClassification.INVESTMENT:
+      return {
+        ...profile,
+        mode: AccountingMode.INVESTOR,
+        charge_treatment: ChargeTreatment.HYBRID,
+      };
+    case TradeClassification.SPECULATIVE_BUSINESS:
+    case TradeClassification.NON_SPECULATIVE_BUSINESS:
+      return {
+        ...profile,
+        mode: AccountingMode.TRADER,
+        charge_treatment: ChargeTreatment.EXPENSE,
+      };
+    case TradeClassification.PROFILE_DRIVEN:
+    default:
+      return profile;
+  }
+}
+
+function withTradeReviewNarrative(narrative: string, event: CanonicalEvent): string {
+  if (event.trade_product === 'MTF') {
+    return `${narrative} [Review: MTF financing treatment]`;
+  }
+
+  return narrative;
+}
+
+function calculateHoldingPeriodDays(
+  sellDate: string,
+  costDisposals: CostDisposal[],
+): number | undefined {
+  const sellAt = Date.parse(`${sellDate}T00:00:00Z`);
+  if (Number.isNaN(sellAt)) {
+    return undefined;
+  }
+
+  const holdingPeriods = costDisposals
+    .map((disposal) => {
+      const acquisitionDate = disposal.acquisition_date?.trim();
+      if (!acquisitionDate) {
+        return undefined;
+      }
+
+      const acquisitionAt = Date.parse(`${acquisitionDate}T00:00:00Z`);
+      if (Number.isNaN(acquisitionAt)) {
+        return undefined;
+      }
+
+      return Math.max(0, Math.floor((sellAt - acquisitionAt) / (1000 * 60 * 60 * 24)));
+    })
+    .filter((days): days is number => days !== undefined);
+
+  if (holdingPeriods.length === 0) {
+    return undefined;
+  }
+
+  return Math.min(...holdingPeriods);
+}
+
 // ---------------------------------------------------------------------------
 // Charge event helpers
 // ---------------------------------------------------------------------------
@@ -152,11 +217,12 @@ export function buildBuyVoucher(
   chargeEvents: CanonicalEvent[],
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
+  const effectiveProfile = deriveEffectiveProfile(profile, event);
   const draftId = crypto.randomUUID();
   const symbol = symbolFromSecurityId(event.security_id);
-  const capitalize = shouldCapitalizeBuyCharges(profile);
+  const capitalize = shouldCapitalizeBuyCharges(effectiveProfile);
 
-  const isInvestor = profile.mode === AccountingMode.INVESTOR;
+  const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
   const assetLedger = tallyProfile
     ? resolveInvestmentLedger(tallyProfile, symbol).name
     : isInvestor
@@ -218,7 +284,10 @@ export function buildBuyVoucher(
     voucher_type: VoucherType.PURCHASE,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? event.contract_note_ref ?? null,
-    narrative: `Purchase of ${symbol} @ ${event.rate} × ${new Decimal(event.quantity).abs().toFixed()} units`,
+    narrative: withTradeReviewNarrative(
+      `Purchase of ${symbol} @ ${event.rate} × ${new Decimal(event.quantity).abs().toFixed()} units`,
+      event,
+    ),
     total_debit: '0',
     total_credit: '0',
     draft_status: VoucherStatus.DRAFT,
@@ -266,9 +335,10 @@ export function buildSellVoucher(
   holdingPeriodDays?: number,
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
+  const effectiveProfile = deriveEffectiveProfile(profile, event);
   const draftId = crypto.randomUUID();
   const symbol = symbolFromSecurityId(event.security_id);
-  const isInvestor = profile.mode === AccountingMode.INVESTOR;
+  const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
 
   const grossAmount = new Decimal(event.gross_amount);
   const totalCharges = chargeEvents.reduce(
@@ -332,9 +402,20 @@ export function buildSellVoucher(
     // If netGainLoss (gross − charges) were used instead, the voucher would
     // be short by Σcharges on the CR side, breaking double-entry balance.
     const isGain = totalGainLoss.greaterThanOrEqualTo(0);
+    // Investment-classified trades (CNC) must never route to the speculation
+    // ledger even when holding period is 0 (same-day buy+sell).  Treat as
+    // short-term capital gain/loss instead. classifyGain treats 0 as
+    // SPECULATION, so bump to 1 day to stay on the STCG/STCL path.
+    // Only apply when trade_classification explicitly says INVESTMENT —
+    // profile-driven/unclassified events preserve the existing speculation routing.
+    const effectiveHoldingDays =
+      holdingPeriodDays === 0 &&
+      event.trade_classification === TradeClassification.INVESTMENT
+        ? 1
+        : holdingPeriodDays;
     if (tallyProfile) {
       const gainLossLedger = resolveCapitalGainLedger(
-        tallyProfile, symbol, holdingPeriodDays, isGain,
+        tallyProfile, symbol, effectiveHoldingDays, isGain,
       ).name;
       if (isGain) {
         lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss, 'CR'));
@@ -342,7 +423,7 @@ export function buildSellVoucher(
         lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss.abs(), 'DR'));
       }
     } else {
-      const isLongTerm = holdingPeriodDays !== undefined && holdingPeriodDays > 365;
+      const isLongTerm = effectiveHoldingDays !== undefined && effectiveHoldingDays > 365;
       if (isGain) {
         const gainLedger = isLongTerm ? L.LTCG_PROFIT.name : L.STCG_PROFIT.name;
         lines.push(makeLine(draftId, lineNo++, gainLedger, totalGainLoss, 'CR'));
@@ -402,7 +483,10 @@ export function buildSellVoucher(
     voucher_type: VoucherType.SALES,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? event.contract_note_ref ?? null,
-    narrative: `Sale of ${symbol} @ ${event.rate} × ${qty.toFixed()} units`,
+    narrative: withTradeReviewNarrative(
+      `Sale of ${symbol} @ ${event.rate} × ${qty.toFixed()} units`,
+      event,
+    ),
     total_debit: '0',
     total_credit: '0',
     draft_status: VoucherStatus.DRAFT,
@@ -813,6 +897,25 @@ export function buildVouchers(
 
   const handledChargeIds = new Set<string>();
 
+  const filterVoucherChargeEvents = (
+    chargeEvents: CanonicalEvent[],
+    tradeEventType: EventType.BUY_TRADE | EventType.SELL_TRADE,
+  ): CanonicalEvent[] =>
+    chargeEvents.filter((chargeEvent) => {
+      if (chargeEvent.event_type === EventType.STT) {
+        return false;
+      }
+
+      if (
+        tradeEventType === EventType.SELL_TRADE &&
+        chargeEvent.event_type === EventType.STAMP_DUTY
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
   for (const event of sorted) {
     if (isChargeEvent(event)) continue; // handled inline with trade events
 
@@ -821,12 +924,16 @@ export function buildVouchers(
         const chargeKey = event.external_ref
           ? `${event.event_date}|${event.security_id ?? 'NONE'}|${event.external_ref}`
           : `${event.event_date}|${event.security_id ?? 'NONE'}`;
-        const chargeEvents = chargeIndex.get(chargeKey) ?? [];
+        const chargeEvents = filterVoucherChargeEvents(
+          chargeIndex.get(chargeKey) ?? [],
+          EventType.BUY_TRADE,
+        );
         chargeEvents.forEach((ce) => handledChargeIds.add(ce.event_id));
 
         // Compute total capitalised cost if applicable
         let additionalCost: string | undefined;
-        if (shouldCapitalizeBuyCharges(profile) && chargeEvents.length > 0) {
+        const effectiveProfile = deriveEffectiveProfile(profile, event);
+        if (shouldCapitalizeBuyCharges(effectiveProfile) && chargeEvents.length > 0) {
           const totalCharges = chargeEvents
             .reduce(
               (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
@@ -847,7 +954,10 @@ export function buildVouchers(
         const chargeKey = event.external_ref
           ? `${event.event_date}|${event.security_id ?? 'NONE'}|${event.external_ref}`
           : `${event.event_date}|${event.security_id ?? 'NONE'}`;
-        const chargeEvents = chargeIndex.get(chargeKey) ?? [];
+        const chargeEvents = filterVoucherChargeEvents(
+          chargeIndex.get(chargeKey) ?? [],
+          EventType.SELL_TRADE,
+        );
         chargeEvents.forEach((ce) => handledChargeIds.add(ce.event_id));
 
         let disposals: CostDisposal[] = [];
@@ -863,6 +973,7 @@ export function buildVouchers(
           disposals = [
             {
               lot_id: 'UNKNOWN',
+              acquisition_date: event.event_date,
               quantity_sold: qty.toFixed(),
               unit_cost: '0',
               total_cost: '0',
@@ -871,7 +982,17 @@ export function buildVouchers(
           ];
         }
 
-        vouchers.push(buildSellVoucher(event, profile, chargeEvents, disposals, undefined, tallyProfile));
+        const holdingPeriodDays = calculateHoldingPeriodDays(event.event_date, disposals);
+        vouchers.push(
+          buildSellVoucher(
+            event,
+            profile,
+            chargeEvents,
+            disposals,
+            holdingPeriodDays,
+            tallyProfile,
+          ),
+        );
         break;
       }
 
@@ -953,6 +1074,7 @@ export function buildVouchers(
           const qty = new Decimal(event.quantity).abs();
           auctionDisposals = [{
             lot_id: 'UNKNOWN',
+            acquisition_date: event.event_date,
             quantity_sold: qty.isZero() ? '1' : qty.toFixed(),
             unit_cost: '0',
             total_cost: '0',

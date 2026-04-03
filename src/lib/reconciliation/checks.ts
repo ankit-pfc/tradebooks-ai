@@ -104,7 +104,7 @@ export function checkTradeTotals(
     details: passed
       ? 'Event trade totals match raw tradebook totals.'
       : `Trade total mismatch: events sum to ${eventTotal.toFixed(2)}, ` +
-        `raw rows sum to ${rawTotal.toFixed(2)} (difference ${difference.toFixed(2)}).`,
+      `raw rows sum to ${rawTotal.toFixed(2)} (difference ${difference.toFixed(2)}).`,
   };
 }
 
@@ -284,7 +284,7 @@ export function checkHoldingsReconciliation(
       if (!diff.isZero()) {
         mismatches.push(
           `${securityId}: expected closing ${expectedClosing.toFixed(4)}, ` +
-            `holdings shows ${actualClosing.toFixed(4)} (diff ${diff.toFixed(4)})`,
+          `holdings shows ${actualClosing.toFixed(4)} (diff ${diff.toFixed(4)})`,
         );
       }
     } catch {
@@ -687,6 +687,48 @@ export function checkDividendTdsReconciliation(
   };
 }
 
+/**
+ * checkMtfExposureWarning
+ *
+ * Flags batches containing MTF trades so the user can review financing ledger
+ * treatment after import. This is intentionally WARNING-level only.
+ */
+export function checkMtfExposureWarning(events: CanonicalEvent[]): ReconciliationCheck {
+  const CHECK_NAME = 'MTF_REVIEW';
+
+  const mtfTrades = events.filter(
+    (event) =>
+      (event.event_type === EventType.BUY_TRADE || event.event_type === EventType.SELL_TRADE) &&
+      event.trade_product === 'MTF',
+  );
+
+  if (mtfTrades.length === 0) {
+    return {
+      check_name: CHECK_NAME,
+      status: 'PASSED',
+      expected: '0',
+      actual: '0',
+      difference: '0',
+      details: 'No MTF trades detected.',
+    };
+  }
+
+  const uniqueSecurities = new Set(
+    mtfTrades.map((trade) => trade.security_id).filter((securityId): securityId is string => Boolean(securityId)),
+  );
+
+  return {
+    check_name: CHECK_NAME,
+    status: 'WARNING',
+    expected: '0',
+    actual: String(mtfTrades.length),
+    difference: String(mtfTrades.length),
+    details:
+      `${mtfTrades.length} MTF trade event(s) detected across ${uniqueSecurities.size} security(ies). ` +
+      'Review financing / interest treatment in Tally after import.',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Aggregate runner
 // ---------------------------------------------------------------------------
@@ -724,6 +766,7 @@ export function runFullReconciliation(params: {
     checkHoldingsReconciliation(events, holdingsRows),
     checkDuplicateEvents(events),
     checkChargeCompleteness(events),
+    checkMtfExposureWarning(events),
   ];
 
   // Contract-note–specific checks (only when CN data is present)
@@ -751,8 +794,8 @@ export function runFullReconciliation(params: {
     overall_status === 'PASSED'
       ? `All ${checks.length} reconciliation checks passed.`
       : `${passedCount}/${checks.length} checks passed. ` +
-        (mismatch_count > 0 ? `${mismatch_count} FAILED. ` : '') +
-        (warning_count > 0 ? `${warning_count} WARNING(s).` : '');
+      (mismatch_count > 0 ? `${mismatch_count} FAILED. ` : '') +
+      (warning_count > 0 ? `${warning_count} WARNING(s).` : '');
 
   return {
     checks,

@@ -4,6 +4,7 @@ import { INVESTOR_DEFAULT, TRADER_DEFAULT, INVESTOR_TALLY_DEFAULT } from '../../
 import { AccountingMode, LedgerStrategy } from '../../types/accounting';
 import { EventType } from '../../types/events';
 import { makeBuyEvent, makeSellEvent } from '../../../tests/helpers/factories';
+import { TradeClassification } from '../../engine/trade-classifier';
 
 // ---------------------------------------------------------------------------
 // Bug 1 — investment ledgers must have affects_stock: true
@@ -83,5 +84,22 @@ describe('collectRequiredLedgers — TallyProfile path', () => {
     const assetLedger = ledgers.find(l => l.name === 'HEG-SH');
     expect(assetLedger).toBeDefined();
     expect(assetLedger!.affects_stock).toBe(true);
+  });
+
+  it('includes trader P&L ledgers when investor tally profile batch has business-classified trades', () => {
+    const ledgers = collectRequiredLedgers(
+      [
+        makeBuyEvent({
+          security_id: 'NSE:HEG',
+          trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+        }),
+      ],
+      INVESTOR_DEFAULT,
+      { tallyProfile: INVESTOR_TALLY_DEFAULT },
+    );
+
+    const names = ledgers.map(l => l.name);
+    expect(names).toContain('Trading Sales');
+    expect(names).toContain('Cost of Shares Sold');
   });
 });

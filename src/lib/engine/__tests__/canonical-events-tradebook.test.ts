@@ -8,6 +8,7 @@ import {
   pairContractNoteData,
 } from '../canonical-events';
 import { EventType } from '../../types/events';
+import { TradeClassification } from '../trade-classifier';
 import {
   makeTradebookRow,
   makeFundsRow,
@@ -89,6 +90,73 @@ describe('tradebookRowToEvents', () => {
     const events = tradebookRowToEvents(makeTradebookRow(), 'batch-1', 'file-1');
     expect(events[0].charge_amount).toBe('0');
     expect(events[0].charge_type).toBeNull();
+  });
+
+  it('attaches parser trade classification to tradebook trade events', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({ product: 'CNC', segment: 'EQ', exchange: 'NSE' }),
+      'batch-1',
+      'file-1',
+    );
+
+    expect(events[0].trade_classification).toBe(TradeClassification.INVESTMENT);
+  });
+
+  it('keeps same-day CNC sell on investment classification instead of speculative routing', () => {
+    const buyEvents = tradebookRowToEvents(
+      makeTradebookRow({
+        trade_type: 'buy',
+        trade_date: '2024-06-15',
+        product: 'CNC',
+        segment: 'EQ',
+        exchange: 'NSE',
+        order_id: 'CNC-BUY-1',
+      }),
+      'batch-1',
+      'file-1',
+    );
+    const sellEvents = tradebookRowToEvents(
+      makeTradebookRow({
+        trade_type: 'sell',
+        trade_date: '2024-06-15',
+        product: 'CNC',
+        segment: 'EQ',
+        exchange: 'NSE',
+        order_id: 'CNC-SELL-1',
+        trade_id: 'T002',
+      }),
+      'batch-1',
+      'file-1',
+    );
+
+    expect(buyEvents[0].trade_classification).toBe(TradeClassification.INVESTMENT);
+    expect(sellEvents[0].trade_classification).toBe(TradeClassification.INVESTMENT);
+  });
+
+  it('propagates raw trade product for downstream voucher routing', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({ product: 'mtf', segment: 'EQ', exchange: 'NSE' }),
+      'batch-1',
+      'file-1',
+    );
+
+    expect(events[0].trade_product).toBe('MTF');
+  });
+
+  it('propagates MCX commodity override classification from parser inputs', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({
+        product: 'CNC',
+        segment: 'COM',
+        exchange: 'MCX',
+        symbol: 'GOLDPETAL',
+      }),
+      'batch-1',
+      'file-1',
+    );
+
+    expect(events[0].trade_classification).toBe(TradeClassification.NON_SPECULATIVE_BUSINESS);
+    expect(events[0].trade_product).toBe('CNC');
   });
 
   it('generates deterministic event_hash', () => {
@@ -298,6 +366,26 @@ describe('buildCanonicalEvents', () => {
       fileIds: { corporateActions: 'f1' },
     });
     expect(events.some(e => e.event_type === EventType.BONUS_SHARES)).toBe(true);
+  });
+
+  it('propagates contract-note trade classification to related charge events', () => {
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [{
+        charges: makeCnCharges({ brokerage: '10.00', stt: '5.00', cgst: '0.90', sgst: '0.90' }),
+        trades: [makeCnTrade({ segment: 'NFO', exchange: 'NSE', buy_sell: 'B' })],
+      }],
+      batchId: 'b',
+      fileIds: { contractNote: 'f2' },
+    });
+
+    const tradeEvent = events.find(e => e.event_type === EventType.BUY_TRADE);
+    const chargeEvents = events.filter(e => e.event_type !== EventType.BUY_TRADE && e.event_type !== EventType.SELL_TRADE);
+
+    expect(tradeEvent?.trade_classification).toBe(TradeClassification.NON_SPECULATIVE_BUSINESS);
+    expect(chargeEvents.length).toBeGreaterThan(0);
+    for (const chargeEvent of chargeEvents) {
+      expect(chargeEvent.trade_classification).toBe(TradeClassification.NON_SPECULATIVE_BUSINESS);
+    }
   });
 });
 

@@ -25,6 +25,8 @@ import { getBatchRepository, getSettingsRepository } from '@/lib/db';
 import { getFileStorage } from '@/lib/storage/file-storage';
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
+import { TradeClassification } from '@/lib/engine/trade-classifier';
+import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -64,6 +66,7 @@ export interface PipelineOutput {
   ledgerCount: number;
   checks: BatchProcessingResult['checks'];
   summary: { passed: number; warnings: number; failed: number };
+  classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']>;
   mastersXml: string;
   transactionsXml: string;
   mastersArtifactId: string;
@@ -185,7 +188,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   if (!parsedFileSet.tradebook && !parsedFileSet.contractNote && !parsedFileSet.dividends) {
     throw new Error(
       'No tradebook, contract note, or dividends file detected. ' +
-        `Detected types: ${parsedFileSet.files.map((f) => f.detectedType).join(', ')}`,
+      `Detected types: ${parsedFileSet.files.map((f) => f.detectedType).join(', ')}`,
     );
   }
 
@@ -237,6 +240,26 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   const vouchers = buildVouchers(events, profile, tracker, tallyProfile);
   const ledgers = collectRequiredLedgers(events, profile, { tallyProfile });
 
+  const classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']> = {
+    INVESTMENT: 0,
+    SPECULATIVE_BUSINESS: 0,
+    NON_SPECULATIVE_BUSINESS: 0,
+    PROFILE_DRIVEN: 0,
+    mtf_trades: 0,
+  };
+
+  for (const event of events) {
+    if (event.event_type !== 'BUY_TRADE' && event.event_type !== 'SELL_TRADE') {
+      continue;
+    }
+
+    const classification = event.trade_classification ?? TradeClassification.PROFILE_DRIVEN;
+    classificationSummary[classification] += 1;
+    if (event.trade_product === 'MTF') {
+      classificationSummary.mtf_trades += 1;
+    }
+  }
+
   // Collect unique stock item names from inventory lines so Tally receives
   // explicit STOCKITEM master definitions and does not need to auto-create them.
   const stockItemNames = new Set<string>();
@@ -270,13 +293,13 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
         imbalancedVouchers.length === 0
           ? `All ${vouchers.length} vouchers have balanced debit/credit totals.`
           : `${imbalancedVouchers.length} voucher(s) have a small balance difference: ` +
-            imbalancedVouchers
-              .map(
-                (v) =>
-                  `${v.voucher_draft_id.slice(0, 8)}… DR=${v.total_debit} CR=${v.total_credit}`,
-              )
-              .join('; ') +
-            '. You may correct these in Tally after import.',
+          imbalancedVouchers
+            .map(
+              (v) =>
+                `${v.voucher_draft_id.slice(0, 8)}… DR=${v.total_debit} CR=${v.total_credit}`,
+            )
+            .join('; ') +
+          '. You may correct these in Tally after import.',
     },
     {
       check_name: 'Trade Count',
@@ -297,6 +320,15 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       details: 'Masters and Transactions XML generated with valid Tally envelope.',
     },
   ];
+
+  const mtfCheck = checkMtfExposureWarning(events);
+  if (mtfCheck.status !== 'PASSED') {
+    checks.push({
+      check_name: 'MTF Review',
+      status: mtfCheck.status,
+      details: mtfCheck.details,
+    });
+  }
 
   if (matchResult) {
     const totalTradebook =
@@ -385,7 +417,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     batchId,
     voucherCount: vouchers.length,
     processingResult: {
-      summary: { passed, warnings, failed },
+      summary: { passed, warnings, failed, classification_summary: classificationSummary },
       checks,
     },
     exceptions: [],
@@ -408,6 +440,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     ledgerCount: ledgers.length,
     checks,
     summary: { passed, warnings, failed },
+    classificationSummary,
     mastersXml,
     transactionsXml,
     mastersArtifactId,
@@ -420,10 +453,10 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     fyLabel: fyLabel || undefined,
     matchResult: matchResult
       ? {
-          matched: matchResult.matched.length,
-          unmatchedTradebook: matchResult.unmatchedTradebook.length,
-          unmatchedContractNote: matchResult.unmatchedContractNote.length,
-        }
+        matched: matchResult.matched.length,
+        unmatchedTradebook: matchResult.unmatchedTradebook.length,
+        unmatchedContractNote: matchResult.unmatchedContractNote.length,
+      }
       : undefined,
   };
 }

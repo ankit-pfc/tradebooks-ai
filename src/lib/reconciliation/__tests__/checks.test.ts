@@ -6,8 +6,10 @@ import {
   checkDuplicateEvents,
   checkChargeCompleteness,
   checkDividendTdsReconciliation,
+  checkMtfExposureWarning,
   runFullReconciliation,
 } from '../checks';
+import { TradeClassification } from '../../engine/trade-classifier';
 import { EventType } from '../../types/events';
 import { makeBuyEvent, makeSellEvent, makeChargeEvent, makeVoucherDraft, makeDividendRow } from '../../../tests/helpers/factories';
 
@@ -221,6 +223,24 @@ describe('checkDividendTdsReconciliation', () => {
   });
 });
 
+describe('checkMtfExposureWarning', () => {
+  it('returns WARNING when MTF trades are present', () => {
+    const result = checkMtfExposureWarning([
+      makeBuyEvent({
+        trade_product: 'MTF',
+        trade_classification: TradeClassification.INVESTMENT,
+      }),
+    ]);
+
+    expect(result.status).toBe('WARNING');
+    expect(result.details).toContain('MTF trade event');
+  });
+
+  it('returns PASSED when no MTF trades are present', () => {
+    expect(checkMtfExposureWarning([makeBuyEvent()]).status).toBe('PASSED');
+  });
+});
+
 describe('runFullReconciliation', () => {
   it('returns PASSED when all checks pass', () => {
     // Provide holdings so checkHoldingsReconciliation doesn't return WARNING
@@ -264,6 +284,16 @@ describe('runFullReconciliation', () => {
     });
     const checkNames = result.checks.map(c => c.check_name);
     expect(checkNames).toContain('DIVIDEND_TDS_RECONCILIATION');
+  });
+
+  it('includes MTF review check when MTF trade is present', () => {
+    const result = runFullReconciliation({
+      events: [makeBuyEvent({ trade_product: 'MTF' })],
+      vouchers: [],
+    });
+
+    const mtfCheck = result.checks.find(c => c.check_name === 'MTF_REVIEW');
+    expect(mtfCheck?.status).toBe('WARNING');
   });
 
   it('overall_status priority: FAILED > WARNING > PASSED', () => {

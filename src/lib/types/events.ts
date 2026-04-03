@@ -5,6 +5,8 @@
  * use decimal.js for arithmetic at runtime.
  */
 
+import type { TradeClassification } from '../engine/trade-classifier';
+
 /**
  * Exhaustive set of event categories that the engine can produce from broker data.
  * Trade events carry security/quantity; charge events carry charge_type/charge_amount.
@@ -66,6 +68,10 @@ export interface CanonicalEvent {
   import_batch_id: string;
   /** Categorised event kind driving accounting treatment. */
   event_type: EventType;
+  /** Optional parser-derived trade routing hint for downstream accounting/export logic. */
+  trade_classification?: TradeClassification;
+  /** Optional raw broker product code (e.g. CNC, MIS, NRML, MTF) for narrow routing/review logic. */
+  trade_product?: string;
   /** Trade / transaction date in ISO-8601 format ("YYYY-MM-DD"). */
   event_date: string;
   /** Settlement date in ISO-8601 format; may equal event_date for intraday. */
