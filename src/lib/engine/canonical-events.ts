@@ -71,6 +71,42 @@ function buildSecurityId(exchange: string, symbol: string, segment?: string): st
   return `${exchange.trim().toUpperCase()}:${symbol.trim().toUpperCase()}`;
 }
 
+function normaliseSecurityToken(value: string): string {
+  return value.trim().toUpperCase();
+}
+
+function normaliseIsin(isin?: string | null): string | null {
+  const cleaned = isin?.trim().toUpperCase();
+  if (!cleaned || cleaned === 'NA' || cleaned === 'N/A' || cleaned === '-') {
+    return null;
+  }
+  return cleaned;
+}
+
+/**
+ * Build the canonical security_id used throughout the engine.
+ *
+ * Unified convention:
+ * - when ISIN is available, unify across exchanges by using plain SYMBOL
+ * - when ISIN is unavailable but the segment is an equity-delivery segment,
+ *   use EQ:SYMBOL so BSE/NSE delivery trades share the same FIFO lots
+ * - otherwise, fall back to EXCHANGE:SYMBOL
+ */
+export function buildUnifiedSecurityId(
+  exchange: string,
+  symbol: string,
+  isin?: string | null,
+  segment?: string,
+): string {
+  const normalizedSymbol = normaliseSecurityToken(symbol);
+
+  if (normaliseIsin(isin)) {
+    return normalizedSymbol;
+  }
+
+  return buildSecurityId(exchange, normalizedSymbol, segment);
+}
+
 // ---------------------------------------------------------------------------
 // Keyword sets for funds-statement classification
 // ---------------------------------------------------------------------------
@@ -130,7 +166,7 @@ export function tradebookRowToEvents(
   const grossAmount = qty.mul(price);
 
   const eventDate = normaliseDate(row.trade_date);
-  const securityId = buildSecurityId(row.exchange, row.symbol, row.segment);
+  const securityId = buildUnifiedSecurityId(row.exchange, row.symbol, row.isin, row.segment);
 
   // Signed quantity: positive for buys, negative for sells (accounting convention)
   const signedQty =
@@ -413,8 +449,13 @@ export function buildSecurityIdFromDescription(
   exchange: string,
   description: string,
   segment?: string,
+  symbolByDescription?: ReadonlyMap<string, string>,
 ): string {
   const cleaned = description.trim().toUpperCase();
+  const mappedSymbol = symbolByDescription?.get(cleaned);
+  if (mappedSymbol) {
+    return mappedSymbol;
+  }
   // Use the first word as the symbol approximation
   const firstWord = cleaned.split(/\s+/)[0] || cleaned;
   return buildSecurityId(exchange, firstWord, segment);
@@ -433,6 +474,7 @@ export function contractNoteToEvents(
   charges: ZerodhaContractNoteCharges,
   batchId: string,
   fileId: string,
+  symbolByDescription?: ReadonlyMap<string, string>,
 ): CanonicalEvent[] {
   if (trades.length === 0) return [];
 
@@ -443,7 +485,12 @@ export function contractNoteToEvents(
   for (let i = 0; i < trades.length; i++) {
     const trade = trades[i];
     const alloc = allocations[i];
-    const securityId = buildSecurityIdFromDescription(trade.exchange, trade.security_description, trade.segment);
+    const securityId = buildSecurityIdFromDescription(
+      trade.exchange,
+      trade.security_description,
+      trade.segment,
+      symbolByDescription,
+    );
 
     const qty = new Decimal(trade.quantity);
     const price = new Decimal(trade.gross_rate);
@@ -603,6 +650,7 @@ export interface BuildCanonicalEventsOpts {
   dividendRows?: ZerodhaDividendRow[];
   /** Corporate action inputs (manual entry) */
   corporateActions?: CorporateActionInput[];
+  contractNoteSymbolByDescription?: ReadonlyMap<string, string>;
   batchId: string;
   fileIds: {
     tradebook?: string;
@@ -629,6 +677,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
     dividendRows = [],
     batchId,
     fileIds,
+    contractNoteSymbolByDescription,
   } = opts;
 
   const events: CanonicalEvent[] = [];
@@ -643,6 +692,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       sheet.charges,
       batchId,
       fileIds.contractNote ?? '',
+      contractNoteSymbolByDescription,
     );
     for (const e of cnEvents) {
       events.push(e);

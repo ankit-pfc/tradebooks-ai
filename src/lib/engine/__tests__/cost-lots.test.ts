@@ -170,6 +170,40 @@ describe('CostLotTracker', () => {
       tracker.disposeLots(makeSellEvent({ quantity: '-10', rate: '2600' }), 'FIFO');
       expect(tracker.getOpenLots('NSE:RELIANCE')).toHaveLength(0);
     });
+
+    it('normalizes legacy EXCHANGE:SYMBOL keys while loading serialized lots', () => {
+      const tracker = CostLotTracker.fromJSON({
+        lots: {
+          'BSE:ADSL': [
+            {
+              cost_lot_id: 'lot-1',
+              security_id: 'BSE:ADSL',
+              source_buy_event_id: 'buy-1',
+              open_quantity: '10',
+              original_quantity: '10',
+              effective_unit_cost: '100.000000',
+              acquisition_date: '2024-06-15',
+            },
+          ],
+          ADSL: [
+            {
+              cost_lot_id: 'lot-2',
+              security_id: 'ADSL',
+              source_buy_event_id: 'buy-2',
+              open_quantity: '5',
+              original_quantity: '5',
+              effective_unit_cost: '110.000000',
+              acquisition_date: '2024-06-16',
+            },
+          ],
+        },
+      });
+
+      const lots = tracker.getOpenLots('ADSL');
+      expect(lots).toHaveLength(2);
+      expect(tracker.getOpenLots('BSE:ADSL')).toHaveLength(0);
+      expect(lots.every((lot) => lot.security_id === 'ADSL')).toBe(true);
+    });
   });
 
   // -----------------------------------------------------------------------

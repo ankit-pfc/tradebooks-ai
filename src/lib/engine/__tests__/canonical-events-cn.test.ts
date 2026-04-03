@@ -95,6 +95,15 @@ describe('buildSecurityIdFromDescription', () => {
     expect(buildSecurityIdFromDescription('NSE', 'BOSCHLTD - EQ / INE323A01026'))
       .toBe('NSE:BOSCHLTD');
   });
+
+  it('uses tradebook-derived symbol lookup to unify CN symbols when description includes ISIN', () => {
+    const lookup = new Map<string, string>([
+      ['ADSL - EQ / INE674K01013', 'ADSL'],
+    ]);
+
+    expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', lookup))
+      .toBe('ADSL');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -328,5 +337,39 @@ describe('buildCanonicalEvents', () => {
     const jan20Trade = tradeEvents.find((e) => e.security_id?.includes('TCS'));
     expect(jan20Trade).toBeDefined();
     expect(jan20Trade!.contract_note_ref).toBeNull(); // from tradebook
+  });
+
+  it('unifies tradebook and contract-note events for the same ISIN across exchanges', () => {
+    const tbBuy = makeTradebookRow({
+      exchange: 'BSE',
+      symbol: 'ADSL',
+      isin: 'INE674K01013',
+      trade_type: 'buy',
+      trade_id: 'TB-1',
+    });
+    const cnSell = makeCnTrade({
+      trade_no: 'CN-1',
+      buy_sell: 'S',
+      exchange: 'NSE',
+      security_description: 'ADSL - EQ / INE674K01013',
+    });
+
+    const events = buildCanonicalEvents({
+      tradebookRows: [tbBuy],
+      contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnSell] }],
+      contractNoteSymbolByDescription: new Map([
+        ['ADSL - EQ / INE674K01013', 'ADSL'],
+      ]),
+      batchId: 'batch-1',
+      fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+
+    expect(tradeEvents).toHaveLength(2);
+    expect(tradeEvents[0].security_id).toBe('ADSL');
+    expect(tradeEvents[1].security_id).toBe('ADSL');
   });
 });

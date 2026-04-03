@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { FileUploadStatus } from "@/components/upload/file-upload-status";
-import { useBatchUpload, type ProcessingResult, type BatchUploadConfig } from "@/hooks/use-batch-upload";
+import { useBatchUpload, type ProcessingResult, type BatchUploadConfig, type PurchaseMergeMode } from "@/hooks/use-batch-upload";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +28,7 @@ interface UploadFormData {
   periodFrom: string;
   periodTo: string;
   priorBatchId: string;
+  purchaseMergeMode: PurchaseMergeMode;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -47,12 +48,24 @@ const FY_OPTIONS: Array<{ label: string; from: string; to: string }> = Array.fro
   },
 ).reverse(); // most recent first
 
+const CUSTOM_RANGE_VALUE = "custom";
+
 function formatFYLabel(from: string, to: string): string {
   if (!from || !to) return 'Period not set';
   const sy = parseInt(from.slice(0, 4), 10);
   const ey = parseInt(to.slice(0, 4), 10);
   if (isNaN(sy) || isNaN(ey)) return 'Period not set';
   return `FY ${sy}-${String(ey).slice(-2)}`;
+}
+
+function getSelectedPeriodValue(from: string, to: string): string {
+  if (!from && !to) return '|';
+  const matchedFy = FY_OPTIONS.find((option) => option.from === from && option.to === to);
+  return matchedFy ? `${matchedFy.from}|${matchedFy.to}` : CUSTOM_RANGE_VALUE;
+}
+
+function isValidDateRange(from: string, to: string): boolean {
+  return Boolean(from && to && from < to);
 }
 
 function downloadXml(xml: string, filename: string) {
@@ -91,10 +104,10 @@ function StepIndicator({
             <div className="flex flex-col items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${isCompleted
-                    ? "bg-indigo-600 text-white"
-                    : isActive
-                      ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
-                      : "bg-gray-100 text-gray-400"
+                  ? "bg-indigo-600 text-white"
+                  : isActive
+                    ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
+                    : "bg-gray-100 text-gray-400"
                   }`}
               >
                 {isCompleted ? (
@@ -116,10 +129,10 @@ function StepIndicator({
               </div>
               <span
                 className={`text-sm mt-2 font-medium whitespace-nowrap ${isActive
-                    ? "text-indigo-700"
-                    : isCompleted
-                      ? "text-gray-700"
-                      : "text-gray-400"
+                  ? "text-indigo-700"
+                  : isCompleted
+                    ? "text-gray-700"
+                    : "text-gray-400"
                   }`}
               >
                 {step.label}
@@ -154,6 +167,8 @@ function StepConfigure({
 }) {
   const [priorBatches, setPriorBatches] = useState<PriorBatch[]>([]);
   const [loadingPrior, setLoadingPrior] = useState(false);
+  const isCustomRange = getSelectedPeriodValue(formData.periodFrom, formData.periodTo) === CUSTOM_RANGE_VALUE;
+  const hasPeriodError = isCustomRange && !isValidDateRange(formData.periodFrom, formData.periodTo);
 
   // Fetch prior batches when company name changes (debounced)
   useEffect(() => {
@@ -211,15 +226,15 @@ function StepConfigure({
               type="button"
               onClick={() => onChange({ accountingMode: mode.value })}
               className={`flex flex-col items-start rounded-lg border p-4 text-left transition-all cursor-pointer ${formData.accountingMode === mode.value
-                  ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
             >
               <div className="flex items-center gap-2 mb-1">
                 <div
                   className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.accountingMode === mode.value
-                      ? "border-indigo-600"
-                      : "border-gray-300"
+                    ? "border-indigo-600"
+                    : "border-gray-300"
                     }`}
                 >
                   {formData.accountingMode === mode.value && (
@@ -260,8 +275,13 @@ function StepConfigure({
         </Label>
         <select
           className={SELECT_CLASSES}
-          value={`${formData.periodFrom}|${formData.periodTo}`}
+          value={getSelectedPeriodValue(formData.periodFrom, formData.periodTo)}
           onChange={(e) => {
+            if (e.target.value === CUSTOM_RANGE_VALUE) {
+              onChange({ periodFrom: "", periodTo: "" });
+              return;
+            }
+
             const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
             if (fy) onChange({ periodFrom: fy.from, periodTo: fy.to });
           }}
@@ -272,7 +292,88 @@ function StepConfigure({
               {fy.label}
             </option>
           ))}
+          <option value={CUSTOM_RANGE_VALUE}>Custom Range</option>
         </select>
+
+        {isCustomRange && (
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="period-from" className="text-sm font-medium text-gray-700">
+                From
+              </Label>
+              <Input
+                id="period-from"
+                type="date"
+                value={formData.periodFrom}
+                onChange={(e) => onChange({ periodFrom: e.target.value })}
+                className="border-gray-200"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="period-to" className="text-sm font-medium text-gray-700">
+                To
+              </Label>
+              <Input
+                id="period-to"
+                type="date"
+                value={formData.periodTo}
+                onChange={(e) => onChange({ periodTo: e.target.value })}
+                className="border-gray-200"
+              />
+            </div>
+          </div>
+        )}
+
+        {hasPeriodError && (
+          <p className="text-sm text-red-600">
+            Enter both dates and make sure the From date is earlier than the To date.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-base font-medium text-gray-800">
+          Purchase merge mode
+        </Label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            {
+              value: "same_rate",
+              label: "Keep individual trades",
+              desc: "Only combine split fills when the same stock is bought on the same day at the same rate.",
+            },
+            {
+              value: "daily_summary",
+              label: "Merge daily (weighted avg)",
+              desc: "Combine same-day buys per stock and use a weighted average purchase rate.",
+            },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange({ purchaseMergeMode: option.value as PurchaseMergeMode })}
+              className={`flex flex-col items-start rounded-lg border p-4 text-left transition-all cursor-pointer ${formData.purchaseMergeMode === option.value
+                ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.purchaseMergeMode === option.value
+                    ? "border-indigo-600"
+                    : "border-gray-300"
+                    }`}
+                >
+                  {formData.purchaseMergeMode === option.value && (
+                    <div className="w-2 h-2 rounded-full bg-indigo-600" />
+                  )}
+                </div>
+                <span className="text-base font-semibold text-gray-900">{option.label}</span>
+              </div>
+              <p className="pl-6 text-sm text-gray-600">{option.desc}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Prior Batch (Opening Balances) */}
@@ -307,7 +408,7 @@ function StepConfigure({
         <Button
           onClick={onNext}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-          disabled={!formData.companyName.trim()}
+          disabled={!formData.companyName.trim() || !formData.periodFrom || !formData.periodTo || !isValidDateRange(formData.periodFrom, formData.periodTo)}
         >
           Continue to File Upload
           <svg
@@ -360,6 +461,9 @@ function StepUpload({
 }) {
   const [editingFY, setEditingFY] = useState(false);
   const { state } = batchUpload;
+  const selectedPeriodValue = getSelectedPeriodValue(formData.periodFrom, formData.periodTo);
+  const isCustomRange = selectedPeriodValue === CUSTOM_RANGE_VALUE;
+  const hasPeriodError = isCustomRange && !isValidDateRange(formData.periodFrom, formData.periodTo);
 
   const fileList = Array.from(state.files.values());
   const hasTradebook = fileList.some(
@@ -368,7 +472,11 @@ function StepUpload({
   const hasInFlight = fileList.some((f) => f.status === 'pending' || f.status === 'uploading');
   const hasUploaded = fileList.some((f) => f.status === 'uploaded');
   const failedCount = fileList.filter((f) => f.status === 'failed').length;
-  const canProcess = state.batchStatus === 'uploading' && hasUploaded && !hasInFlight;
+  const canProcess =
+    state.batchStatus === 'uploading' &&
+    hasUploaded &&
+    !hasInFlight &&
+    isValidDateRange(formData.periodFrom, formData.periodTo);
 
   const fileListRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -401,6 +509,12 @@ function StepUpload({
               </span>
               <span className="text-gray-400">·</span>
               <span className="text-gray-600 capitalize">{formData.accountingMode} mode</span>
+              <span className="text-gray-400">·</span>
+              <span className="text-gray-600">
+                {formData.purchaseMergeMode === 'daily_summary'
+                  ? 'Daily purchase merge'
+                  : 'Individual trade merge'}
+              </span>
               {formData.companyName && (
                 <>
                   <span className="text-gray-400">·</span>
@@ -420,8 +534,13 @@ function StepUpload({
           <div className="flex items-center gap-2 mt-2">
             <select
               className="h-9 rounded-lg border border-indigo-200 bg-white px-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-              value={`${formData.periodFrom}|${formData.periodTo}`}
+              value={selectedPeriodValue}
               onChange={(e) => {
+                if (e.target.value === CUSTOM_RANGE_VALUE) {
+                  onFormChange({ periodFrom: '', periodTo: '' });
+                  return;
+                }
+
                 const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
                 if (fy) {
                   onFormChange({ periodFrom: fy.from, periodTo: fy.to });
@@ -435,7 +554,24 @@ function StepUpload({
                   {fy.label}
                 </option>
               ))}
+              <option value={CUSTOM_RANGE_VALUE}>Custom Range</option>
             </select>
+            {isCustomRange && (
+              <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                <Input
+                  type="date"
+                  value={formData.periodFrom}
+                  onChange={(e) => onFormChange({ periodFrom: e.target.value })}
+                  className="h-9 border-indigo-200 bg-white text-sm"
+                />
+                <Input
+                  type="date"
+                  value={formData.periodTo}
+                  onChange={(e) => onFormChange({ periodTo: e.target.value })}
+                  className="h-9 border-indigo-200 bg-white text-sm"
+                />
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setEditingFY(false)}
@@ -444,6 +580,11 @@ function StepUpload({
               Cancel
             </button>
           </div>
+        )}
+        {hasPeriodError && (
+          <p className="mt-2 text-sm text-red-600">
+            Enter both dates and make sure the From date is earlier than the To date.
+          </p>
         )}
       </div>
 
@@ -742,17 +883,15 @@ function StepResults({
             return (
               <div
                 key={check.check_name}
-                className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
-                  isPass
-                    ? "border-emerald-200 bg-emerald-50"
-                    : isWarn
-                      ? "border-amber-200 bg-amber-50"
-                      : "border-red-200 bg-red-50"
-                }`}
+                className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${isPass
+                  ? "border-emerald-200 bg-emerald-50"
+                  : isWarn
+                    ? "border-amber-200 bg-amber-50"
+                    : "border-red-200 bg-red-50"
+                  }`}
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                  isPass ? "bg-emerald-500" : isWarn ? "bg-amber-500" : "bg-red-500"
-                }`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPass ? "bg-emerald-500" : isWarn ? "bg-amber-500" : "bg-red-500"
+                  }`}>
                   {isPass ? (
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
@@ -765,17 +904,15 @@ function StepResults({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-base font-semibold ${
-                    isPass ? "text-emerald-700" : isWarn ? "text-amber-700" : "text-red-700"
-                  }`}>
+                  <p className={`text-base font-semibold ${isPass ? "text-emerald-700" : isWarn ? "text-amber-700" : "text-red-700"
+                    }`}>
                     {check.check_name}
                     <span className="ml-2 text-sm font-medium px-3 py-1 rounded-full border bg-white/60">
                       {check.status}
                     </span>
                   </p>
-                  <p className={`text-sm mt-0.5 ${
-                    isPass ? "text-emerald-600" : isWarn ? "text-amber-600" : "text-red-600"
-                  }`}>
+                  <p className={`text-sm mt-0.5 ${isPass ? "text-emerald-600" : isWarn ? "text-amber-600" : "text-red-600"
+                    }`}>
                     {check.details}
                   </p>
                 </div>
@@ -937,6 +1074,7 @@ export default function UploadPage() {
     periodFrom: "",
     periodTo: "",
     priorBatchId: "",
+    purchaseMergeMode: "same_rate",
   });
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
 
@@ -968,21 +1106,21 @@ export default function UploadPage() {
 
   const handleProcess = useCallback(async () => {
     setStep(3);
-    const result = await hook.startProcessing();
+    const result = await hook.startProcessing(formData.purchaseMergeMode);
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
     // If result is null, batchStatus is 'failed' and StepProcessing shows error
-  }, [hook]);
+  }, [formData.purchaseMergeMode, hook]);
 
   const handleRetryProcessing = useCallback(async () => {
-    const result = await hook.startProcessing();
+    const result = await hook.startProcessing(formData.purchaseMergeMode);
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
-  }, [hook]);
+  }, [formData.purchaseMergeMode, hook]);
 
   const handleReset = () => {
     hook.reset();
@@ -993,6 +1131,7 @@ export default function UploadPage() {
       periodFrom: "",
       periodTo: "",
       priorBatchId: "",
+      purchaseMergeMode: "same_rate",
     });
     setProcessingResult(null);
   };

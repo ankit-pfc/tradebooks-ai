@@ -68,18 +68,27 @@ describe('tradebookRowToEvents', () => {
     expect(events[0].event_date).toBe('2024-06-15');
   });
 
-  it('builds security_id as EQ:SYMBOL for equity segment (exchange-normalised)', () => {
+  it('builds security_id as plain SYMBOL when ISIN is available', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'nse', symbol: 'reliance', segment: 'EQ' }),
       'batch-1',
       'file-1',
     );
-    expect(events[0].security_id).toBe('EQ:RELIANCE');
+    expect(events[0].security_id).toBe('RELIANCE');
   });
 
-  it('preserves EXCHANGE:SYMBOL for non-equity segments', () => {
+  it('falls back to EXCHANGE:SYMBOL when ISIN is unavailable', () => {
     const events = tradebookRowToEvents(
-      makeTradebookRow({ exchange: 'NSE', symbol: 'NIFTY24DECFUT', segment: 'FO' }),
+      makeTradebookRow({ exchange: 'bse', symbol: 'adsl', isin: 'NA' }),
+      'batch-1',
+      'file-1',
+    );
+    expect(events[0].security_id).toBe('BSE:ADSL');
+  });
+
+  it('preserves EXCHANGE:SYMBOL for non-equity segments when ISIN is unavailable', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'NSE', symbol: 'NIFTY24DECFUT', segment: 'FO', isin: 'NA' }),
       'batch-1',
       'file-1',
     );

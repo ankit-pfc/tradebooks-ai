@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { mergeSameRatePurchaseVouchers } from '../voucher-merger';
+import {
+  mergeDailySummaryPurchaseVouchers,
+  mergePurchaseVouchers,
+  mergeSameRatePurchaseVouchers,
+} from '../voucher-merger';
 import { VoucherType, VoucherStatus } from '../../types/vouchers';
 import type { VoucherLine } from '../../types/vouchers';
 import type { BuiltVoucherDraft } from '../voucher-builder';
@@ -144,8 +148,8 @@ describe('mergeSameRatePurchaseVouchers', () => {
     // Source event IDs include both
     expect(merged.source_event_ids).toHaveLength(v1.source_event_ids.length + v2.source_event_ids.length);
 
-    // External reference nulled out (no single trade_no)
-    expect(merged.external_reference).toBeNull();
+    // External reference is preserved from the base voucher for contract note numbering
+    expect(merged.external_reference).toBe(v1.external_reference);
   });
 
   it('keeps three fills separate when rates differ', () => {
@@ -246,5 +250,42 @@ describe('mergeSameRatePurchaseVouchers', () => {
 
     const result = mergeSameRatePurchaseVouchers([v1, v2, v3]);
     expect(result.map((v) => v.voucher_date)).toEqual(['2024-06-15', '2024-06-16', '2024-06-17']);
+  });
+});
+
+describe('mergeDailySummaryPurchaseVouchers', () => {
+  it('merges same-day same-scrip purchases across different rates using weighted average', () => {
+    const v1 = makePurchaseVoucher({ qty: '10', rate: '100.00', gross: '1000.00', brokerAmount: '1000.00' });
+    const v2 = makePurchaseVoucher({ qty: '20', rate: '110.00', gross: '2200.00', brokerAmount: '2200.00' });
+
+    const result = mergeDailySummaryPurchaseVouchers([v1, v2]);
+    expect(result).toHaveLength(1);
+
+    const merged = result[0];
+    const stockLine = merged.lines.find((l) => l.dr_cr === 'DR' && l.quantity !== null)!;
+
+    expect(stockLine.quantity).toBe('30');
+    expect(stockLine.amount).toBe('3200.00');
+    expect(stockLine.rate).toBe('106.67');
+    expect(merged.narrative).toContain('(2 trades)');
+  });
+
+  it('keeps same-day purchases separate when stocks differ', () => {
+    const reliance = makePurchaseVoucher({ ledger: 'Investment in Equity Shares - RELIANCE', rate: '100.00', gross: '1000.00' });
+    const tcs = makePurchaseVoucher({ ledger: 'Investment in Equity Shares - TCS', rate: '110.00', gross: '1100.00' });
+
+    const result = mergeDailySummaryPurchaseVouchers([reliance, tcs]);
+    expect(result).toHaveLength(2);
+  });
+});
+
+describe('mergePurchaseVouchers', () => {
+  it('dispatches to same_rate mode by default', () => {
+    const v1 = makePurchaseVoucher({ qty: '5', gross: '500.00', brokerAmount: '500.00', rate: '100.00' });
+    const v2 = makePurchaseVoucher({ qty: '5', gross: '500.00', brokerAmount: '500.00', rate: '100.00' });
+
+    const result = mergePurchaseVouchers([v1, v2]);
+    expect(result).toHaveLength(1);
+    expect(result[0].lines.find((line) => line.quantity !== null)?.rate).toBe('100.00');
   });
 });

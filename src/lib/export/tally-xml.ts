@@ -96,6 +96,18 @@ function isDeemedPositive(drCr: 'DR' | 'CR'): string {
   return drCr === 'DR' ? 'Yes' : 'No';
 }
 
+function formatInventoryQuantity(quantity: string): string {
+  return `${quantity} SH`;
+}
+
+function formatInventoryRate(rate: string): string {
+  return `${rate}/SH`;
+}
+
+function inventoryIsDeemedPositive(voucherType: VoucherType): string {
+  return voucherType === VoucherType.SALES ? 'No' : 'Yes';
+}
+
 /**
  * Creates the outer ENVELOPE / HEADER / BODY / IMPORTDATA skeleton shared by
  * both masters and transactions XML documents.
@@ -286,6 +298,9 @@ export function generateVouchersXml(
     const sortedLines = [...voucher.lines].sort(
       (a, b) => a.line_no - b.line_no,
     );
+    const stockLines = sortedLines.filter(
+      (line) => line.quantity !== null && line.rate !== null,
+    );
 
     // The first line is the party ledger (broker/bank account).
     const partyLedgerName = sortedLines[0]?.ledger_name ?? '';
@@ -308,18 +323,6 @@ export function generateVouchersXml(
         .ele('AMOUNT')
         .txt(tallyAmount(line.amount, line.dr_cr));
 
-      // Optional stock / inventory detail fields.
-      if (line.quantity !== null && line.rate !== null) {
-        const stockEntry = entry.ele('INVENTORYENTRIES.LIST');
-        stockEntry.ele('STOCKITEMNAME').txt(line.ledger_name);
-        stockEntry.ele('ACTUALQTY').txt(line.quantity);
-        stockEntry.ele('BILLEDQTY').txt(line.quantity);
-        stockEntry.ele('RATE').txt(line.rate);
-        stockEntry
-          .ele('AMOUNT')
-          .txt(tallyAmount(line.amount, line.dr_cr));
-      }
-
       // Cost centre tagging (optional).
       if (line.cost_center) {
         const ccEntry = entry.ele('CATEGORYENTRY.LIST');
@@ -340,6 +343,18 @@ export function generateVouchersXml(
           .ele('AMOUNT')
           .txt(tallyAmount(line.amount, line.dr_cr));
       }
+    }
+
+    for (const line of stockLines) {
+      const isSalesVoucher = voucher.voucher_type === VoucherType.SALES;
+      const tagName = isSalesVoucher ? 'INVENTORYENTRIESOUT.LIST' : 'INVENTORYENTRIESIN.LIST';
+      const inventoryEntry = voucherEle.ele(tagName);
+      inventoryEntry.ele('STOCKITEMNAME').txt(line.ledger_name);
+      inventoryEntry.ele('ISDEEMEDPOSITIVE').txt(inventoryIsDeemedPositive(voucher.voucher_type));
+      inventoryEntry.ele('ACTUALQTY').txt(formatInventoryQuantity(line.quantity!));
+      inventoryEntry.ele('BILLEDQTY').txt(formatInventoryQuantity(line.quantity!));
+      inventoryEntry.ele('RATE').txt(formatInventoryRate(line.rate!));
+      inventoryEntry.ele('AMOUNT').txt(tallyAmount(line.amount, line.dr_cr));
     }
   }
 

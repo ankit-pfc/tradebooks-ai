@@ -104,8 +104,9 @@ describe('generateVouchersXml', () => {
     expect(xml).toContain('<VOUCHERNUMBER>REF-001</VOUCHERNUMBER>');
   });
 
-  it('includes INVENTORYENTRIES.LIST for stock lines', () => {
+  it('emits purchase inventory entries at voucher level with SH quantity/rate formatting', () => {
     const voucher = makeVoucherWithLines({
+      voucher_type: VoucherType.PURCHASE,
       lines: [
         makeVoucherLine({
           line_no: 1,
@@ -119,9 +120,43 @@ describe('generateVouchersXml', () => {
       ],
     });
     const xml = generateVouchersXml([voucher], 'Co');
-    expect(xml).toContain('<INVENTORYENTRIES.LIST');
+    expect(xml).toContain('<INVENTORYENTRIESIN.LIST>');
     expect(xml).toContain('<STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>');
-    expect(xml).toContain('<ACTUALQTY>10</ACTUALQTY>');
+    expect(xml).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>10 SH</BILLEDQTY>');
+    expect(xml).toContain('<RATE>2500/SH</RATE>');
+    expect(xml).not.toContain('<INVENTORYENTRIES.LIST>');
+  });
+
+  it('emits sales inventory entries as INVENTORYENTRIESOUT.LIST with No deemed positive', () => {
+    const voucher = makeVoucherWithLines({
+      voucher_type: VoucherType.SALES,
+      lines: [
+        makeVoucherLine({
+          line_no: 1,
+          ledger_name: 'Broker',
+          amount: '26000.00',
+          dr_cr: 'DR',
+        }),
+        makeVoucherLine({
+          line_no: 2,
+          ledger_name: 'RELIANCE-SH',
+          amount: '25000.00',
+          dr_cr: 'CR',
+          quantity: '-10',
+          rate: '2500',
+        }),
+        makeVoucherLine({
+          line_no: 3,
+          ledger_name: 'STCG on RELIANCE',
+          amount: '1000.00',
+          dr_cr: 'CR',
+        }),
+      ],
+    });
+    const xml = generateVouchersXml([voucher], 'Co');
+    expect(xml).toContain('<INVENTORYENTRIESOUT.LIST>');
+    expect(xml).toContain('<ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>');
   });
 
   it('handles empty vouchers array', () => {

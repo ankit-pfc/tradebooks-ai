@@ -24,6 +24,7 @@ import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tall
 import { getBatchRepository, getSettingsRepository } from '@/lib/db';
 import { getFileStorage } from '@/lib/storage/file-storage';
 import { matchTrades } from '@/lib/engine/trade-matcher';
+import { mergePurchaseVouchers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
 import { TradeClassification } from '@/lib/engine/trade-classifier';
 import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
@@ -56,6 +57,7 @@ export interface PipelineInput {
   /** Resolved period end — required. Caller must provide this before invoking. */
   periodTo: string;
   priorBatchId?: string;
+  purchaseMergeMode?: PurchaseMergeMode;
   files: PipelineFileInput[];
 }
 
@@ -105,6 +107,27 @@ interface ParsedFileSet {
   files: ParsedFile[];
 }
 
+function buildContractNoteSymbolLookup(
+  tradebookRows: ZerodhaTradebookRow[] | undefined,
+): Map<string, string> {
+  const lookup = new Map<string, string>();
+
+  for (const row of tradebookRows ?? []) {
+    const isin = row.isin?.trim().toUpperCase();
+    if (!isin || isin === 'NA' || isin === 'N/A' || isin === '-') {
+      continue;
+    }
+
+    const symbol = row.symbol.trim().toUpperCase();
+    lookup.set(symbol, symbol);
+
+    const descriptionKey = `${symbol} - ${row.segment.trim().toUpperCase()} / ${isin}`;
+    lookup.set(descriptionKey, symbol);
+  }
+
+  return lookup;
+}
+
 // ---------------------------------------------------------------------------
 // Main pipeline function
 // ---------------------------------------------------------------------------
@@ -118,6 +141,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodFrom,
     periodTo,
     priorBatchId,
+    purchaseMergeMode = 'same_rate',
     files,
   } = input;
 
@@ -193,11 +217,13 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   }
 
   // Step 3: Build canonical events
+  const contractNoteSymbolByDescription = buildContractNoteSymbolLookup(parsedFileSet.tradebook?.rows);
   const events = buildCanonicalEvents({
     tradebookRows: parsedFileSet.tradebook?.rows,
     fundsRows: parsedFileSet.fundsStatement?.rows,
     contractNoteSheets: parsedFileSet.contractNote?.sheets,
     dividendRows: parsedFileSet.dividends?.rows,
+    contractNoteSymbolByDescription,
     batchId,
     fileIds,
   });
@@ -237,7 +263,8 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   }
 
   // Step 7: Build vouchers, collect ledger masters, generate XML
-  const vouchers = buildVouchers(events, profile, tracker, tallyProfile);
+  const rawVouchers = buildVouchers(events, profile, tracker, tallyProfile);
+  const vouchers = mergePurchaseVouchers(rawVouchers, purchaseMergeMode);
   const ledgers = collectRequiredLedgers(events, profile, { tallyProfile });
 
   const classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']> = {

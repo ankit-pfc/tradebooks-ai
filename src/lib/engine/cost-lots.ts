@@ -9,6 +9,12 @@
 import Decimal from 'decimal.js';
 import { EventType, type CanonicalEvent, type CostLot } from '../types/events';
 
+function normalizeLegacySecurityId(securityId: string): string {
+  const trimmed = securityId.trim().toUpperCase();
+  const parts = trimmed.split(':');
+  return parts.length === 2 ? parts[1] : trimmed;
+}
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -260,7 +266,13 @@ export class CostLotTracker {
   static fromJSON(data: { lots: Record<string, CostLot[]> }): CostLotTracker {
     const tracker = new CostLotTracker();
     for (const [securityId, lots] of Object.entries(data.lots)) {
-      tracker.lots.set(securityId, lots.map((lot) => ({ ...lot })));
+      const normalizedSecurityId = normalizeLegacySecurityId(securityId);
+      const normalizedLots = lots.map((lot) => ({
+        ...lot,
+        security_id: normalizeLegacySecurityId(lot.security_id),
+      }));
+      const existingLots = tracker.lots.get(normalizedSecurityId) ?? [];
+      tracker.lots.set(normalizedSecurityId, [...existingLots, ...normalizedLots]);
     }
     return tracker;
   }

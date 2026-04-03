@@ -5,12 +5,22 @@ import { getFileStorage } from '@/lib/storage/file-storage';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { rateLimit } from '@/lib/rate-limit';
 import { runProcessingPipeline } from '@/lib/processing/pipeline';
+import type { PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   try {
+    let purchaseMergeMode: PurchaseMergeMode = 'same_rate';
+    const contentType = request.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      const body = await request.json() as { purchaseMergeMode?: PurchaseMergeMode };
+      if (body.purchaseMergeMode === 'daily_summary' || body.purchaseMergeMode === 'same_rate') {
+        purchaseMergeMode = body.purchaseMergeMode;
+      }
+    }
+
     const userId = await getAuthenticatedUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -95,6 +105,7 @@ export async function POST(
         periodFrom: batch.period_from,
         periodTo: batch.period_to,
         priorBatchId: batch.prior_batch_id ?? undefined,
+        purchaseMergeMode,
         files: pipelineFiles,
       });
     } catch (pipelineErr) {

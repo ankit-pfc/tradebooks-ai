@@ -283,7 +283,7 @@ export function buildBuyVoucher(
     import_batch_id: event.import_batch_id,
     voucher_type: VoucherType.PURCHASE,
     voucher_date: event.event_date,
-    external_reference: event.external_ref ?? event.contract_note_ref ?? null,
+    external_reference: event.contract_note_ref ?? event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
       `Purchase of ${symbol} @ ${event.rate} × ${new Decimal(event.quantity).abs().toFixed()} units`,
       event,
@@ -410,7 +410,7 @@ export function buildSellVoucher(
     // profile-driven/unclassified events preserve the existing speculation routing.
     const effectiveHoldingDays =
       holdingPeriodDays === 0 &&
-      event.trade_classification === TradeClassification.INVESTMENT
+        event.trade_classification === TradeClassification.INVESTMENT
         ? 1
         : holdingPeriodDays;
     if (tallyProfile) {
@@ -482,7 +482,7 @@ export function buildSellVoucher(
     import_batch_id: event.import_batch_id,
     voucher_type: VoucherType.SALES,
     voucher_date: event.event_date,
-    external_reference: event.external_ref ?? event.contract_note_ref ?? null,
+    external_reference: event.contract_note_ref ?? event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
       `Sale of ${symbol} @ ${event.rate} × ${qty.toFixed()} units`,
       event,

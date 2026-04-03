@@ -17,6 +17,8 @@ import { VoucherType, VoucherStatus } from '@/lib/types/vouchers';
 import type { VoucherLine } from '@/lib/types/vouchers';
 import type { BuiltVoucherDraft } from '@/lib/engine/voucher-builder';
 
+export type PurchaseMergeMode = 'same_rate' | 'daily_summary';
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -82,11 +84,70 @@ export function mergeSameRatePurchaseVouchers(
   );
 }
 
+export function mergeDailySummaryPurchaseVouchers(
+  vouchers: BuiltVoucherDraft[],
+): BuiltVoucherDraft[] {
+  const purchases: BuiltVoucherDraft[] = [];
+  const others: BuiltVoucherDraft[] = [];
+
+  for (const v of vouchers) {
+    if (v.voucher_type === VoucherType.PURCHASE) {
+      purchases.push(v);
+    } else {
+      others.push(v);
+    }
+  }
+
+  const groups = new Map<string, BuiltVoucherDraft[]>();
+  const ungrouped: BuiltVoucherDraft[] = [];
+
+  for (const v of purchases) {
+    const stockDrLine = v.lines.find((l) => l.dr_cr === 'DR' && l.quantity !== null);
+    if (!stockDrLine) {
+      ungrouped.push(v);
+      continue;
+    }
+
+    const key = `${v.voucher_date}|${stockDrLine.ledger_name}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(v);
+  }
+
+  const mergedPurchases: BuiltVoucherDraft[] = [...ungrouped];
+
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      mergedPurchases.push(group[0]);
+      continue;
+    }
+
+    mergedPurchases.push(mergeGroup(group, 'daily_summary'));
+  }
+
+  return [...mergedPurchases, ...others].sort((a, b) =>
+    a.voucher_date.localeCompare(b.voucher_date),
+  );
+}
+
+export function mergePurchaseVouchers(
+  vouchers: BuiltVoucherDraft[],
+  mode: PurchaseMergeMode = 'same_rate',
+): BuiltVoucherDraft[] {
+  if (mode === 'daily_summary') {
+    return mergeDailySummaryPurchaseVouchers(vouchers);
+  }
+
+  return mergeSameRatePurchaseVouchers(vouchers);
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function mergeGroup(group: BuiltVoucherDraft[]): BuiltVoucherDraft {
+function mergeGroup(
+  group: BuiltVoucherDraft[],
+  mode: PurchaseMergeMode = 'same_rate',
+): BuiltVoucherDraft {
   const base = group[0];
 
   // Accumulate lines: key = "ledger_name|dr_cr"
@@ -119,12 +180,19 @@ function mergeGroup(group: BuiltVoucherDraft[]): BuiltVoucherDraft {
   const mergedLines: VoucherLine[] = [];
   let lineNo = 1;
   for (const { line, totalAmount, totalQty } of lineMap.values()) {
+    const isStockLine = line.dr_cr === 'DR' && line.quantity !== null;
+    const nextRate =
+      isStockLine && totalQty !== null && !totalQty.isZero()
+        ? totalAmount.div(totalQty).toFixed(2)
+        : line.rate;
+
     mergedLines.push({
       ...line,
       voucher_draft_id: base.voucher_draft_id,
       line_no: lineNo++,
       amount: totalAmount.toFixed(2),
       quantity: totalQty !== null ? totalQty.toFixed() : null,
+      rate: nextRate,
     });
   }
 
@@ -142,7 +210,7 @@ function mergeGroup(group: BuiltVoucherDraft[]): BuiltVoucherDraft {
   const stockDrLine = mergedLines.find((l) => l.dr_cr === 'DR' && l.quantity !== null);
   const narrative =
     stockDrLine && stockDrLine.quantity !== null && stockDrLine.rate !== null
-      ? `Purchase of ${stockDrLine.ledger_name} @ ${stockDrLine.rate} × ${stockDrLine.quantity} units (${group.length} fills)`
+      ? `Purchase of ${stockDrLine.ledger_name} @ ${stockDrLine.rate} × ${stockDrLine.quantity} units (${group.length} ${mode === 'daily_summary' ? 'trades' : 'fills'})`
       : base.narrative;
 
   return {
@@ -151,8 +219,8 @@ function mergeGroup(group: BuiltVoucherDraft[]): BuiltVoucherDraft {
     total_credit: totalCredit,
     draft_status: VoucherStatus.DRAFT,
     narrative,
-    // Null out the single-trade external reference — the merged voucher spans multiple trades
-    external_reference: null,
+    // Preserve the base external reference so merged vouchers keep the contract note number
+    external_reference: base.external_reference,
     source_event_ids: group.flatMap((v) => v.source_event_ids),
     lines: mergedLines,
   };

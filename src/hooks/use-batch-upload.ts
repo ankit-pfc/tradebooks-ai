@@ -47,13 +47,13 @@ type BatchAction =
   | { type: 'FILE_ADDED'; key: string; file: File }
   | { type: 'FILE_UPLOAD_STARTED'; key: string }
   | {
-      type: 'FILE_UPLOAD_SUCCEEDED';
-      key: string;
-      fileId: string;
-      detectedType: BatchFileType;
-      sizeBytes: number;
-      duplicateWarning?: { batchId: string; fileName: string };
-    }
+    type: 'FILE_UPLOAD_SUCCEEDED';
+    key: string;
+    fileId: string;
+    detectedType: BatchFileType;
+    sizeBytes: number;
+    duplicateWarning?: { batchId: string; fileName: string };
+  }
   | { type: 'FILE_UPLOAD_FAILED'; key: string; errorMessage: string }
   | { type: 'FILE_REMOVED'; key: string }
   | { type: 'PROCESSING_STARTED' }
@@ -171,6 +171,8 @@ export interface BatchUploadConfig {
   periodTo?: string;
   priorBatchId?: string;
 }
+
+export type PurchaseMergeMode = 'same_rate' | 'daily_summary';
 
 export function useBatchUpload() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -334,14 +336,18 @@ export function useBatchUpload() {
     }
   }, []);
 
-  const startProcessing = useCallback(async (): Promise<ProcessingResult | null> => {
+  const startProcessing = useCallback(async (purchaseMergeMode: PurchaseMergeMode = 'same_rate'): Promise<ProcessingResult | null> => {
     const { batchId, batchStatus } = stateRef.current;
     if (!batchId || batchStatus !== 'uploading') return null;
 
     dispatch({ type: 'PROCESSING_STARTED' });
 
     try {
-      const res = await fetch(`/api/batches/${batchId}/process`, { method: 'POST' });
+      const res = await fetch(`/api/batches/${batchId}/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseMergeMode }),
+      });
       const data = await res.json();
 
       if (!res.ok) {

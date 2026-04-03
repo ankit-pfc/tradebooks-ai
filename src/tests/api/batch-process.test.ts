@@ -93,9 +93,17 @@ const PIPELINE_OUTPUT = {
   fyLabel: 'FY 2025-26',
 };
 
-function makeRequest(batchId = 'batch-1') {
+function makeRequest(batchId = 'batch-1', body?: unknown) {
   return {
-    request: new NextRequest(`http://localhost/api/batches/${batchId}/process`, { method: 'POST' }),
+    request: new NextRequest(`http://localhost/api/batches/${batchId}/process`, {
+      method: 'POST',
+      ...(body === undefined
+        ? {}
+        : {
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }),
+    }),
     params: Promise.resolve({ batchId }),
   };
 }
@@ -210,6 +218,17 @@ describe('POST /api/batches/[batchId]/process', () => {
         accountingMode: 'investor',
         periodFrom: '2025-04-01',
         periodTo: '2026-03-31',
+      }),
+    );
+  });
+
+  it('passes purchaseMergeMode from request body to the pipeline', async () => {
+    const { request, params } = makeRequest('batch-1', { purchaseMergeMode: 'daily_summary' });
+    await POST(request, { params });
+
+    expect(mockRunProcessingPipeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        purchaseMergeMode: 'daily_summary',
       }),
     );
   });
