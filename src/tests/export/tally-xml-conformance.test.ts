@@ -397,6 +397,143 @@ describe('ALLLEDGERENTRIES.LIST conformance', () => {
 });
 
 // ---------------------------------------------------------------------------
+// INVENTORYENTRIES.LIST conformance
+// ---------------------------------------------------------------------------
+
+describe('INVENTORYENTRIES.LIST conformance', () => {
+  function getEntries(xml: string) {
+    const doc = parseXml(xml);
+    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const voucher = messages.find((m: Record<string, unknown>) => m.VOUCHER)?.VOUCHER;
+    return asArray(voucher?.['ALLLEDGERENTRIES.LIST']);
+  }
+
+  it('purchase DR line emits positive inventory quantity and matching signed amount', () => {
+    const purchaseVoucher = makeVoucher({
+      voucher_type: VoucherType.PURCHASE,
+      lines: [
+        makeVoucherLine({
+          line_no: 1,
+          ledger_name: 'RELIANCE-SH',
+          dr_cr: 'DR',
+          quantity: '10',
+          rate: '2500',
+          amount: '25000.00',
+        }),
+        makeVoucherLine({
+          line_no: 2,
+          ledger_name: 'Zerodha Broking',
+          dr_cr: 'CR',
+          amount: '25000.00',
+        }),
+      ],
+    });
+
+    const entries = getEntries(generateVouchersXml([purchaseVoucher], 'Co'));
+    const inventoryEntry = entries[0]['INVENTORYENTRIES.LIST'];
+
+    expect(inventoryEntry.ACTUALQTY).toBe('10');
+    expect(inventoryEntry.BILLEDQTY).toBe('10');
+    expect(inventoryEntry.STOCKITEMNAME).toBe('RELIANCE-SH');
+    expect(inventoryEntry.AMOUNT).toBe('-25000.00');
+    expect(inventoryEntry.RATE).toBe('2500');
+  });
+
+  it('sales CR line emits negative inventory quantity and matching signed amount', () => {
+    const salesVoucher = makeVoucher({
+      voucher_type: VoucherType.SALES,
+      lines: [
+        makeVoucherLine({
+          line_no: 1,
+          ledger_name: 'Zerodha Broking',
+          dr_cr: 'DR',
+          amount: '25000.00',
+        }),
+        makeVoucherLine({
+          line_no: 2,
+          ledger_name: 'RELIANCE-SH',
+          dr_cr: 'CR',
+          quantity: '10',
+          rate: '2700',
+          amount: '25000.00',
+        }),
+      ],
+    });
+
+    const entries = getEntries(generateVouchersXml([salesVoucher], 'Co'));
+    const inventoryEntry = entries[1]['INVENTORYENTRIES.LIST'];
+
+    expect(inventoryEntry.ACTUALQTY).toBe('-10');
+    expect(inventoryEntry.BILLEDQTY).toBe('-10');
+    expect(inventoryEntry.AMOUNT).toBe('25000.00');
+  });
+
+  it('omits INVENTORYENTRIES.LIST on non-stock lines', () => {
+    const voucher = makeVoucher({
+      voucher_type: VoucherType.PURCHASE,
+      lines: [
+        makeVoucherLine({
+          line_no: 1,
+          ledger_name: 'RELIANCE-SH',
+          dr_cr: 'DR',
+          quantity: '10',
+          rate: '2500',
+          amount: '25000.00',
+        }),
+        makeVoucherLine({
+          line_no: 2,
+          ledger_name: 'Broker Charges',
+          dr_cr: 'CR',
+          amount: '25000.00',
+        }),
+      ],
+    });
+
+    const entries = getEntries(generateVouchersXml([voucher], 'Co'));
+
+    expect(entries[1]['INVENTORYENTRIES.LIST']).toBeUndefined();
+  });
+
+  it('full sell trade balances all ledger entries and keeps inventory on the stock line', () => {
+    const sellVoucher = makeVoucher({
+      voucher_type: VoucherType.SALES,
+      lines: [
+        makeVoucherLine({
+          line_no: 1,
+          ledger_name: 'Zerodha Broking',
+          dr_cr: 'DR',
+          amount: '26000.00',
+        }),
+        makeVoucherLine({
+          line_no: 2,
+          ledger_name: 'RELIANCE-SH',
+          dr_cr: 'CR',
+          quantity: '10',
+          rate: '2700',
+          amount: '25000.00',
+        }),
+        makeVoucherLine({
+          line_no: 3,
+          ledger_name: 'STCG on RELIANCE',
+          dr_cr: 'CR',
+          amount: '1000.00',
+        }),
+      ],
+    });
+
+    const entries = getEntries(generateVouchersXml([sellVoucher], 'Co'));
+    const sum = entries.reduce(
+      (acc: number, entry: Record<string, unknown>) => acc + parseFloat(String(entry.AMOUNT)),
+      0,
+    );
+
+    expect(Math.abs(sum)).toBeLessThan(0.01);
+    expect(entries[1]['INVENTORYENTRIES.LIST']).toBeDefined();
+    expect(entries[1]['INVENTORYENTRIES.LIST'].ACTUALQTY).toBe('-10');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Sign convention with concrete trade scenarios
 // ---------------------------------------------------------------------------
 

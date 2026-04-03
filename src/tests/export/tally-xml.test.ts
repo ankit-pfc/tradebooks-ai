@@ -104,7 +104,7 @@ describe('generateVouchersXml', () => {
     expect(xml).toContain('<VOUCHERNUMBER>REF-001</VOUCHERNUMBER>');
   });
 
-  it('emits purchase inventory entries at voucher level with SH quantity/rate formatting', () => {
+  it('emits purchase inventory entries nested under ALLLEDGERENTRIES.LIST with signed quantity', () => {
     const voucher = makeVoucherWithLines({
       voucher_type: VoucherType.PURCHASE,
       lines: [
@@ -120,15 +120,14 @@ describe('generateVouchersXml', () => {
       ],
     });
     const xml = generateVouchersXml([voucher], 'Co');
-    expect(xml).toContain('<INVENTORYENTRIESIN.LIST>');
+    expect(xml).toContain('<INVENTORYENTRIES.LIST>');
     expect(xml).toContain('<STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>');
-    expect(xml).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
-    expect(xml).toContain('<BILLEDQTY>10 SH</BILLEDQTY>');
-    expect(xml).toContain('<RATE>2500/SH</RATE>');
-    expect(xml).not.toContain('<INVENTORYENTRIES.LIST>');
+    expect(xml).toContain('<ACTUALQTY>10</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>10</BILLEDQTY>');
+    expect(xml).toContain('<RATE>2500</RATE>');
   });
 
-  it('emits sales inventory entries as INVENTORYENTRIESOUT.LIST with No deemed positive', () => {
+  it('emits sales inventory entries nested under ALLLEDGERENTRIES.LIST with negative quantity', () => {
     const voucher = makeVoucherWithLines({
       voucher_type: VoucherType.SALES,
       lines: [
@@ -155,8 +154,10 @@ describe('generateVouchersXml', () => {
       ],
     });
     const xml = generateVouchersXml([voucher], 'Co');
-    expect(xml).toContain('<INVENTORYENTRIESOUT.LIST>');
+    expect(xml).toContain('<INVENTORYENTRIES.LIST>');
     expect(xml).toContain('<ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>');
+    expect(xml).toContain('<ACTUALQTY>-10</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>-10</BILLEDQTY>');
   });
 
   it('handles empty vouchers array', () => {
