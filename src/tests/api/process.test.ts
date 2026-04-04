@@ -86,8 +86,8 @@ describe('process pipeline (tradebook-only)', () => {
         const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
 
         const types = vouchers.map((v) => v.voucher_type);
-        expect(types).toContain('PURCHASE');
-        expect(types).toContain('SALES');
+        // Investor mode uses JOURNAL for both buy and sell
+        expect(types).toContain('JOURNAL');
     });
 
     it('produces reconciliation-ready check data', () => {

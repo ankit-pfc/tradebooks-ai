@@ -70,6 +70,10 @@ vi.mock('@/lib/engine/voucher-builder', () => ({
     buildVouchers: (...args: unknown[]) => mockBuildVouchers(...args),
 }));
 
+vi.mock('@/lib/engine/voucher-merger', () => ({
+    mergePurchaseVouchers: (vouchers: unknown[]) => vouchers,
+}));
+
 vi.mock('@/lib/engine/cost-lots', () => ({
     CostLotTracker: class {
         toJSON() { return { lots: {} }; }

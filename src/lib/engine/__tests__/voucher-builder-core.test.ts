@@ -44,11 +44,11 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     expect(crLine.amount).toBe('25002.50');
   });
 
-  it('voucher is balanced and has PURCHASE type', () => {
+  it('voucher is balanced and has JOURNAL type for investor mode', () => {
     const event = makeBuyEvent({ gross_amount: '25000.00' });
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
     expect(voucher.total_debit).toBe(voucher.total_credit);
-    expect(voucher.voucher_type).toBe(VoucherType.PURCHASE);
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
   });
 });
 
@@ -178,7 +178,7 @@ describe('buildSellVoucher — investor', () => {
 
     const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
     expect(gainLine).toBeDefined();
-    expect(voucher.voucher_type).toBe(VoucherType.SALES);
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 
@@ -452,11 +452,14 @@ describe('buildSellVoucher — zero-cost disposal', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
 
+    // Asset CR line is always emitted (even zero-cost) so Tally sees stock movement
     const assetLine = voucher.lines.find(l => l.ledger_name.includes('Investment') && l.dr_cr === 'CR');
-    expect(assetLine).toBeUndefined();
+    expect(assetLine).toBeDefined();
+    expect(assetLine?.amount).toBe('0.00');
+    expect(assetLine?.rate).toBe('0');
   });
 
-  it('investor mode: voucher is balanced without asset line', () => {
+  it('investor mode: voucher is balanced with zero-cost asset line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
     expect(voucher.total_debit).toBe(voucher.total_credit);
@@ -470,18 +473,21 @@ describe('buildSellVoucher — zero-cost disposal', () => {
     expect(gainLine?.amount).toBe('26000.00');
   });
 
-  it('trader mode: no stockLedger CR or cost DR when totalCostBasis = 0', () => {
+  it('trader mode: stockLedger CR present with zero amount, no cost DR when totalCostBasis = 0', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
 
+    // Stock CR line is always emitted so Tally sees the inventory movement
     const stockLine = voucher.lines.find(l => l.ledger_name.includes('Shares-in-Trade') && l.dr_cr === 'CR');
-    expect(stockLine).toBeUndefined();
+    expect(stockLine).toBeDefined();
+    expect(stockLine?.amount).toBe('0.00');
+    expect(stockLine?.rate).toBe('0');
 
     const costLine = voucher.lines.find(l => l.ledger_name.includes('Cost of Shares Sold') && l.dr_cr === 'DR');
     expect(costLine).toBeUndefined();
   });
 
-  it('trader mode: voucher is balanced without cost lines', () => {
+  it('trader mode: voucher is balanced with zero-cost stock line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
     expect(voucher.total_debit).toBe(voucher.total_credit);
@@ -512,8 +518,12 @@ describe('buildVouchers holding period routing', () => {
       tracker,
     );
 
-    const saleVoucher = vouchers.find((voucher) => voucher.voucher_type === VoucherType.SALES);
+    // Investor mode sell vouchers use JOURNAL type, not SALES
+    const saleVoucher = vouchers.find((voucher) =>
+      voucher.narrative?.includes('Sale of'),
+    );
     expect(saleVoucher).toBeDefined();
+    expect(saleVoucher?.voucher_type).toBe(VoucherType.JOURNAL);
     expect(
       saleVoucher?.lines.some(
         (line) =>
@@ -664,7 +674,7 @@ describe('buildVouchers — excludes STT from all accounting entries', () => {
       tracker,
     );
 
-    expect(vouchers).toHaveLength(2);
+    expect(vouchers).toHaveLength(3);
 
     const sellVoucher = vouchers[1];
     expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
@@ -673,6 +683,12 @@ describe('buildVouchers — excludes STT from all accounting entries', () => {
     expect(findLine(sellVoucher.lines, 'Securities Transaction Tax', 'DR')).toBeUndefined();
     expect(sellVoucher.lines.some((line) => line.ledger_name.includes('Stt'))).toBe(false);
     expect(findLine(sellVoucher.lines, 'Zerodha', 'DR')?.amount).toBe('25980.00');
+
+    // STT summary journal voucher
+    const sttVoucher = vouchers[2];
+    expect(sttVoucher.voucher_type).toBe('JOURNAL');
+    expect(sttVoucher.total_debit).toBe(sttVoucher.total_credit);
+    expect(findLine(sttVoucher.lines, 'Securities Transaction Tax', 'DR')?.amount).toBe('25.00');
   });
 
   it('sell vouchers exclude both STT and stamp duty while retaining other charges', () => {
@@ -722,7 +738,7 @@ describe('buildVouchers — excludes STT from all accounting entries', () => {
       tracker,
     );
 
-    expect(vouchers).toHaveLength(2);
+    expect(vouchers).toHaveLength(3);
 
     const sellVoucher = vouchers[1];
     expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
@@ -739,6 +755,11 @@ describe('buildVouchers — excludes STT from all accounting entries', () => {
     expect(sellVoucher.source_event_ids).toContain(sellSebi.event_id);
     expect(sellVoucher.source_event_ids).not.toContain(sellStampDuty.event_id);
     expect(sellVoucher.source_event_ids).not.toContain(sellStt.event_id);
+
+    // STT + stamp duty summary journal voucher
+    const sttVoucher = vouchers[2];
+    expect(sttVoucher.voucher_type).toBe('JOURNAL');
+    expect(sttVoucher.total_debit).toBe(sttVoucher.total_credit);
   });
 });
 

@@ -265,15 +265,18 @@ describe('buildVouchers orchestrator with TallyProfile', () => {
 
     expect(vouchers).toHaveLength(2);
 
+    // Investor mode uses JOURNAL for both buy and sell
     // Buy voucher should use Capital Account names
-    const buyVoucher = vouchers.find(v => v.voucher_type === 'PURCHASE');
+    const buyVoucher = vouchers.find(v => v.narrative?.includes('Purchase'));
     expect(buyVoucher).toBeDefined();
+    expect(buyVoucher!.voucher_type).toBe('JOURNAL');
     const buyAssetLine = buyVoucher!.lines.find(l => l.dr_cr === 'DR');
     expect(buyAssetLine?.ledger_name).toBe('RELIANCE-SH');
 
     // Sell voucher should use Capital Account gain ledger
-    const sellVoucher = vouchers.find(v => v.voucher_type === 'SALES');
+    const sellVoucher = vouchers.find(v => v.narrative?.includes('Sale'));
     expect(sellVoucher).toBeDefined();
+    expect(sellVoucher!.voucher_type).toBe('JOURNAL');
     const gainLine = sellVoucher!.lines.find(l => l.ledger_name.includes('STCG'));
     expect(gainLine?.ledger_name).toBe('STCG ON RELIANCE');
 

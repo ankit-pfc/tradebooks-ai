@@ -281,7 +281,7 @@ export function buildBuyVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    voucher_type: VoucherType.PURCHASE,
+    voucher_type: effectiveProfile.mode === AccountingMode.INVESTOR ? VoucherType.JOURNAL : VoucherType.PURCHASE,
     voucher_date: event.event_date,
     external_reference: event.contract_note_ref ?? event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
@@ -378,15 +378,20 @@ export function buildSellVoucher(
     }
 
     // CR: Investment account at cost basis.
-    // Omit entirely when cost = 0 (zero-cost / partial-data disposal) — a
-    // zero-amount ledger line with INVENTORYENTRIES can confuse Tally.  The
-    // full gross is already captured in the gain/loss line below.
-    if (totalCostBasis.greaterThan(0)) {
+    // Always emit this line so Tally sees a stock movement for every sale.
+    // RATE must be cost-per-unit (totalCostBasis / qty) so that
+    // qty × rate = AMOUNT — Tally validates this and skips the voucher if it
+    // doesn't reconcile. For zero-cost disposals rate = 0 which Tally accepts.
+    {
+      const absQty = new Decimal(event.quantity).abs();
+      const costPerUnit = absQty.greaterThan(0)
+        ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
+        : '0';
       lines.push(
         makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', {
           security_id: event.security_id,
           quantity: event.quantity,
-          rate: event.rate,
+          rate: costPerUnit,
         }),
       );
     }
@@ -464,13 +469,21 @@ export function buildSellVoucher(
     // CR: Trading Sales at gross
     lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
 
-    // CR: Shares-in-Trade at cost basis (omit when cost = 0)
-    if (totalCostBasis.greaterThan(0)) {
+    // CR: Shares-in-Trade at cost basis.
+    // Always emit this line so Tally sees a stock movement for every sale.
+    // RATE must be cost-per-unit (totalCostBasis / qty) so that
+    // qty × rate = AMOUNT — Tally validates this and skips the voucher if it
+    // doesn't reconcile. For zero-cost disposals rate = 0 which Tally accepts.
+    {
+      const absQty = new Decimal(event.quantity).abs();
+      const costPerUnit = absQty.greaterThan(0)
+        ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
+        : '0';
       lines.push(
         makeLine(draftId, lineNo++, stockLedger, totalCostBasis, 'CR', {
           security_id: event.security_id,
           quantity: event.quantity,
-          rate: event.rate,
+          rate: costPerUnit,
         }),
       );
     }
@@ -480,7 +493,7 @@ export function buildSellVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    voucher_type: VoucherType.SALES,
+    voucher_type: isInvestor ? VoucherType.JOURNAL : VoucherType.SALES,
     voucher_date: event.event_date,
     external_reference: event.contract_note_ref ?? event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
@@ -843,6 +856,69 @@ export function buildAuctionAdjustmentVoucher(
 }
 
 // ---------------------------------------------------------------------------
+// buildSttSummaryVoucher — lump-sum STT journal
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a single JOURNAL voucher that posts the total STT for the batch.
+ *
+ * STT is non-deductible under the Income Tax Act — it cannot be part of cost
+ * basis (investment) or claimed as a business expense (trader).  Individual
+ * trade vouchers exclude STT entirely to keep entries clean.  This lump-sum
+ * journal records the cash outflow so the Zerodha Ledger reconciles with the
+ * broker statement.
+ *
+ *   DR  STT (Capital Account / Indirect Expenses)   {total STT}
+ *   CR  Zerodha Broking                              {total STT}
+ */
+export function buildSttSummaryVoucher(
+  sttEvents: CanonicalEvent[],
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft | null {
+  if (sttEvents.length === 0) return null;
+
+  const totalStt = sttEvents.reduce(
+    (sum, e) => sum.add(new Decimal(e.charge_amount)),
+    new Decimal(0),
+  );
+  if (totalStt.isZero()) return null;
+
+  const dates = sttEvents.map((e) => e.event_date).sort();
+  const earliest = dates[0];
+  const latest = dates[dates.length - 1];
+  const tradeCount = sttEvents.length;
+
+  const sttLedger = tallyProfile
+    ? resolveChargeLedger(tallyProfile, EventType.STT).name
+    : L.STT.name;
+  const brokerLedger = tallyProfile?.broker.name ?? L.BROKER.name;
+
+  const draftId = crypto.randomUUID();
+  const lines: VoucherLine[] = [
+    makeLine(draftId, 1, sttLedger, totalStt, 'DR'),
+    makeLine(draftId, 2, brokerLedger, totalStt, 'CR'),
+  ];
+
+  const draft: BuiltVoucherDraft = {
+    voucher_draft_id: draftId,
+    import_batch_id: sttEvents[0].import_batch_id,
+    voucher_type: VoucherType.JOURNAL,
+    voucher_date: latest,
+    external_reference: null,
+    narrative: `STT for period ${earliest} to ${latest} — ${tradeCount} trade(s)`,
+    total_debit: '0',
+    total_credit: '0',
+    draft_status: VoucherStatus.DRAFT,
+    source_event_ids: sttEvents.map((e) => e.event_id),
+    created_at: new Date().toISOString(),
+    lines,
+  };
+
+  assertBalanced(draft);
+  return draft;
+}
+
+// ---------------------------------------------------------------------------
 // buildVouchers — main orchestrator
 // ---------------------------------------------------------------------------
 
@@ -897,12 +973,16 @@ export function buildVouchers(
 
   const handledChargeIds = new Set<string>();
 
+  // Collect STT events filtered from trade vouchers for the lump-sum journal
+  const filteredSttEvents: CanonicalEvent[] = [];
+
   const filterVoucherChargeEvents = (
     chargeEvents: CanonicalEvent[],
     tradeEventType: EventType.BUY_TRADE | EventType.SELL_TRADE,
   ): CanonicalEvent[] =>
     chargeEvents.filter((chargeEvent) => {
       if (chargeEvent.event_type === EventType.STT) {
+        filteredSttEvents.push(chargeEvent);
         return false;
       }
 
@@ -1089,6 +1169,13 @@ export function buildVouchers(
         break;
     }
   }
+
+  // Lump-sum STT journal: one entry for all STT filtered from trade vouchers.
+  // STT is non-deductible (not part of cost basis or expense) but the money
+  // flows through the broker account, so recording it keeps the Zerodha
+  // Ledger reconcilable with the broker statement.
+  const sttVoucher = buildSttSummaryVoucher(filteredSttEvents, tallyProfile);
+  if (sttVoucher) vouchers.push(sttVoucher);
 
   return vouchers;
 }

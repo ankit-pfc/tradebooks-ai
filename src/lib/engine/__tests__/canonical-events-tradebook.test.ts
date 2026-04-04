@@ -77,13 +77,14 @@ describe('tradebookRowToEvents', () => {
     expect(events[0].security_id).toBe('RELIANCE');
   });
 
-  it('falls back to EXCHANGE:SYMBOL when ISIN is unavailable', () => {
+  it('falls back to EQ:SYMBOL for equity segments when ISIN is unavailable', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'bse', symbol: 'adsl', isin: 'NA' }),
       'batch-1',
       'file-1',
     );
-    expect(events[0].security_id).toBe('BSE:ADSL');
+    // Factory default segment is EQ, so equity normalization applies
+    expect(events[0].security_id).toBe('EQ:ADSL');
   });
 
   it('preserves EXCHANGE:SYMBOL for non-equity segments when ISIN is unavailable', () => {
@@ -400,6 +401,7 @@ describe('buildCanonicalEvents', () => {
 
 describe('cross-exchange equity normalisation', () => {
   it('assigns the same security_id to NSE and BSE trades for the same equity scrip', () => {
+    // With ISIN present (factory default), equity unifies to plain SYMBOL
     const buyOnNse = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'NSE', symbol: 'RELIANCE', segment: 'EQ', trade_type: 'buy' }),
       'b', 'f',
@@ -408,16 +410,24 @@ describe('cross-exchange equity normalisation', () => {
       makeTradebookRow({ exchange: 'BSE', symbol: 'RELIANCE', segment: 'EQ', trade_type: 'sell' }),
       'b', 'f',
     );
-    expect(buyOnNse[0].security_id).toBe('EQ:RELIANCE');
-    expect(sellOnBse[0].security_id).toBe('EQ:RELIANCE');
+    expect(buyOnNse[0].security_id).toBe('RELIANCE');
+    expect(sellOnBse[0].security_id).toBe('RELIANCE');
   });
 
-  it('normalises BSE Book Entry segment (BE) to EQ: prefix', () => {
+  it('equity without ISIN uses EQ: prefix for cross-exchange unification', () => {
+    const events = tradebookRowToEvents(
+      makeTradebookRow({ exchange: 'BSE', symbol: 'INFY', segment: 'BE', isin: 'NA' }),
+      'b', 'f',
+    );
+    expect(events[0].security_id).toBe('EQ:INFY');
+  });
+
+  it('normalises BSE Book Entry segment (BE) with ISIN to plain symbol', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'BSE', symbol: 'INFY', segment: 'BE' }),
       'b', 'f',
     );
-    expect(events[0].security_id).toBe('EQ:INFY');
+    expect(events[0].security_id).toBe('INFY');
   });
 
   it('does not normalise futures/options — exchange stays in the key', () => {

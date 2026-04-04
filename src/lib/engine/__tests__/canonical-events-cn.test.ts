@@ -101,7 +101,7 @@ describe('buildSecurityIdFromDescription', () => {
       ['ADSL - EQ / INE674K01013', 'ADSL'],
     ]);
 
-    expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', lookup))
+    expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', undefined, lookup))
       .toBe('ADSL');
   });
 });

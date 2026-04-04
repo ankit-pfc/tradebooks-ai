@@ -36,8 +36,8 @@ describe('tradebook pipeline e2e', () => {
         const xml = generateVouchersXml(vouchers, 'Demo Company');
         expect(xml).toContain('<ENVELOPE>');
         expect(xml).toContain('<VOUCHER');
-        expect(xml).toContain('Purchase');
-        expect(xml).toContain('Sales');
+        // Investor mode uses Journal voucher type for both buy and sell
+        expect(xml).toContain('Journal');
         expect(xml).toContain('INFY');
     });
 });

@@ -99,12 +99,15 @@ export function buildUnifiedSecurityId(
   segment?: string,
 ): string {
   const normalizedSymbol = normaliseSecurityToken(symbol);
+  const isEquity = segment ? isEquitySegment(segment) : false;
 
-  if (normaliseIsin(isin)) {
-    return normalizedSymbol;
+  if (isEquity) {
+    // Equity-delivery: unify BSE/NSE via ISIN when available, EQ: prefix otherwise.
+    return normaliseIsin(isin) ? normalizedSymbol : `EQ:${normalizedSymbol}`;
   }
 
-  return buildSecurityId(exchange, normalizedSymbol, segment);
+  // Non-equity (F&O, CDS, …): always keep EXCHANGE:SYMBOL regardless of ISIN.
+  return `${exchange.trim().toUpperCase()}:${normalizedSymbol}`;
 }
 
 // ---------------------------------------------------------------------------

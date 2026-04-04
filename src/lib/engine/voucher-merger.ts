@@ -44,7 +44,9 @@ export function mergeSameRatePurchaseVouchers(
   const others: BuiltVoucherDraft[] = [];
 
   for (const v of vouchers) {
-    if (v.voucher_type === VoucherType.PURCHASE) {
+    // Merge both PURCHASE (trader mode) and JOURNAL buy (investor mode) vouchers
+    if (v.voucher_type === VoucherType.PURCHASE ||
+        (v.voucher_type === VoucherType.JOURNAL && v.narrative?.startsWith('Purchase of'))) {
       purchases.push(v);
     } else {
       others.push(v);
@@ -91,7 +93,9 @@ export function mergeDailySummaryPurchaseVouchers(
   const others: BuiltVoucherDraft[] = [];
 
   for (const v of vouchers) {
-    if (v.voucher_type === VoucherType.PURCHASE) {
+    // Merge both PURCHASE (trader mode) and JOURNAL buy (investor mode) vouchers
+    if (v.voucher_type === VoucherType.PURCHASE ||
+        (v.voucher_type === VoucherType.JOURNAL && v.narrative?.startsWith('Purchase of'))) {
       purchases.push(v);
     } else {
       others.push(v);
