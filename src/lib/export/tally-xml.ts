@@ -322,7 +322,6 @@ export function generateVouchersXml(
       if (line.quantity !== null && line.rate !== null) {
         const stockEntry = entry.ele('INVENTORYENTRIES.LIST');
         stockEntry.ele('STOCKITEMNAME').txt(line.ledger_name);
-        stockEntry.ele('ISDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
         stockEntry.ele('ACTUALQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('BILLEDQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('RATE').txt(line.rate);
