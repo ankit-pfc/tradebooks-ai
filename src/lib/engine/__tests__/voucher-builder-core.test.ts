@@ -41,15 +41,21 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     expect(crLine.amount).toBe('25002.50');
   });
 
-  it('voucher is balanced and has PURCHASE type', () => {
+  it('voucher is balanced and has JOURNAL type (investor)', () => {
     const event = makeBuyEvent({ gross_amount: '25000.00' });
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
     expect(voucher.total_debit).toBe(voucher.total_credit);
-    expect(voucher.voucher_type).toBe(VoucherType.PURCHASE);
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
   });
 });
 
 describe('buildBuyVoucher — trader EXPENSE', () => {
+  it('has PURCHASE voucher type (trader)', () => {
+    const event = makeBuyEvent({ gross_amount: '25000.00' });
+    const voucher = buildBuyVoucher(event, TRADER_DEFAULT, []);
+    expect(voucher.voucher_type).toBe(VoucherType.PURCHASE);
+  });
+
   it('debits asset at gross and each charge separately', () => {
     const event = makeBuyEvent({ quantity: '10', rate: '2500', gross_amount: '25000.00' });
     const charges = [
@@ -105,7 +111,7 @@ describe('buildSellVoucher — investor', () => {
 
     const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
     expect(gainLine).toBeDefined();
-    expect(voucher.voucher_type).toBe(VoucherType.SALES);
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 
@@ -156,6 +162,12 @@ describe('buildSellVoucher — trader', () => {
     total_cost: '25000.00',
     gain_or_loss: '1000.00',
   }];
+
+  it('has SALES voucher type (trader)', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], costDisposals);
+    expect(voucher.voucher_type).toBe(VoucherType.SALES);
+  });
 
   it('uses Trading Sales and Cost of Shares Sold', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });

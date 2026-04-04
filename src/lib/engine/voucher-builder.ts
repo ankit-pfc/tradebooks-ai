@@ -215,7 +215,7 @@ export function buildBuyVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    voucher_type: VoucherType.PURCHASE,
+    voucher_type: profile.mode === AccountingMode.INVESTOR ? VoucherType.JOURNAL : VoucherType.PURCHASE,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? event.contract_note_ref ?? null,
     narrative: `Purchase of ${symbol} @ ${event.rate} × ${new Decimal(event.quantity).abs().toFixed()} units`,
@@ -399,7 +399,7 @@ export function buildSellVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    voucher_type: VoucherType.SALES,
+    voucher_type: isInvestor ? VoucherType.JOURNAL : VoucherType.SALES,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? event.contract_note_ref ?? null,
     narrative: `Sale of ${symbol} @ ${event.rate} × ${qty.toFixed()} units`,

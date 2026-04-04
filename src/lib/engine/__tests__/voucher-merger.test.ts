@@ -247,4 +247,90 @@ describe('mergeSameRatePurchaseVouchers', () => {
     const result = mergeSameRatePurchaseVouchers([v1, v2, v3]);
     expect(result.map((v) => v.voucher_date)).toEqual(['2024-06-15', '2024-06-16', '2024-06-17']);
   });
+
+  // -------------------------------------------------------------------------
+  // JOURNAL buy vouchers (investor mode)
+  // -------------------------------------------------------------------------
+
+  it('merges JOURNAL buy vouchers with same date, ledger, and rate', () => {
+    const makeJournalBuy = (qty: string, gross: string) => {
+      const id = crypto.randomUUID();
+      return {
+        ...makePurchaseVoucher({ qty, gross, brokerAmount: gross, voucherId: id }),
+        voucher_type: VoucherType.JOURNAL,
+      } satisfies BuiltVoucherDraft;
+    };
+
+    const v1 = makeJournalBuy('33', '82500.00');
+    const v2 = makeJournalBuy('34', '85000.00');
+
+    const result = mergeSameRatePurchaseVouchers([v1, v2]);
+    expect(result).toHaveLength(1);
+
+    const merged = result[0];
+    expect(merged.voucher_type).toBe(VoucherType.JOURNAL);
+    const drLine = merged.lines.find((l) => l.dr_cr === 'DR')!;
+    expect(drLine.quantity).toBe('67');
+    expect(drLine.amount).toBe('167500.00');
+  });
+
+  it('does not merge JOURNAL sell vouchers (stock on CR side)', () => {
+    const makeJournalSell = () => {
+      const id = crypto.randomUUID();
+      return {
+        voucher_draft_id: id,
+        import_batch_id: 'batch-1',
+        voucher_type: VoucherType.JOURNAL,
+        voucher_date: '2024-06-15',
+        external_reference: null,
+        narrative: 'Sale',
+        total_debit: '26000.00',
+        total_credit: '26000.00',
+        draft_status: VoucherStatus.DRAFT,
+        source_event_ids: [crypto.randomUUID()],
+        created_at: new Date().toISOString(),
+        lines: [
+          makeLine({ voucher_draft_id: id, line_no: 1, ledger_name: 'Zerodha Kite', amount: '26000.00', dr_cr: 'DR' }),
+          makeLine({ voucher_draft_id: id, line_no: 2, ledger_name: 'Investment in Equity Shares - RELIANCE', amount: '25000.00', dr_cr: 'CR', quantity: '-10', rate: '2500.00' }),
+          makeLine({ voucher_draft_id: id, line_no: 3, ledger_name: 'Short Term Capital Gain', amount: '1000.00', dr_cr: 'CR' }),
+        ],
+      } satisfies BuiltVoucherDraft;
+    };
+
+    const s1 = makeJournalSell();
+    const s2 = makeJournalSell();
+
+    const result = mergeSameRatePurchaseVouchers([s1, s2]);
+    expect(result).toHaveLength(2);
+  });
+
+  it('does not merge corporate action JOURNAL vouchers (no stock DR)', () => {
+    const makeMergerJournal = () => {
+      const id = crypto.randomUUID();
+      return {
+        voucher_draft_id: id,
+        import_batch_id: 'batch-1',
+        voucher_type: VoucherType.JOURNAL,
+        voucher_date: '2024-06-15',
+        external_reference: null,
+        narrative: 'Merger: OLDCO → NEWCO',
+        total_debit: '25000.00',
+        total_credit: '25000.00',
+        draft_status: VoucherStatus.DRAFT,
+        source_event_ids: [crypto.randomUUID()],
+        created_at: new Date().toISOString(),
+        lines: [
+          makeLine({ voucher_draft_id: id, line_no: 1, ledger_name: 'Investment - NEWCO', amount: '25000.00', dr_cr: 'DR' }),
+          makeLine({ voucher_draft_id: id, line_no: 2, ledger_name: 'Investment - OLDCO', amount: '25000.00', dr_cr: 'CR' }),
+        ],
+      } satisfies BuiltVoucherDraft;
+    };
+
+    const j1 = makeMergerJournal();
+    const j2 = makeMergerJournal();
+
+    const result = mergeSameRatePurchaseVouchers([j1, j2]);
+    // Corporate action journals have no stock DR line (no quantity), so they pass through
+    expect(result).toHaveLength(2);
+  });
 });

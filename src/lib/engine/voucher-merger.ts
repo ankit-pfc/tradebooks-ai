@@ -1,15 +1,18 @@
 /**
  * voucher-merger.ts
- * Post-processing step that consolidates PURCHASE vouchers for partial fills.
+ * Post-processing step that consolidates buy vouchers for partial fills.
  *
  * Zerodha often splits a single buy order into multiple trades when it is filled
  * in parts at the same price (e.g. 100 shares split into 33 + 33 + 34). These
- * appear as separate PURCHASE vouchers in the Tally import, cluttering the
- * ledger. This module merges vouchers that share the same date, stock ledger,
- * and rate into a single voucher entry.
+ * appear as separate buy vouchers in the Tally import, cluttering the ledger.
+ * This module merges vouchers that share the same date, stock ledger, and rate
+ * into a single voucher entry.
  *
- * SELL vouchers are intentionally left unchanged — sell trades have a different
- * cost-lot matching story and the user has indicated they should stay separate.
+ * Buy vouchers can be either PURCHASE (trader mode) or JOURNAL (investor mode).
+ * A JOURNAL voucher is identified as a buy when it has a stock DR line with
+ * non-null quantity.
+ *
+ * SELL/SALES vouchers and non-buy JOURNAL vouchers pass through unchanged.
  */
 
 import Decimal from 'decimal.js';
@@ -22,38 +25,45 @@ import type { BuiltVoucherDraft } from '@/lib/engine/voucher-builder';
 // ---------------------------------------------------------------------------
 
 /**
- * Merge PURCHASE vouchers that represent partial fills of the same buy order.
+ * Merge buy vouchers that represent partial fills of the same buy order.
  *
- * Two PURCHASE vouchers are eligible for merging when they share:
+ * Two buy vouchers are eligible for merging when they share:
  *   - `voucher_date`
  *   - stock DR ledger name (identifies the security)
  *   - per-unit `rate` on the stock DR line
+ *
+ * Buy vouchers are identified as:
+ *   - PURCHASE type (trader mode), OR
+ *   - JOURNAL type with a stock DR line (investor mode buy trades)
  *
  * The "stock DR line" is the line where `dr_cr === 'DR'` and `quantity !== null`
  * (the investment/stock-in-trade ledger line). All other lines (broker CR,
  * charge DRs) are merged by ledger name + direction, summing amounts.
  *
- * SELL, JOURNAL, RECEIPT, PAYMENT, and CONTRA vouchers pass through unchanged.
+ * SELL/SALES vouchers, non-buy JOURNALs, RECEIPT, PAYMENT, and CONTRA pass
+ * through unchanged.
  */
 export function mergeSameRatePurchaseVouchers(
   vouchers: BuiltVoucherDraft[],
 ): BuiltVoucherDraft[] {
-  const purchases: BuiltVoucherDraft[] = [];
+  const buyVouchers: BuiltVoucherDraft[] = [];
   const others: BuiltVoucherDraft[] = [];
 
   for (const v of vouchers) {
     if (v.voucher_type === VoucherType.PURCHASE) {
-      purchases.push(v);
+      buyVouchers.push(v);
+    } else if (v.voucher_type === VoucherType.JOURNAL && isBuyJournal(v)) {
+      buyVouchers.push(v);
     } else {
       others.push(v);
     }
   }
 
-  // Group purchases by merge key: date | stock-DR-ledger-name | rate
+  // Group buy vouchers by merge key: date | stock-DR-ledger-name | rate
   const groups = new Map<string, BuiltVoucherDraft[]>();
   const ungrouped: BuiltVoucherDraft[] = [];
 
-  for (const v of purchases) {
+  for (const v of buyVouchers) {
     const stockDrLine = v.lines.find((l) => l.dr_cr === 'DR' && l.quantity !== null);
     if (!stockDrLine) {
       // No stock DR line — cannot determine a merge key; keep as-is.
@@ -65,19 +75,19 @@ export function mergeSameRatePurchaseVouchers(
     groups.get(key)!.push(v);
   }
 
-  const mergedPurchases: BuiltVoucherDraft[] = [...ungrouped];
+  const mergedBuys: BuiltVoucherDraft[] = [...ungrouped];
 
   for (const group of groups.values()) {
     if (group.length === 1) {
-      mergedPurchases.push(group[0]);
+      mergedBuys.push(group[0]);
       continue;
     }
 
-    mergedPurchases.push(mergeGroup(group));
+    mergedBuys.push(mergeGroup(group));
   }
 
   // Preserve chronological ordering across all voucher types
-  return [...mergedPurchases, ...others].sort((a, b) =>
+  return [...mergedBuys, ...others].sort((a, b) =>
     a.voucher_date.localeCompare(b.voucher_date),
   );
 }
@@ -85,6 +95,16 @@ export function mergeSameRatePurchaseVouchers(
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * A JOURNAL voucher is a "buy journal" (investor-mode purchase) when it has a
+ * stock DR line — a DR line with non-null quantity. Non-buy journals (corporate
+ * actions, off-market transfers, sell journals) either lack a stock DR line or
+ * have the stock line on the CR side.
+ */
+function isBuyJournal(v: BuiltVoucherDraft): boolean {
+  return v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null);
+}
 
 function mergeGroup(group: BuiltVoucherDraft[]): BuiltVoucherDraft {
   const base = group[0];

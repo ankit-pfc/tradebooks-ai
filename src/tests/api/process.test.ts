@@ -85,9 +85,10 @@ describe('process pipeline (tradebook-only)', () => {
         const tracker = new CostLotTracker();
         const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
 
+        // Investor mode: buy/sell trades produce JOURNAL vouchers
         const types = vouchers.map((v) => v.voucher_type);
-        expect(types).toContain('PURCHASE');
-        expect(types).toContain('SALES');
+        expect(types).toContain('JOURNAL');
+        expect(types.every((t) => t === 'JOURNAL')).toBe(true);
     });
 
     it('produces reconciliation-ready check data', () => {

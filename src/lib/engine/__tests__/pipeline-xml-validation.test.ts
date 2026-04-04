@@ -137,7 +137,7 @@ function runPipeline() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('XML contract note pipeline — Bug 1: sell trades generate SALES vouchers', () => {
+describe('XML contract note pipeline — Bug 1: sell trades generate JOURNAL vouchers (investor mode)', () => {
   it('parses the XML and produces both BUY_TRADE and SELL_TRADE events', () => {
     const { events } = runPipeline();
     const trades = events.filter((e) =>
@@ -150,19 +150,22 @@ describe('XML contract note pipeline — Bug 1: sell trades generate SALES vouch
     expect(sells).toHaveLength(1); // one sell trade
   });
 
-  it('produces SALES vouchers (not just PURCHASE)', () => {
+  it('investor buy/sell both produce JOURNAL vouchers', () => {
     const { vouchers } = runPipeline();
     const types = vouchers.map((v) => v.voucher_type);
-    expect(types).toContain(VoucherType.SALES);
+    // Investor mode: all trades are JOURNAL (not PURCHASE/SALES)
+    expect(types.every((t) => t === VoucherType.JOURNAL)).toBe(true);
   });
 
-  it('SALES voucher has a CR line on the investment ledger (cost basis)', () => {
+  it('sell JOURNAL voucher has a CR line on the investment ledger (cost basis)', () => {
     const { vouchers } = runPipeline();
-    const salesVoucher = vouchers.find((v) => v.voucher_type === VoucherType.SALES)!;
-    expect(salesVoucher).toBeDefined();
+    // Sell journal is the one with a CR line that has quantity (selling stock)
+    const sellVoucher = vouchers.find((v) =>
+      v.lines.some((l) => l.dr_cr === 'CR' && l.quantity !== null),
+    )!;
+    expect(sellVoucher).toBeDefined();
 
-    // TallyProfile names the ledger after the symbol (e.g. "RELIANCE-SH")
-    const investmentCr = salesVoucher.lines.find(
+    const investmentCr = sellVoucher.lines.find(
       (l) => l.dr_cr === 'CR' && l.quantity !== null,
     );
     expect(investmentCr).toBeDefined();
@@ -170,82 +173,105 @@ describe('XML contract note pipeline — Bug 1: sell trades generate SALES vouch
     expect(parseFloat(investmentCr!.amount)).toBeGreaterThan(250000);
   });
 
-  it('SALES voucher has a DR line for broker (net sale proceeds)', () => {
+  it('sell JOURNAL voucher has a DR line for broker (net sale proceeds)', () => {
     const { vouchers } = runPipeline();
-    const salesVoucher = vouchers.find((v) => v.voucher_type === VoucherType.SALES)!;
-    const brokerDr = salesVoucher.lines.find((l) => l.dr_cr === 'DR' && l.ledger_name.toLowerCase().includes('zerodha'));
+    const sellVoucher = vouchers.find((v) =>
+      v.lines.some((l) => l.dr_cr === 'CR' && l.quantity !== null),
+    )!;
+    const brokerDr = sellVoucher.lines.find((l) => l.dr_cr === 'DR' && l.ledger_name.toLowerCase().includes('zerodha'));
     expect(brokerDr).toBeDefined();
     // Net proceeds = 270000 - sell charges
     expect(parseFloat(brokerDr!.amount)).toBeLessThan(270000);
     expect(parseFloat(brokerDr!.amount)).toBeGreaterThan(0);
   });
 
-  it('SALES voucher is balanced (total_debit === total_credit)', () => {
+  it('sell JOURNAL voucher is balanced (total_debit === total_credit)', () => {
     const { vouchers } = runPipeline();
-    const salesVoucher = vouchers.find((v) => v.voucher_type === VoucherType.SALES)!;
-    expect(salesVoucher.total_debit).toBe(salesVoucher.total_credit);
+    const sellVoucher = vouchers.find((v) =>
+      v.lines.some((l) => l.dr_cr === 'CR' && l.quantity !== null),
+    )!;
+    expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
   });
 
-  it('transactionsXml contains a Sales voucher entry', () => {
+  it('transactionsXml contains Journal voucher entries (investor mode)', () => {
     const { transactionsXml } = runPipeline();
-    // Tally XML uses VCHTYPE attribute on the VOUCHER element
-    expect(transactionsXml).toContain('VCHTYPE="Sales"');
+    expect(transactionsXml).toContain('VCHTYPE="Journal"');
   });
 
-  it('transactionsXml contains a Purchase voucher entry', () => {
+  it('transactionsXml does NOT contain Purchase or Sales voucher entries (investor mode)', () => {
     const { transactionsXml } = runPipeline();
-    expect(transactionsXml).toContain('VCHTYPE="Purchase"');
+    expect(transactionsXml).not.toContain('VCHTYPE="Purchase"');
+    expect(transactionsXml).not.toContain('VCHTYPE="Sales"');
   });
 });
 
 describe('XML contract note pipeline — Bug 2: same-rate partial fills are merged', () => {
-  it('raw vouchers have 2 PURCHASE vouchers (one per fill)', () => {
+  it('raw vouchers have 2 buy JOURNAL vouchers (one per fill)', () => {
     const { rawVouchers } = runPipeline();
-    const purchases = rawVouchers.filter((v) => v.voucher_type === VoucherType.PURCHASE);
-    expect(purchases).toHaveLength(2);
+    // Investor mode: buy trades produce JOURNAL vouchers
+    const buyJournals = rawVouchers.filter((v) =>
+      v.voucher_type === VoucherType.JOURNAL &&
+      v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null),
+    );
+    expect(buyJournals).toHaveLength(2);
   });
 
-  it('after merge, only 1 PURCHASE voucher remains', () => {
+  it('after merge, only 1 buy JOURNAL voucher remains', () => {
     const { vouchers } = runPipeline();
-    const purchases = vouchers.filter((v) => v.voucher_type === VoucherType.PURCHASE);
-    expect(purchases).toHaveLength(1);
+    const buyJournals = vouchers.filter((v) =>
+      v.voucher_type === VoucherType.JOURNAL &&
+      v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null),
+    );
+    expect(buyJournals).toHaveLength(1);
   });
 
-  it('merged PURCHASE voucher has combined quantity (100 shares)', () => {
+  it('merged buy JOURNAL voucher has combined quantity (100 shares)', () => {
     const { vouchers } = runPipeline();
-    const purchase = vouchers.find((v) => v.voucher_type === VoucherType.PURCHASE)!;
-    const stockDrLine = purchase.lines.find(
+    const buyJournal = vouchers.find((v) =>
+      v.voucher_type === VoucherType.JOURNAL &&
+      v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null),
+    )!;
+    const stockDrLine = buyJournal.lines.find(
       (l) => l.dr_cr === 'DR' && l.quantity !== null,
     )!;
     expect(stockDrLine).toBeDefined();
     expect(parseFloat(stockDrLine.quantity!)).toBe(100); // 50 + 50
   });
 
-  it('merged PURCHASE voucher has combined gross amount (250,000 + charges)', () => {
+  it('merged buy JOURNAL voucher has combined gross amount (250,000 + charges)', () => {
     const { vouchers } = runPipeline();
-    const purchase = vouchers.find((v) => v.voucher_type === VoucherType.PURCHASE)!;
-    const stockDrLine = purchase.lines.find(
+    const buyJournal = vouchers.find((v) =>
+      v.voucher_type === VoucherType.JOURNAL &&
+      v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null),
+    )!;
+    const stockDrLine = buyJournal.lines.find(
       (l) => l.dr_cr === 'DR' && l.quantity !== null,
     )!;
     // Investor HYBRID mode capitalises charges: 250000 + (20+25+5+3.60) = 250053.60
     expect(parseFloat(stockDrLine.amount)).toBeGreaterThan(250000);
   });
 
-  it('merged PURCHASE voucher source_event_ids covers both fills', () => {
+  it('merged buy JOURNAL voucher source_event_ids covers both fills', () => {
     const { vouchers, rawVouchers } = runPipeline();
-    const rawPurchases = rawVouchers.filter((v) => v.voucher_type === VoucherType.PURCHASE);
-    const mergedPurchase = vouchers.find((v) => v.voucher_type === VoucherType.PURCHASE)!;
+    const rawBuyJournals = rawVouchers.filter((v) =>
+      v.voucher_type === VoucherType.JOURNAL &&
+      v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null),
+    );
+    const mergedBuyJournal = vouchers.find((v) =>
+      v.voucher_type === VoucherType.JOURNAL &&
+      v.lines.some((l) => l.dr_cr === 'DR' && l.quantity !== null),
+    )!;
 
-    const rawTradeEventIds = rawPurchases.flatMap((v) => v.source_event_ids);
+    const rawTradeEventIds = rawBuyJournals.flatMap((v) => v.source_event_ids);
     for (const id of rawTradeEventIds) {
-      expect(mergedPurchase.source_event_ids).toContain(id);
+      expect(mergedBuyJournal.source_event_ids).toContain(id);
     }
   });
 
-  it('transactionsXml has exactly one Purchase voucher node', () => {
+  it('transactionsXml has exactly two Journal voucher nodes (1 merged buy + 1 sell)', () => {
     const { transactionsXml } = runPipeline();
-    const purchaseMatches = transactionsXml.match(/VCHTYPE="Purchase"/gi) ?? [];
-    expect(purchaseMatches).toHaveLength(1);
+    const journalMatches = transactionsXml.match(/VCHTYPE="Journal"/gi) ?? [];
+    expect(journalMatches).toHaveLength(2);
   });
 });
 
