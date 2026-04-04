@@ -293,7 +293,8 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   for (const v of vouchers) {
     for (const line of v.lines ?? []) {
       if (line.quantity !== null && line.rate !== null) {
-        stockItemNames.add(line.ledger_name);
+        const itemName = line.stock_item_name ?? line.ledger_name;
+        stockItemNames.add(itemName);
       }
     }
   }

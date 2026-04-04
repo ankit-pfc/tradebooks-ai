@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,18 @@ function getSelectedPeriodValue(from: string, to: string): string {
 
 function isValidDateRange(from: string, to: string): boolean {
   return Boolean(from && to && from < to);
+}
+
+function toFilenameSafe(s: string): string {
+  return s.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function deriveFYSuffix(from: string, to: string): string {
+  if (!from || !to) return '';
+  const fromYear = new Date(from).getFullYear();
+  const toYear = new Date(to).getFullYear();
+  if (isNaN(fromYear) || isNaN(toYear)) return '';
+  return `FY${fromYear}-${String(toYear).slice(2)}`;
 }
 
 function downloadXml(xml: string, filename: string) {
@@ -167,7 +179,8 @@ function StepConfigure({
 }) {
   const [priorBatches, setPriorBatches] = useState<PriorBatch[]>([]);
   const [loadingPrior, setLoadingPrior] = useState(false);
-  const isCustomRange = getSelectedPeriodValue(formData.periodFrom, formData.periodTo) === CUSTOM_RANGE_VALUE;
+  const [customRangeActive, setCustomRangeActive] = useState(false);
+  const isCustomRange = customRangeActive || getSelectedPeriodValue(formData.periodFrom, formData.periodTo) === CUSTOM_RANGE_VALUE;
   const hasPeriodError = isCustomRange && !isValidDateRange(formData.periodFrom, formData.periodTo);
 
   // Fetch prior batches when company name changes (debounced)
@@ -254,7 +267,7 @@ function StepConfigure({
       {/* Company Name */}
       <div className="space-y-1.5">
         <Label htmlFor="company-name" className="text-base font-medium text-gray-800">
-          Tally Company Name
+          Company Name in Tally
         </Label>
         <Input
           id="company-name"
@@ -264,7 +277,7 @@ function StepConfigure({
           className="border-gray-200"
         />
         <p className="text-sm text-gray-600">
-          Must match exactly as configured in your Tally company.
+          This name will appear in the imported Tally XML. Tally will create or use an existing company with this name — there&apos;s no validation against your Tally data.
         </p>
       </div>
 
@@ -275,13 +288,15 @@ function StepConfigure({
         </Label>
         <select
           className={SELECT_CLASSES}
-          value={getSelectedPeriodValue(formData.periodFrom, formData.periodTo)}
+          value={customRangeActive ? CUSTOM_RANGE_VALUE : getSelectedPeriodValue(formData.periodFrom, formData.periodTo)}
           onChange={(e) => {
             if (e.target.value === CUSTOM_RANGE_VALUE) {
+              setCustomRangeActive(true);
               onChange({ periodFrom: "", periodTo: "" });
               return;
             }
 
+            setCustomRangeActive(false);
             const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
             if (fy) onChange({ periodFrom: fy.from, periodTo: fy.to });
           }}
@@ -377,10 +392,10 @@ function StepConfigure({
       </div>
 
       {/* Prior Batch (Opening Balances) */}
-      {priorBatches.length > 0 && (
+      {priorBatches.length > 0 ? (
         <div className="space-y-1.5">
           <Label htmlFor="prior-batch" className="text-base font-medium text-gray-800">
-            Opening Balances (Optional)
+            Carry Forward from Prior Period (Optional)
           </Label>
           <select
             id="prior-batch"
@@ -399,7 +414,14 @@ function StepConfigure({
           <p className="text-sm text-gray-600">
             {loadingPrior
               ? "Loading prior batches..."
-              : "Carry forward closing cost lots from a prior financial year."}
+              : "Select a previous batch to carry forward its closing stock positions as opening balances for this period. Use this when importing month-by-month or quarter-by-quarter so each period picks up where the last left off."}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <p className="text-sm font-medium text-gray-700">Multi-period imports</p>
+          <p className="text-sm text-gray-600 mt-0.5">
+            After your first completed import, you can link subsequent periods here to carry forward closing holdings automatically.
           </p>
         </div>
       )}
@@ -460,9 +482,10 @@ function StepUpload({
   onFormChange: (d: Partial<UploadFormData>) => void;
 }) {
   const [editingFY, setEditingFY] = useState(false);
+  const [customRangeActive, setCustomRangeActive] = useState(false);
   const { state } = batchUpload;
   const selectedPeriodValue = getSelectedPeriodValue(formData.periodFrom, formData.periodTo);
-  const isCustomRange = selectedPeriodValue === CUSTOM_RANGE_VALUE;
+  const isCustomRange = customRangeActive || selectedPeriodValue === CUSTOM_RANGE_VALUE;
   const hasPeriodError = isCustomRange && !isValidDateRange(formData.periodFrom, formData.periodTo);
 
   const fileList = Array.from(state.files.values());
@@ -534,13 +557,15 @@ function StepUpload({
           <div className="flex items-center gap-2 mt-2">
             <select
               className="h-9 rounded-lg border border-indigo-200 bg-white px-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-              value={selectedPeriodValue}
+              value={customRangeActive ? CUSTOM_RANGE_VALUE : selectedPeriodValue}
               onChange={(e) => {
                 if (e.target.value === CUSTOM_RANGE_VALUE) {
+                  setCustomRangeActive(true);
                   onFormChange({ periodFrom: '', periodTo: '' });
                   return;
                 }
 
+                setCustomRangeActive(false);
                 const fy = FY_OPTIONS.find((o) => `${o.from}|${o.to}` === e.target.value);
                 if (fy) {
                   onFormChange({ periodFrom: fy.from, periodTo: fy.to });
@@ -815,16 +840,46 @@ function StepProcessing({
 function StepResults({
   result,
   onStartOver,
+  companyName,
+  periodFrom,
+  periodTo,
 }: {
   result: ProcessingResult;
   onStartOver: () => void;
+  companyName: string;
+  periodFrom: string;
+  periodTo: string;
 }) {
+  const router = useRouter();
+  const [hasDownloaded, setHasDownloaded] = useState(false);
+
+  useEffect(() => {
+    if (hasDownloaded) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasDownloaded]);
+
+  function handleNavAway(href: string) {
+    if (!hasDownloaded && !confirm('Download your XML files before leaving? You can also re-download anytime from the Batches page.')) return;
+    router.push(href);
+  }
+
+  const fySuffix = deriveFYSuffix(periodFrom, periodTo);
+  const safeCompany = toFilenameSafe(companyName);
+  const mastersFilename = safeCompany && fySuffix
+    ? `${safeCompany}_Ledger_Masters_${fySuffix}.xml`
+    : 'tally-masters.xml';
+  const transactionsFilename = safeCompany && fySuffix
+    ? `${safeCompany}_Transactions_${fySuffix}.xml`
+    : 'tally-transactions.xml';
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">
-            Import Complete
+            Import Complete — Review &amp; Download
           </h2>
           <p className="text-base text-gray-700 mt-1">
             Review your reconciliation summary and download the output files.
@@ -851,10 +906,10 @@ function StepResults({
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Trades Parsed", value: result.tradeCount, color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200" },
-          { label: "Events Built", value: result.eventCount, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
-          { label: "Vouchers", value: result.voucherCount, color: "text-violet-700", bg: "bg-violet-50 border-violet-200" },
-          { label: "Ledgers", value: result.ledgerCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+          { label: "Trades Parsed", sub: "from your tradebook CSV", value: result.tradeCount, color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200" },
+          { label: "Accounting Events", sub: "buys, sells & corporate actions", value: result.eventCount, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
+          { label: "Vouchers", sub: "ready to import into Tally", value: result.voucherCount, color: "text-violet-700", bg: "bg-violet-50 border-violet-200" },
+          { label: "Ledgers", sub: "scrip/account definitions", value: result.ledgerCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
         ].map((item) => (
           <div
             key={item.label}
@@ -863,6 +918,9 @@ function StepResults({
             <p className={`text-3xl font-bold ${item.color}`}>{item.value}</p>
             <p className={`text-sm font-medium mt-0.5 ${item.color}`}>
               {item.label}
+            </p>
+            <p className={`text-xs mt-0.5 opacity-70 ${item.color}`}>
+              {item.sub}
             </p>
           </div>
         ))}
@@ -931,7 +989,8 @@ function StepResults({
           {result.mastersArtifactId ? (
             <a
               href={`/api/artifacts/${result.batchId}/${result.mastersArtifactId}`}
-              download="tally-masters.xml"
+              download={mastersFilename}
+              onClick={() => setHasDownloaded(true)}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
             >
               <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
@@ -958,7 +1017,7 @@ function StepResults({
             </a>
           ) : (
             <button
-              onClick={() => downloadXml(result.mastersXml, "tally-masters.xml")}
+              onClick={() => { downloadXml(result.mastersXml, mastersFilename); setHasDownloaded(true); }}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
             >
               <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
@@ -987,7 +1046,8 @@ function StepResults({
           {result.transactionsArtifactId ? (
             <a
               href={`/api/artifacts/${result.batchId}/${result.transactionsArtifactId}`}
-              download="tally-transactions.xml"
+              download={transactionsFilename}
+              onClick={() => setHasDownloaded(true)}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
             >
               <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
@@ -1012,7 +1072,7 @@ function StepResults({
             </a>
           ) : (
             <button
-              onClick={() => downloadXml(result.transactionsXml, "tally-transactions.xml")}
+              onClick={() => { downloadXml(result.transactionsXml, transactionsFilename); setHasDownloaded(true); }}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
             >
               <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
@@ -1037,22 +1097,25 @@ function StepResults({
             </button>
           )}
         </div>
+        <p className="text-xs text-gray-500 mt-1">
+          Files are also saved and re-downloadable anytime from the Batches page.
+        </p>
       </div>
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">
-        <Link
-          href="/batches"
+        <button
+          onClick={() => handleNavAway('/batches')}
           className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
         >
           View in Batches &rarr;
-        </Link>
-        <Link
-          href="/dashboard"
+        </button>
+        <button
+          onClick={() => handleNavAway('/dashboard')}
           className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
         >
           View Dashboard
-        </Link>
+        </button>
         <Button
           onClick={onStartOver}
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -1183,7 +1246,13 @@ export default function UploadPage() {
             />
           )}
           {step === 4 && processingResult && (
-            <StepResults result={processingResult} onStartOver={handleReset} />
+            <StepResults
+              result={processingResult}
+              onStartOver={handleReset}
+              companyName={formData.companyName}
+              periodFrom={formData.periodFrom}
+              periodTo={formData.periodTo}
+            />
           )}
         </CardContent>
       </Card>

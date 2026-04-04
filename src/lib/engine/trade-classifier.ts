@@ -95,8 +95,10 @@ export function classificationToAccountingMode(
 ): AccountingMode | null {
     switch (classification) {
         case TradeClassification.INVESTMENT:
-            return AccountingMode.INVESTOR;
         case TradeClassification.SPECULATIVE_BUSINESS:
+            // Both investment and speculative use INVESTOR mode to produce
+            // Journal vouchers with inventory allocation.
+            return AccountingMode.INVESTOR;
         case TradeClassification.NON_SPECULATIVE_BUSINESS:
             return AccountingMode.TRADER;
         case TradeClassification.PROFILE_DRIVEN:

@@ -97,15 +97,26 @@ function isDeemedPositive(drCr: 'DR' | 'CR'): string {
 }
 
 /**
- * Signs a quantity string for Tally's INVENTORYENTRIES.LIST.
+ * Format a quantity string for Tally's INVENTORYALLOCATIONS.LIST.
  * DR lines = stock IN → positive qty.
  * CR lines = stock OUT → negative qty.
+ * TallyPrime expects format: " <number> <unit>" (e.g., " 10 SH").
  */
-function tallyQty(qty: string, drCr: 'DR' | 'CR'): string {
+function tallyQty(qty: string, drCr: 'DR' | 'CR', unit = 'SH'): string {
   const n = parseFloat(qty);
-  if (isNaN(n)) return '0';
+  if (isNaN(n)) return `0 ${unit}`;
   const abs = Math.abs(n);
-  return drCr === 'DR' ? String(abs) : `-${abs}`;
+  return drCr === 'DR' ? `${abs} ${unit}` : `-${abs} ${unit}`;
+}
+
+/**
+ * Format a rate string for Tally's INVENTORYALLOCATIONS.LIST.
+ * TallyPrime expects format: "<number>/<unit>" (e.g., "100.00/SH").
+ */
+function tallyRate(rate: string, unit = 'SH'): string {
+  const n = parseFloat(rate);
+  if (isNaN(n)) return `0/${unit}`;
+  return `${Math.abs(n).toFixed(2)}/${unit}`;
 }
 
 /**
@@ -320,11 +331,14 @@ export function generateVouchersXml(
         .txt(tallyAmount(line.amount, line.dr_cr));
 
       if (line.quantity !== null && line.rate !== null) {
-        const stockEntry = entry.ele('INVENTORYENTRIES.LIST');
-        stockEntry.ele('STOCKITEMNAME').txt(line.ledger_name);
+        const stockItemName = line.stock_item_name ?? line.ledger_name;
+        const stockEntry = entry.ele('INVENTORYALLOCATIONS.LIST');
+        stockEntry.ele('STOCKITEMNAME').txt(stockItemName);
+        stockEntry.ele('ISDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
+        stockEntry.ele('ISLASTDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
         stockEntry.ele('ACTUALQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('BILLEDQTY').txt(tallyQty(line.quantity, line.dr_cr));
-        stockEntry.ele('RATE').txt(line.rate);
+        stockEntry.ele('RATE').txt(tallyRate(line.rate));
         stockEntry.ele('AMOUNT').txt(tallyAmount(line.amount, line.dr_cr));
       }
 

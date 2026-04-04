@@ -125,7 +125,7 @@ describe('deriveEffectiveProfile routing via build vouchers', () => {
     expect(findLine(voucher.lines, 'Brokerage', 'DR')).toBeUndefined();
   });
 
-  it('routes speculative sells to trader structure even under investor profile', () => {
+  it('routes speculative sells to investor/journal structure with speculation gain/loss ledger', () => {
     const event = makeSellEvent({
       trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
       trade_product: 'MIS',
@@ -142,9 +142,13 @@ describe('deriveEffectiveProfile routing via build vouchers', () => {
 
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], costDisposals, 0);
 
-    expect(findLine(voucher.lines, 'Trading Sales', 'CR')).toBeDefined();
-    expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeDefined();
-    expect(voucher.lines.some((line) => line.ledger_name.includes('Speculative'))).toBe(false);
+    // Speculative sells use investor-style Journal with inventory allocation
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+    // Should NOT have trader-style ledgers
+    expect(findLine(voucher.lines, 'Trading Sales', 'CR')).toBeUndefined();
+    expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeUndefined();
+    // Should have speculation gain/loss ledger
+    expect(voucher.lines.some((line) => line.ledger_name.includes('Speculative') || line.ledger_name.includes('Speculation'))).toBe(true);
   });
 
   it('adds MTF review flag to narrative while keeping investor-style purchase treatment', () => {
@@ -876,11 +880,14 @@ describe('buildVouchers — mixed batch per-trade profile branching', () => {
     expect(findLine(cncSell.lines, 'Investment in Equity Shares', 'CR')).toBeDefined();
     expect(cncSell.lines.some((line) => line.ledger_name.includes('Speculative'))).toBe(false);
 
-    expect(findLine(misBuy.lines, 'Shares-in-Trade', 'DR')).toBeDefined();
+    // MIS (speculative) now uses investor/journal structure with inventory
+    expect(findLine(misBuy.lines, 'Investment in Equity Shares', 'DR')).toBeDefined();
     expect(findLine(misBuy.lines, 'Brokerage', 'DR')?.amount).toBe('8.00');
 
-    expect(findLine(misSell.lines, 'Trading Sales', 'CR')).toBeDefined();
-    expect(findLine(misSell.lines, 'Cost of Shares Sold', 'DR')).toBeDefined();
+    // MIS sell uses investor structure: no Trading Sales / Cost of Shares Sold
+    expect(misSell.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(findLine(misSell.lines, 'Trading Sales', 'CR')).toBeUndefined();
+    expect(findLine(misSell.lines, 'Cost of Shares Sold', 'DR')).toBeUndefined();
 
     expect(findLine(nrmlBuy.lines, 'Shares-in-Trade', 'DR')).toBeDefined();
     expect(findLine(nrmlSell.lines, 'Trading Sales', 'CR')).toBeDefined();

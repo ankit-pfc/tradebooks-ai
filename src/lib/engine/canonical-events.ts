@@ -75,38 +75,31 @@ function normaliseSecurityToken(value: string): string {
   return value.trim().toUpperCase();
 }
 
-function normaliseIsin(isin?: string | null): string | null {
-  const cleaned = isin?.trim().toUpperCase();
-  if (!cleaned || cleaned === 'NA' || cleaned === 'N/A' || cleaned === '-') {
-    return null;
-  }
-  return cleaned;
-}
 
 /**
  * Build the canonical security_id used throughout the engine.
  *
  * Unified convention:
- * - when ISIN is available, unify across exchanges by using plain SYMBOL
- * - when ISIN is unavailable but the segment is an equity-delivery segment,
- *   use EQ:SYMBOL so BSE/NSE delivery trades share the same FIFO lots
- * - otherwise, fall back to EXCHANGE:SYMBOL
+ * - For equity-delivery segments (EQ, BE, Equity, NSE-EQ, BSE-EQ), always
+ *   use EQ:SYMBOL so BSE/NSE delivery trades share the same FIFO lots.
+ *   ISIN is stored as metadata but does NOT affect the security_id — this
+ *   avoids splits when one row has ISIN and another doesn't.
+ * - For non-equity segments (F&O, CDS, MCX), keep EXCHANGE:SYMBOL.
  */
 export function buildUnifiedSecurityId(
   exchange: string,
   symbol: string,
-  isin?: string | null,
+  _isin?: string | null,
   segment?: string,
 ): string {
   const normalizedSymbol = normaliseSecurityToken(symbol);
   const isEquity = segment ? isEquitySegment(segment) : false;
 
   if (isEquity) {
-    // Equity-delivery: unify BSE/NSE via ISIN when available, EQ: prefix otherwise.
-    return normaliseIsin(isin) ? normalizedSymbol : `EQ:${normalizedSymbol}`;
+    return `EQ:${normalizedSymbol}`;
   }
 
-  // Non-equity (F&O, CDS, …): always keep EXCHANGE:SYMBOL regardless of ISIN.
+  // Non-equity (F&O, CDS, …): always keep EXCHANGE:SYMBOL.
   return `${exchange.trim().toUpperCase()}:${normalizedSymbol}`;
 }
 
@@ -457,7 +450,9 @@ export function buildSecurityIdFromDescription(
   const cleaned = description.trim().toUpperCase();
   const mappedSymbol = symbolByDescription?.get(cleaned);
   if (mappedSymbol) {
-    return mappedSymbol;
+    // Run through the same unification logic so CN events and tradebook
+    // events for the same scrip produce identical security_ids.
+    return buildSecurityId(exchange, mappedSymbol, segment);
   }
   // Use the first word as the symbol approximation
   const firstWord = cleaned.split(/\s+/)[0] || cleaned;

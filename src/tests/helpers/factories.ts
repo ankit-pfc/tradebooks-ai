@@ -207,6 +207,7 @@ export function makeVoucherLine(overrides: Partial<VoucherLine> = {}): VoucherLi
     security_id: null,
     quantity: null,
     rate: null,
+    stock_item_name: null,
     cost_center: null,
     bill_ref: null,
     ...overrides,

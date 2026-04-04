@@ -48,6 +48,11 @@ function symbolFromSecurityId(securityId: string | null): string {
   return parts.length > 1 ? parts[1] : securityId;
 }
 
+/** Build the Tally stock item name for a security (symbol + "-SH" suffix). */
+function stockItemNameForSecurity(securityId: string | null): string {
+  return `${symbolFromSecurityId(securityId)}-SH`;
+}
+
 /** Build a VoucherLine with an auto-generated ID. */
 function makeLine(
   draftId: string,
@@ -59,6 +64,7 @@ function makeLine(
     security_id?: string | null;
     quantity?: string | null;
     rate?: string | null;
+    stock_item_name?: string | null;
   },
 ): VoucherLine {
   return {
@@ -71,6 +77,7 @@ function makeLine(
     security_id: opts?.security_id ?? null,
     quantity: opts?.quantity ?? null,
     rate: opts?.rate ?? null,
+    stock_item_name: opts?.stock_item_name ?? null,
     cost_center: null,
     bill_ref: null,
   };
@@ -112,6 +119,14 @@ export function deriveEffectiveProfile(
         charge_treatment: ChargeTreatment.HYBRID,
       };
     case TradeClassification.SPECULATIVE_BUSINESS:
+      // Intraday/speculative trades use INVESTOR mode to produce Journal
+      // vouchers with inventory allocation and gain/loss routing to the
+      // Speculative Business Income group, per CA convention.
+      return {
+        ...profile,
+        mode: AccountingMode.INVESTOR,
+        charge_treatment: ChargeTreatment.EXPENSE,
+      };
     case TradeClassification.NON_SPECULATIVE_BUSINESS:
       return {
         ...profile,
@@ -250,6 +265,7 @@ export function buildBuyVoucher(
         security_id: event.security_id,
         quantity: event.quantity,
         rate: effectiveRate,
+        stock_item_name: stockItemNameForSecurity(event.security_id),
       }),
     );
   } else {
@@ -259,6 +275,7 @@ export function buildBuyVoucher(
         security_id: event.security_id,
         quantity: event.quantity,
         rate: event.rate,
+        stock_item_name: stockItemNameForSecurity(event.security_id),
       }),
     );
     // DR: each charge to its expense ledger
@@ -392,6 +409,7 @@ export function buildSellVoucher(
           security_id: event.security_id,
           quantity: event.quantity,
           rate: costPerUnit,
+          stock_item_name: stockItemNameForSecurity(event.security_id),
         }),
       );
     }
@@ -428,8 +446,17 @@ export function buildSellVoucher(
         lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss.abs(), 'DR'));
       }
     } else {
+      const isSpeculation = effectiveHoldingDays === 0;
       const isLongTerm = effectiveHoldingDays !== undefined && effectiveHoldingDays > 365;
-      if (isGain) {
+      if (isSpeculation) {
+        // Route to speculation gain/loss ledger
+        const specLedger = isGain ? L.SPECULATIVE_PROFIT.name : L.SPECULATIVE_LOSS.name;
+        if (isGain) {
+          lines.push(makeLine(draftId, lineNo++, specLedger, totalGainLoss, 'CR'));
+        } else {
+          lines.push(makeLine(draftId, lineNo++, specLedger, totalGainLoss.abs(), 'DR'));
+        }
+      } else if (isGain) {
         const gainLedger = isLongTerm ? L.LTCG_PROFIT.name : L.STCG_PROFIT.name;
         lines.push(makeLine(draftId, lineNo++, gainLedger, totalGainLoss, 'CR'));
       } else {
@@ -484,6 +511,7 @@ export function buildSellVoucher(
           security_id: event.security_id,
           quantity: event.quantity,
           rate: costPerUnit,
+          stock_item_name: stockItemNameForSecurity(event.security_id),
         }),
       );
     }

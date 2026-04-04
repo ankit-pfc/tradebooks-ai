@@ -397,10 +397,10 @@ describe('ALLLEDGERENTRIES.LIST conformance', () => {
 });
 
 // ---------------------------------------------------------------------------
-// INVENTORYENTRIES.LIST conformance
+// INVENTORYALLOCATIONS.LIST conformance
 // ---------------------------------------------------------------------------
 
-describe('INVENTORYENTRIES.LIST conformance', () => {
+describe('INVENTORYALLOCATIONS.LIST conformance', () => {
   function getEntries(xml: string) {
     const doc = parseXml(xml);
     const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
@@ -408,7 +408,7 @@ describe('INVENTORYENTRIES.LIST conformance', () => {
     return asArray(voucher?.['ALLLEDGERENTRIES.LIST']);
   }
 
-  it('purchase DR line emits positive inventory quantity and matching signed amount', () => {
+  it('purchase DR line emits positive inventory quantity with UOM and matching signed amount', () => {
     const purchaseVoucher = makeVoucher({
       voucher_type: VoucherType.PURCHASE,
       lines: [
@@ -430,16 +430,17 @@ describe('INVENTORYENTRIES.LIST conformance', () => {
     });
 
     const entries = getEntries(generateVouchersXml([purchaseVoucher], 'Co'));
-    const inventoryEntry = entries[0]['INVENTORYENTRIES.LIST'];
+    const inventoryEntry = entries[0]['INVENTORYALLOCATIONS.LIST'];
 
-    expect(inventoryEntry.ACTUALQTY).toBe('10');
-    expect(inventoryEntry.BILLEDQTY).toBe('10');
+    expect(inventoryEntry.ACTUALQTY).toBe('10 SH');
+    expect(inventoryEntry.BILLEDQTY).toBe('10 SH');
     expect(inventoryEntry.STOCKITEMNAME).toBe('RELIANCE-SH');
     expect(inventoryEntry.AMOUNT).toBe('-25000.00');
-    expect(inventoryEntry.RATE).toBe('2500');
+    expect(inventoryEntry.RATE).toBe('2500.00/SH');
+    expect(inventoryEntry.ISDEEMEDPOSITIVE).toBe('Yes');
   });
 
-  it('sales CR line emits negative inventory quantity and matching signed amount', () => {
+  it('sales CR line emits negative inventory quantity with UOM and matching signed amount', () => {
     const salesVoucher = makeVoucher({
       voucher_type: VoucherType.SALES,
       lines: [
@@ -461,14 +462,15 @@ describe('INVENTORYENTRIES.LIST conformance', () => {
     });
 
     const entries = getEntries(generateVouchersXml([salesVoucher], 'Co'));
-    const inventoryEntry = entries[1]['INVENTORYENTRIES.LIST'];
+    const inventoryEntry = entries[1]['INVENTORYALLOCATIONS.LIST'];
 
-    expect(inventoryEntry.ACTUALQTY).toBe('-10');
-    expect(inventoryEntry.BILLEDQTY).toBe('-10');
+    expect(inventoryEntry.ACTUALQTY).toBe('-10 SH');
+    expect(inventoryEntry.BILLEDQTY).toBe('-10 SH');
     expect(inventoryEntry.AMOUNT).toBe('25000.00');
+    expect(inventoryEntry.ISDEEMEDPOSITIVE).toBe('No');
   });
 
-  it('omits INVENTORYENTRIES.LIST on non-stock lines', () => {
+  it('omits INVENTORYALLOCATIONS.LIST on non-stock lines', () => {
     const voucher = makeVoucher({
       voucher_type: VoucherType.PURCHASE,
       lines: [
@@ -491,7 +493,7 @@ describe('INVENTORYENTRIES.LIST conformance', () => {
 
     const entries = getEntries(generateVouchersXml([voucher], 'Co'));
 
-    expect(entries[1]['INVENTORYENTRIES.LIST']).toBeUndefined();
+    expect(entries[1]['INVENTORYALLOCATIONS.LIST']).toBeUndefined();
   });
 
   it('full sell trade balances all ledger entries and keeps inventory on the stock line', () => {
@@ -528,8 +530,8 @@ describe('INVENTORYENTRIES.LIST conformance', () => {
     );
 
     expect(Math.abs(sum)).toBeLessThan(0.01);
-    expect(entries[1]['INVENTORYENTRIES.LIST']).toBeDefined();
-    expect(entries[1]['INVENTORYENTRIES.LIST'].ACTUALQTY).toBe('-10');
+    expect(entries[1]['INVENTORYALLOCATIONS.LIST']).toBeDefined();
+    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('-10 SH');
   });
 });
 

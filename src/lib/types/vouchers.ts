@@ -85,6 +85,10 @@ export interface VoucherLine {
   quantity: string | null;
   /** Per-unit rate for stock lines, as a decimal string. Null for non-stock lines. */
   rate: string | null;
+  /** Tally stock item name for inventory allocation. When set, an INVENTORYALLOCATIONS.LIST
+   *  entry is emitted inside this ledger entry referencing this stock item.
+   *  Defaults to ledger_name when null (backward-compat). */
+  stock_item_name: string | null;
   /** Optional Tally cost centre tag for departmental reporting. */
   cost_center: string | null;
   /** Bill reference for Tally bill-by-bill tracking (e.g. invoice number). */

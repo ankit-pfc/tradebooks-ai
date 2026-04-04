@@ -121,7 +121,7 @@ describe('resolveCapitalGainLedger', () => {
       true,
     );
     expect(result.name).toBe('Intraday Gain on Sale of Shares - ZERODHA');
-    expect(result.group).toBe('Speculation Business');
+    expect(result.group).toBe('Speculative Business Income');
   });
 
   it('intraday → speculation loss', () => {

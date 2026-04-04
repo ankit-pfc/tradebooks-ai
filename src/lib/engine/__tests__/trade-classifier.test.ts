@@ -73,8 +73,8 @@ describe('classificationToAccountingMode', () => {
         expect(classificationToAccountingMode(TradeClassification.INVESTMENT)).toBe(AccountingMode.INVESTOR);
     });
 
-    it('maps SPECULATIVE_BUSINESS to TRADER', () => {
-        expect(classificationToAccountingMode(TradeClassification.SPECULATIVE_BUSINESS)).toBe(AccountingMode.TRADER);
+    it('maps SPECULATIVE_BUSINESS to INVESTOR (journal entries with inventory)', () => {
+        expect(classificationToAccountingMode(TradeClassification.SPECULATIVE_BUSINESS)).toBe(AccountingMode.INVESTOR);
     });
 
     it('maps NON_SPECULATIVE_BUSINESS to TRADER', () => {

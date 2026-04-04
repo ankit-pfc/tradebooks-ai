@@ -101,8 +101,9 @@ describe('buildSecurityIdFromDescription', () => {
       ['ADSL - EQ / INE674K01013', 'ADSL'],
     ]);
 
-    expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', undefined, lookup))
-      .toBe('ADSL');
+    // With equity segment, the mapped symbol goes through equity unification
+    expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', 'EQ', lookup))
+      .toBe('EQ:ADSL');
   });
 });
 
@@ -369,7 +370,8 @@ describe('buildCanonicalEvents', () => {
     );
 
     expect(tradeEvents).toHaveLength(2);
-    expect(tradeEvents[0].security_id).toBe('ADSL');
-    expect(tradeEvents[1].security_id).toBe('ADSL');
+    // symbolByDescription maps to 'ADSL', then equity unification adds EQ: prefix
+    expect(tradeEvents[0].security_id).toBe('EQ:ADSL');
+    expect(tradeEvents[1].security_id).toBe('EQ:ADSL');
   });
 });

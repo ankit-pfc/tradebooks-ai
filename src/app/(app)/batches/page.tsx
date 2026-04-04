@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -20,6 +20,15 @@ type AppBatchStatus =
   | "succeeded"
   | "failed"
   | "needs_review";
+
+interface ExportArtifactRef {
+  id: string;
+  batch_id: string;
+  artifact_type: "masters_xml" | "transactions_xml" | "reconciliation_json";
+  file_name: string;
+  mime_type: string;
+  created_at: string;
+}
 
 interface BatchRecord {
   id: string;
@@ -80,6 +89,7 @@ export default function BatchesPage() {
   const [batches, setBatches] = useState<BatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,10 +99,13 @@ export default function BatchesPage() {
         : `/api/batches?status=${statusFilter}`;
     fetch(url)
       .then((res) => res.json())
-      .then((data: BatchRecord[]) => {
+      .then((data: { batches: BatchRecord[] } | BatchRecord[]) => {
         if (cancelled) return;
-        if (Array.isArray(data)) {
-          setBatches(data);
+        const list = Array.isArray(data)
+          ? data
+          : (data as { batches: BatchRecord[] }).batches ?? [];
+        if (Array.isArray(list)) {
+          setBatches(list);
         } else {
           setBatches([]);
         }
@@ -101,6 +114,26 @@ export default function BatchesPage() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [statusFilter]);
+
+  async function handleDownload(batchId: string) {
+    setDownloadingId(batchId);
+    try {
+      const res = await fetch(`/api/batches/${batchId}`);
+      const data = await res.json();
+      const exports: ExportArtifactRef[] = data?.batch?.exports ?? [];
+      for (const artifact of exports) {
+        if (artifact.artifact_type === "reconciliation_json") continue;
+        const a = document.createElement("a");
+        a.href = `/api/artifacts/${batchId}/${artifact.id}`;
+        a.download = artifact.file_name;
+        a.click();
+        // small delay between downloads so browser doesn't block them
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -192,8 +225,11 @@ export default function BatchesPage() {
                   <TableHead className="text-sm font-semibold text-gray-900">
                     Vouchers
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
+                  <TableHead className="text-sm font-semibold text-gray-900">
                     Created
+                  </TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
+                    XML
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -219,8 +255,22 @@ export default function BatchesPage() {
                     <TableCell className="text-base font-medium text-gray-900">
                       {batch.voucher_count}
                     </TableCell>
-                    <TableCell className="text-base text-gray-700 pr-6">
+                    <TableCell className="text-base text-gray-700">
                       {formatDate(batch.created_at)}
+                    </TableCell>
+                    <TableCell className="pr-6">
+                      {batch.status === "succeeded" ? (
+                        <button
+                          onClick={() => handleDownload(batch.id)}
+                          disabled={downloadingId === batch.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {downloadingId === batch.id ? "Fetching…" : "Download XML"}
+                        </button>
+                      ) : (
+                        <span className="text-sm text-gray-400">&mdash;</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

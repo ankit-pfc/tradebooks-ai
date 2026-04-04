@@ -266,9 +266,9 @@ describe('Tally XML structure validation', () => {
     expect(mastersXml).toContain('INVESTMENT IN SHARES-ZERODHA');
   });
 
-  it('transactionsXml contains INVENTORYENTRIES for the buy trade', () => {
+  it('transactionsXml contains INVENTORYALLOCATIONS for the buy trade', () => {
     const { transactionsXml } = runPipeline();
-    expect(transactionsXml).toContain('<INVENTORYENTRIES.LIST>');
+    expect(transactionsXml).toContain('<INVENTORYALLOCATIONS.LIST>');
     expect(transactionsXml).toContain('<ACTUALQTY>');
   });
 

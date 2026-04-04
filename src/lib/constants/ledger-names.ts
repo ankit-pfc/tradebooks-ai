@@ -221,7 +221,7 @@ export const CA_LTCG_GROUP = 'LTCG';
 export const CA_STCL_GROUP = 'STCL';
 export const CA_LTCL_GROUP = 'LTCL';
 export const CA_DIVIDEND_GROUP = 'Div on Shares';
-export const CA_SPECULATION_GROUP = 'Speculation Business';
+export const CA_SPECULATION_GROUP = 'Speculative Business Income';
 export const CA_PARENT_GROUP = 'Capital Account';
 export const CA_ZERODHA_INVESTMENT_GROUP = 'INVESTMENT IN SHARES-ZERODHA';
 
@@ -362,6 +362,6 @@ export const CA_CUSTOM_GROUPS: ReadonlyArray<{ name: string; parent: string }> =
   { name: CA_STCL_GROUP, parent: CA_PARENT_GROUP },
   { name: CA_LTCL_GROUP, parent: CA_PARENT_GROUP },
   { name: CA_DIVIDEND_GROUP, parent: CA_PARENT_GROUP },
-  { name: CA_SPECULATION_GROUP, parent: CA_PARENT_GROUP },
+  { name: CA_SPECULATION_GROUP, parent: 'Indirect Incomes' },
   { name: CA_ZERODHA_INVESTMENT_GROUP, parent: INVESTMENT_GROUP },
 ] as const;

@@ -15,10 +15,6 @@ import { toast } from "sonner";
 interface SettingsFormData {
     company_name: string;
     accounting_mode: "INVESTOR" | "TRADER";
-    cost_basis_method: "FIFO" | "WEIGHTED_AVERAGE";
-    charge_treatment: "CAPITALIZE" | "EXPENSE" | "HYBRID";
-    voucher_granularity: "TRADE_LEVEL" | "CONTRACT_NOTE_LEVEL" | "DAILY_SUMMARY_BY_SCRIPT" | "DAILY_SUMMARY_POOLED";
-    ledger_strategy: "SCRIPT_LEVEL" | "POOLED";
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -39,10 +35,6 @@ function WorkspaceTab() {
     const [form, setForm] = useState<SettingsFormData>({
         company_name: "",
         accounting_mode: "INVESTOR",
-        cost_basis_method: "FIFO",
-        charge_treatment: "HYBRID",
-        voucher_granularity: "TRADE_LEVEL",
-        ledger_strategy: "SCRIPT_LEVEL",
     });
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState<SaveStatus>("idle");
@@ -56,10 +48,6 @@ function WorkspaceTab() {
                     setForm({
                         company_name: data.company_name ?? "",
                         accounting_mode: data.accounting_mode ?? "INVESTOR",
-                        cost_basis_method: data.cost_basis_method ?? "FIFO",
-                        charge_treatment: data.charge_treatment ?? "HYBRID",
-                        voucher_granularity: data.voucher_granularity ?? "TRADE_LEVEL",
-                        ledger_strategy: data.ledger_strategy ?? "SCRIPT_LEVEL",
                     });
                 }
             })
@@ -74,7 +62,13 @@ function WorkspaceTab() {
             const res = await fetch("/api/settings", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify({
+                    ...form,
+                    cost_basis_method: "FIFO",
+                    charge_treatment: "HYBRID",
+                    voucher_granularity: "TRADE_LEVEL",
+                    ledger_strategy: "SCRIPT_LEVEL",
+                }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -136,76 +130,14 @@ function WorkspaceTab() {
                             updateField("accounting_mode", e.target.value as SettingsFormData["accounting_mode"])
                         }
                     >
-                        <option value="INVESTOR">Investor (Capital Gains / ITR-2)</option>
-                        <option value="TRADER">Trader (Business Income / ITR-3)</option>
+                        <option value="INVESTOR">Investor (Capital Gains)</option>
+                        <option value="TRADER">Trader (Business Income)</option>
                     </select>
                 </div>
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="cost-basis">Cost basis method</Label>
-                    <select
-                        id="cost-basis"
-                        className={SELECT_CLASSES}
-                        value={form.cost_basis_method}
-                        onChange={(e) =>
-                            updateField("cost_basis_method", e.target.value as SettingsFormData["cost_basis_method"])
-                        }
-                    >
-                        <option value="FIFO">FIFO (First In, First Out)</option>
-                        <option value="WEIGHTED_AVERAGE">Weighted Average</option>
-                    </select>
-                </div>
-
-                <div className="space-y-1.5">
-                    <Label htmlFor="charge-treatment">Charge treatment</Label>
-                    <select
-                        id="charge-treatment"
-                        className={SELECT_CLASSES}
-                        value={form.charge_treatment}
-                        onChange={(e) =>
-                            updateField("charge_treatment", e.target.value as SettingsFormData["charge_treatment"])
-                        }
-                    >
-                        <option value="HYBRID">Hybrid (buy charges capitalised, sell expensed)</option>
-                        <option value="CAPITALIZE">Capitalise all charges</option>
-                        <option value="EXPENSE">Expense all charges</option>
-                    </select>
-                </div>
-
-                <div className="space-y-1.5">
-                    <Label htmlFor="voucher-granularity">Voucher granularity</Label>
-                    <select
-                        id="voucher-granularity"
-                        className={SELECT_CLASSES}
-                        value={form.voucher_granularity}
-                        onChange={(e) =>
-                            updateField(
-                                "voucher_granularity",
-                                e.target.value as SettingsFormData["voucher_granularity"],
-                            )
-                        }
-                    >
-                        <option value="TRADE_LEVEL">Trade level (one voucher per trade)</option>
-                        <option value="CONTRACT_NOTE_LEVEL">Contract note level</option>
-                        <option value="DAILY_SUMMARY_BY_SCRIPT">Daily summary by scrip</option>
-                        <option value="DAILY_SUMMARY_POOLED">Daily summary pooled</option>
-                    </select>
-                </div>
-
-                <div className="space-y-1.5">
-                    <Label htmlFor="ledger-strategy">Ledger strategy</Label>
-                    <select
-                        id="ledger-strategy"
-                        className={SELECT_CLASSES}
-                        value={form.ledger_strategy}
-                        onChange={(e) =>
-                            updateField("ledger_strategy", e.target.value as SettingsFormData["ledger_strategy"])
-                        }
-                    >
-                        <option value="SCRIPT_LEVEL">Per-scrip ledgers</option>
-                        <option value="POOLED">Pooled ledger</option>
-                    </select>
-                </div>
+                <p className="text-sm text-gray-500">
+                    Cost method (FIFO), charge treatment, and ledger structure are fixed per Income Tax Act guidelines.
+                </p>
 
                 <div className="flex items-center gap-3 pt-2">
                     <Button className="h-11" onClick={handleSave} disabled={status === "saving"}>

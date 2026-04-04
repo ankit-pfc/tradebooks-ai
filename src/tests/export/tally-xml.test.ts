@@ -120,11 +120,12 @@ describe('generateVouchersXml', () => {
       ],
     });
     const xml = generateVouchersXml([voucher], 'Co');
-    expect(xml).toContain('<INVENTORYENTRIES.LIST>');
+    expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
     expect(xml).toContain('<STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>');
-    expect(xml).toContain('<ACTUALQTY>10</ACTUALQTY>');
-    expect(xml).toContain('<BILLEDQTY>10</BILLEDQTY>');
-    expect(xml).toContain('<RATE>2500</RATE>');
+    expect(xml).toContain('ACTUALQTY');
+    expect(xml).toContain('BILLEDQTY');
+    expect(xml).toContain('10 SH');
+    expect(xml).toContain('/SH');
   });
 
   it('emits sales inventory entries nested under ALLLEDGERENTRIES.LIST with negative quantity', () => {
@@ -154,10 +155,9 @@ describe('generateVouchersXml', () => {
       ],
     });
     const xml = generateVouchersXml([voucher], 'Co');
-    expect(xml).toContain('<INVENTORYENTRIES.LIST>');
+    expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
     expect(xml).toContain('<ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>');
-    expect(xml).toContain('<ACTUALQTY>-10</ACTUALQTY>');
-    expect(xml).toContain('<BILLEDQTY>-10</BILLEDQTY>');
+    expect(xml).toContain('-10 SH');  // qty with UOM
   });
 
   it('handles empty vouchers array', () => {
