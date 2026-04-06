@@ -129,6 +129,8 @@ export const supabaseLedgerRepository: LedgerRepository = {
             .eq('user_id', userId)
             .order('created_at', { ascending: true });
 
+        // Table may not exist yet if migration hasn't been run
+        if (error?.message?.includes('schema cache')) return [];
         if (error) throw new Error(`listOverrides failed: ${error.message}`);
         return (data ?? []) as LedgerOverride[];
     },
@@ -150,6 +152,9 @@ export const supabaseLedgerRepository: LedgerRepository = {
             .select()
             .single();
 
+        if (error?.message?.includes('schema cache')) {
+            throw new Error('Ledger overrides table not yet available. Please run the database migration.');
+        }
         if (error) throw new Error(`upsertOverride failed: ${error.message}`);
         return data as LedgerOverride;
     },
@@ -168,6 +173,9 @@ export const supabaseLedgerRepository: LedgerRepository = {
             .upsert(rows, { onConflict: 'user_id,ledger_key' })
             .select();
 
+        if (error?.message?.includes('schema cache')) {
+            throw new Error('Ledger overrides table not yet available. Please run the database migration.');
+        }
         if (error) throw new Error(`bulkUpsertOverrides failed: ${error.message}`);
         return (data ?? []) as LedgerOverride[];
     },
@@ -180,6 +188,7 @@ export const supabaseLedgerRepository: LedgerRepository = {
             .eq('user_id', userId)
             .eq('ledger_key', ledgerKey);
 
+        if (error?.message?.includes('schema cache')) return;
         if (error) throw new Error(`deleteOverride failed: ${error.message}`);
     },
 };
