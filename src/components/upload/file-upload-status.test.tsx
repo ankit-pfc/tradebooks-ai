@@ -12,7 +12,6 @@ function makeProps(overrides: Partial<FileUploadStatusProps> = {}): FileUploadSt
     status: 'pending',
     detectedType: null,
     errorMessage: null,
-    duplicateWarning: null,
     ...overrides,
   };
 }
@@ -57,19 +56,6 @@ describe('FileUploadStatus', () => {
     const retryBtn = screen.getByRole('button', { name: /retry/i });
     fireEvent.click(retryBtn);
     expect(onRetry).toHaveBeenCalledOnce();
-  });
-
-  it('shows duplicate warning badge when duplicateWarning is provided', () => {
-    render(
-      <FileUploadStatus
-        {...makeProps({
-          status: 'uploaded',
-          detectedType: 'tradebook',
-          duplicateWarning: { batchId: 'batch-old', fileName: 'tradebook.csv' },
-        })}
-      />
-    );
-    expect(screen.getByText(/duplicate detected/i)).toBeInTheDocument();
   });
 
   it('calls onRemove when Remove button is clicked', () => {

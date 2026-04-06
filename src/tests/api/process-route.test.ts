@@ -12,6 +12,12 @@ const settingsRepo = mockSettingsRepo();
 vi.mock('@/lib/db', () => ({
     getBatchRepository: () => batchRepo,
     getSettingsRepository: () => settingsRepo,
+    getLedgerRepository: () => ({
+        listOverrides: vi.fn().mockResolvedValue([]),
+        upsertOverride: vi.fn(),
+        bulkUpsertOverrides: vi.fn(),
+        deleteOverride: vi.fn(),
+    }),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({

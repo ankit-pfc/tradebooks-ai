@@ -87,7 +87,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   repo.getBatch.mockResolvedValue(UPLOADING_BATCH);
   repo.addUploadedFiles.mockResolvedValue(undefined);
-  repo.findDuplicateFile.mockResolvedValue(null);
   mockStorage.upload.mockResolvedValue('/storage/path/file-1');
 });
 
@@ -177,34 +176,6 @@ describe('POST /api/batches/[batchId]/files', () => {
     expect(body.detectedType).toBe('tradebook');
     expect(typeof body.sizeBytes).toBe('number');
     expect(body.status).toBe('uploaded');
-  });
-
-  it('includes duplicateWarning when findDuplicateFile returns a match in another batch', async () => {
-    repo.findDuplicateFile.mockResolvedValueOnce({
-      batchId: 'other-batch',
-      fileName: 'tradebook.csv',
-    });
-
-    const { request, params } = makeRequest(smallFile());
-    const res = await POST(request, { params });
-    const body = await res.json();
-
-    expect(res.status).toBe(201);
-    expect(body.duplicateWarning).toEqual({ batchId: 'other-batch', fileName: 'tradebook.csv' });
-  });
-
-  it('does not include duplicateWarning when dup is in the same batch', async () => {
-    repo.findDuplicateFile.mockResolvedValueOnce({
-      batchId: 'batch-1', // same batch — not a cross-batch duplicate
-      fileName: 'tradebook.csv',
-    });
-
-    const { request, params } = makeRequest(smallFile());
-    const res = await POST(request, { params });
-    const body = await res.json();
-
-    expect(res.status).toBe(201);
-    expect(body.duplicateWarning).toBeUndefined();
   });
 
   it('returns 201 with status failed and errorMessage when storage upload throws', async () => {

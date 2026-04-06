@@ -6,9 +6,11 @@ import {
   TRADER_TALLY_DEFAULT,
   getDefaultLedgerMappings,
   getDefaultTallyProfile,
+  mergeOverridesIntoProfile,
   deriveFYLabel,
   buildProfileFromSettings,
 } from '../accounting-policy';
+import type { LedgerOverride } from '../../db/ledger-repository';
 import {
   AccountingMode,
   ChargeTreatment,
@@ -17,6 +19,11 @@ import {
   LedgerStrategy,
 } from '../../types/accounting';
 import { EventType } from '../../types/events';
+import {
+  SYSTEM_LEDGERS,
+  SYSTEM_LEDGER_KEYS,
+  SYSTEM_LEDGER_NAME_TO_KEY,
+} from '../../constants/ledger-names';
 
 describe('INVESTOR_DEFAULT', () => {
   it('has correct mode and charge_treatment', () => {
@@ -176,5 +183,102 @@ describe('buildProfileFromSettings', () => {
     expect(profile.mode).toBe(AccountingMode.TRADER);
     expect(profile.cost_basis_method).toBe(CostBasisMethod.WEIGHTED_AVERAGE);
     expect(profile.ledger_strategy).toBe(LedgerStrategy.POOLED);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mergeOverridesIntoProfile
+// ---------------------------------------------------------------------------
+
+function makeOverride(key: string, name: string, group: string, isCustom = false): LedgerOverride {
+  return {
+    id: `override-${key}`,
+    user_id: 'user-1',
+    ledger_key: key,
+    name,
+    parent_group: group,
+    is_custom: isCustom,
+    created_at: '2026-04-06T00:00:00Z',
+  };
+}
+
+describe('mergeOverridesIntoProfile', () => {
+  it('returns base profile unchanged when no overrides', () => {
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, []);
+    expect(result.broker).toEqual(INVESTOR_TALLY_DEFAULT.broker);
+    expect(result.bank).toEqual(INVESTOR_TALLY_DEFAULT.bank);
+  });
+
+  it('overrides broker name and group', () => {
+    const overrides = [makeOverride('BROKER', 'My Broker Account', 'Custom Creditors')];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.broker).toEqual({ name: 'My Broker Account', group: 'Custom Creditors' });
+    // Other fields unchanged
+    expect(result.bank).toEqual(INVESTOR_TALLY_DEFAULT.bank);
+  });
+
+  it('overrides capital gain ledger template and group', () => {
+    const overrides = [makeOverride('STCG_PROFIT', 'Short Term CG', 'My CG Group')];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.stcg.template).toBe('Short Term CG');
+    expect(result.stcg.group).toBe('My CG Group');
+  });
+
+  it('overrides charge consolidation entry', () => {
+    const overrides = [makeOverride('BROKERAGE', 'Trading Brokerage', 'Direct Expenses')];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    const brokerageEntry = result.chargeConsolidation.find(
+      (c) => c.eventTypes.includes(EventType.BROKERAGE),
+    );
+    expect(brokerageEntry?.ledgerName).toBe('Trading Brokerage');
+    expect(brokerageEntry?.groupName).toBe('Direct Expenses');
+  });
+
+  it('does not mutate the base profile', () => {
+    const originalBroker = { ...INVESTOR_TALLY_DEFAULT.broker };
+    const overrides = [makeOverride('BROKER', 'Changed', 'Changed Group')];
+    mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(INVESTOR_TALLY_DEFAULT.broker).toEqual(originalBroker);
+  });
+
+  it('skips custom overrides (not system keys)', () => {
+    const overrides = [makeOverride('MY_CUSTOM_LEDGER', 'Custom', 'Group', true)];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.broker).toEqual(INVESTOR_TALLY_DEFAULT.broker);
+  });
+
+  it('handles multiple overrides at once', () => {
+    const overrides = [
+      makeOverride('BROKER', 'New Broker', 'Creditors'),
+      makeOverride('BANK', 'HDFC Bank', 'Bank Accounts'),
+      makeOverride('SPECULATIVE_PROFIT', 'Intraday Gain', 'Trading Income'),
+    ];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.broker.name).toBe('New Broker');
+    expect(result.bank.name).toBe('HDFC Bank');
+    expect(result.speculationGain.name).toBe('Intraday Gain');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SYSTEM_LEDGER_NAME_TO_KEY — used by upload route to match imported names
+// ---------------------------------------------------------------------------
+
+describe('SYSTEM_LEDGER_NAME_TO_KEY', () => {
+  it('maps every system ledger name (uppercased) to its key', () => {
+    for (const entry of SYSTEM_LEDGERS) {
+      expect(SYSTEM_LEDGER_NAME_TO_KEY.get(entry.name.toUpperCase())).toBe(entry.key);
+    }
+  });
+
+  it('returns undefined for unknown names', () => {
+    expect(SYSTEM_LEDGER_NAME_TO_KEY.get('MY RANDOM LEDGER')).toBeUndefined();
+  });
+
+  it('SYSTEM_LEDGER_KEYS contains all system keys', () => {
+    for (const entry of SYSTEM_LEDGERS) {
+      expect(SYSTEM_LEDGER_KEYS.has(entry.key)).toBe(true);
+    }
+    expect(SYSTEM_LEDGER_KEYS.has('UNKNOWN_KEY')).toBe(false);
   });
 });

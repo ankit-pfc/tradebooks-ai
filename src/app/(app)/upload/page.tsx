@@ -609,7 +609,6 @@ function StepUpload({
                 status={fs.status}
                 detectedType={fs.detectedType}
                 errorMessage={fs.errorMessage}
-                duplicateWarning={fs.duplicateWarning}
                 onRemove={() => batchUpload.removeFile(fs.file)}
                 onRetry={() => batchUpload.retryFile(fs.file)}
               />

@@ -26,11 +26,36 @@ const SOURCE_BADGE_CLASS: Record<LedgerEntry["source"], string> = {
   custom: "bg-indigo-50 text-indigo-700 border-indigo-200",
 };
 
+const SYSTEM_LEDGER_OPTIONS = [
+  { key: "", label: "Custom ledger" },
+  { key: "BROKER", label: "Broker" },
+  { key: "BANK", label: "Bank" },
+  { key: "BROKERAGE", label: "Brokerage" },
+  { key: "STT", label: "STT" },
+  { key: "EXCHANGE_CHARGES", label: "Exchange Charges" },
+  { key: "GST_ON_CHARGES", label: "GST on Charges" },
+  { key: "STAMP_DUTY", label: "Stamp Duty" },
+  { key: "DP_CHARGES", label: "DP Charges" },
+  { key: "DEMAT_CHARGES", label: "Demat Charges" },
+  { key: "AMC_CHARGES", label: "AMC Charges" },
+  { key: "STCG_PROFIT", label: "STCG Profit" },
+  { key: "LTCG_PROFIT", label: "LTCG Profit" },
+  { key: "STCG_LOSS", label: "STCG Loss" },
+  { key: "LTCG_LOSS", label: "LTCG Loss" },
+  { key: "SPECULATIVE_PROFIT", label: "Speculative Profit" },
+  { key: "SPECULATIVE_LOSS", label: "Speculative Loss" },
+  { key: "DIVIDEND_INCOME", label: "Dividend Income" },
+  { key: "TDS_ON_DIVIDEND", label: "TDS on Dividend" },
+  { key: "TDS_ON_SECURITIES", label: "TDS on Securities" },
+  { key: "OFF_MARKET_SUSPENSE", label: "Off-Market Suspense" },
+];
+
 export default function LedgerMasterPage() {
   const [ledgers, setLedgers] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedSystemKey, setSelectedSystemKey] = useState("");
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState("");
   const [saving, setSaving] = useState(false);
@@ -84,7 +109,7 @@ export default function LedgerMasterPage() {
 
     setSaving(true);
     try {
-      const key = newName
+      const key = selectedSystemKey || newName
         .toUpperCase()
         .replace(/[^A-Z0-9]+/g, "_")
         .replace(/^_|_$/g, "");
@@ -102,6 +127,7 @@ export default function LedgerMasterPage() {
         alert(data.error ?? "Failed to add ledger");
         return;
       }
+      setSelectedSystemKey("");
       setNewName("");
       setNewGroup("");
       setShowAddForm(false);
@@ -163,6 +189,22 @@ export default function LedgerMasterPage() {
         <Card className="border-indigo-200 bg-indigo-50/30">
           <CardContent className="p-4">
             <form onSubmit={handleAddLedger} className="flex items-end gap-4">
+              <div className="w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Override Target
+                </label>
+                <select
+                  value={selectedSystemKey}
+                  onChange={(e) => setSelectedSystemKey(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-base text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                >
+                  {SYSTEM_LEDGER_OPTIONS.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Ledger Name

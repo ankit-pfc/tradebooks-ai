@@ -12,7 +12,6 @@ export interface FileUploadState {
   detectedType: BatchFileType | null;
   sizeBytes: number;
   errorMessage: string | null;
-  duplicateWarning: { batchId: string; fileName: string } | null;
 }
 
 export interface BatchUploadState {
@@ -52,7 +51,6 @@ type BatchAction =
     fileId: string;
     detectedType: BatchFileType;
     sizeBytes: number;
-    duplicateWarning?: { batchId: string; fileName: string };
   }
   | { type: 'FILE_UPLOAD_FAILED'; key: string; errorMessage: string }
   | { type: 'FILE_REMOVED'; key: string }
@@ -85,7 +83,6 @@ function reducer(state: BatchUploadState, action: BatchAction): BatchUploadState
         detectedType: null,
         sizeBytes: action.file.size,
         errorMessage: null,
-        duplicateWarning: null,
       });
       return { ...state, files };
     }
@@ -108,7 +105,6 @@ function reducer(state: BatchUploadState, action: BatchAction): BatchUploadState
         status: 'uploaded',
         detectedType: action.detectedType,
         sizeBytes: action.sizeBytes,
-        duplicateWarning: action.duplicateWarning ?? null,
         errorMessage: null,
       });
       return { ...state, files };
@@ -254,7 +250,6 @@ export function useBatchUpload() {
         fileId: data.fileId,
         detectedType: data.detectedType as BatchFileType,
         sizeBytes: data.sizeBytes,
-        duplicateWarning: data.duplicateWarning,
       });
     } catch (err) {
       dispatch({
@@ -325,7 +320,6 @@ export function useBatchUpload() {
         fileId: data.fileId,
         detectedType: data.detectedType as BatchFileType,
         sizeBytes: data.sizeBytes,
-        duplicateWarning: data.duplicateWarning,
       });
     } catch (err) {
       dispatch({

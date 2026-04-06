@@ -444,8 +444,8 @@ const CHARGE_EVENT_MAP: Array<{
  * Format: "SYMBOL - EQ / INE123A01036" → "INE123A01036"
  */
 function extractIsinFromDescription(description: string): string | null {
-  // ISIN pattern: INE followed by alphanumeric chars (Indian ISINs)
-  const match = description.match(/\b(INE[A-Z0-9]{9})\b/i);
+  // Indian ISIN: country code IN + 10 alphanumeric chars (covers INE, INF, IN9, etc.)
+  const match = description.match(/\b(IN[A-Z0-9]{10})\b/i);
   return match ? match[1].toUpperCase() : null;
 }
 

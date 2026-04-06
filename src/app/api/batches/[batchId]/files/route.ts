@@ -95,13 +95,6 @@ export async function POST(
       },
     ]);
 
-    // Non-blocking dedup check — warn but don't block
-    const dup = await repo.findDuplicateFile(userId, serverHash).catch(() => null);
-    const duplicateWarning =
-      dup && dup.batchId !== batchId
-        ? { batchId: dup.batchId, fileName: dup.fileName }
-        : null;
-
     return NextResponse.json(
       {
         fileId,
@@ -109,7 +102,6 @@ export async function POST(
         detectedType,
         sizeBytes: buffer.length,
         status: uploadStatus,
-        ...(duplicateWarning ? { duplicateWarning } : {}),
         ...(errorMessage ? { errorMessage } : {}),
       },
       { status: 201 },

@@ -369,3 +369,44 @@ export const CA_CUSTOM_GROUPS: ReadonlyArray<{ name: string; parent: string }> =
   { name: CA_SPECULATION_GROUP, parent: 'Indirect Incomes' },
   { name: CA_ZERODHA_INVESTMENT_GROUP, parent: INVESTMENT_GROUP },
 ] as const;
+
+// ---------------------------------------------------------------------------
+// System ledger keys — shared between API routes and pipeline
+// ---------------------------------------------------------------------------
+
+export interface SystemLedgerEntry {
+  readonly key: string;
+  readonly name: string;
+  readonly group: string;
+}
+
+export const SYSTEM_LEDGERS: readonly SystemLedgerEntry[] = [
+  { key: 'BROKER', name: CA_BROKER.name, group: CA_BROKER.group },
+  { key: 'BANK', name: BANK.name, group: BANK.group },
+  { key: 'BROKERAGE', name: CA_BROKERAGE.name, group: CA_BROKERAGE.group },
+  { key: 'STT', name: CA_STT.name, group: CA_STT.group },
+  { key: 'EXCHANGE_CHARGES', name: CA_EXCHANGE_AND_OTHER.name, group: CA_EXCHANGE_AND_OTHER.group },
+  { key: 'GST_ON_CHARGES', name: GST_ON_CHARGES.name, group: GST_ON_CHARGES.group },
+  { key: 'STAMP_DUTY', name: STAMP_DUTY.name, group: STAMP_DUTY.group },
+  { key: 'DP_CHARGES', name: CA_DP_CHARGES.name, group: CA_DP_CHARGES.group },
+  { key: 'DEMAT_CHARGES', name: CA_DEMAT_CHARGES.name, group: CA_DEMAT_CHARGES.group },
+  { key: 'AMC_CHARGES', name: CA_AMC_CHARGES.name, group: CA_AMC_CHARGES.group },
+  { key: 'STCG_PROFIT', name: STCG_PROFIT.name, group: STCG_PROFIT.group },
+  { key: 'LTCG_PROFIT', name: LTCG_PROFIT.name, group: LTCG_PROFIT.group },
+  { key: 'STCG_LOSS', name: STCG_LOSS.name, group: STCG_LOSS.group },
+  { key: 'LTCG_LOSS', name: LTCG_LOSS.name, group: LTCG_LOSS.group },
+  { key: 'SPECULATIVE_PROFIT', name: CA_SPECULATION_GAIN.name, group: CA_SPECULATION_GAIN.group },
+  { key: 'SPECULATIVE_LOSS', name: CA_SPECULATION_LOSS.name, group: CA_SPECULATION_LOSS.group },
+  { key: 'DIVIDEND_INCOME', name: CA_DIVIDEND_INCOME.name, group: CA_DIVIDEND_INCOME.group },
+  { key: 'TDS_ON_DIVIDEND', name: TDS_ON_DIVIDEND.name, group: TDS_ON_DIVIDEND.group },
+  { key: 'TDS_ON_SECURITIES', name: TDS_ON_SECURITIES.name, group: TDS_ON_SECURITIES.group },
+  { key: 'OFF_MARKET_SUSPENSE', name: OFF_MARKET_SUSPENSE.name, group: OFF_MARKET_SUSPENSE.group },
+] as const;
+
+/** Set of all system ledger keys for quick lookup. */
+export const SYSTEM_LEDGER_KEYS = new Set(SYSTEM_LEDGERS.map((s) => s.key));
+
+/** Map from uppercase system ledger name → system key, for matching imported Tally names. */
+export const SYSTEM_LEDGER_NAME_TO_KEY = new Map(
+  SYSTEM_LEDGERS.map((s) => [s.name.toUpperCase(), s.key]),
+);

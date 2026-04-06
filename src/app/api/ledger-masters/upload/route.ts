@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getLedgerRepository } from '@/lib/db';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { parseTallyCOA } from '@/lib/parsers/tally/coa-parser';
+import { SYSTEM_LEDGER_NAME_TO_KEY } from '@/lib/constants/ledger-names';
 import type { LedgerOverrideInput } from '@/lib/db/ledger-repository';
 
 /**
@@ -32,13 +33,17 @@ export async function POST(request: Request) {
             );
         }
 
-        // Convert parsed ledgers to override inputs with slugified keys
-        const inputs: LedgerOverrideInput[] = coa.ledgers.map((l) => ({
-            ledger_key: slugify(l.name),
-            name: l.name,
-            parent_group: l.parent,
-            is_custom: true,
-        }));
+        // Convert parsed ledgers to override inputs.
+        // Match against system ledger names first so imports can override built-ins.
+        const inputs: LedgerOverrideInput[] = coa.ledgers.map((l) => {
+            const systemKey = SYSTEM_LEDGER_NAME_TO_KEY.get(l.name.trim().toUpperCase());
+            return {
+                ledger_key: systemKey ?? slugify(l.name),
+                name: l.name,
+                parent_group: l.parent,
+                is_custom: !systemKey,
+            };
+        });
 
         const repo = getLedgerRepository();
         const saved = await repo.bulkUpsertOverrides(userId, inputs);

@@ -41,6 +41,12 @@ vi.mock('@/lib/db', () => ({
         getSettings: vi.fn().mockResolvedValue(null),
         upsertSettings: vi.fn(),
     }),
+    getLedgerRepository: () => ({
+        listOverrides: vi.fn().mockResolvedValue([]),
+        upsertOverride: vi.fn(),
+        bulkUpsertOverrides: vi.fn(),
+        deleteOverride: vi.fn(),
+    }),
 }));
 
 vi.mock('@/lib/storage/file-storage', () => ({

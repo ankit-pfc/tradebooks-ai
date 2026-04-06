@@ -15,13 +15,14 @@ import {
   INVESTOR_DEFAULT,
   TRADER_DEFAULT,
   getDefaultTallyProfile,
+  mergeOverridesIntoProfile,
   deriveFYLabel,
   buildProfileFromSettings,
 } from '@/lib/engine/accounting-policy';
 import { AccountingMode } from '@/lib/types/accounting';
 import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
 import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
-import { getBatchRepository, getSettingsRepository } from '@/lib/db';
+import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '@/lib/db';
 import { getFileStorage } from '@/lib/storage/file-storage';
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
@@ -249,9 +250,13 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       profile = { ...profile, mode: AccountingMode.INVESTOR };
     }
   }
-  const tallyProfile = getDefaultTallyProfile(
+  const baseTallyProfile = getDefaultTallyProfile(
     accountingMode === 'trader' ? AccountingMode.TRADER : AccountingMode.INVESTOR,
   );
+  const ledgerOverrides = await getLedgerRepository().listOverrides(userId);
+  const tallyProfile = ledgerOverrides.length > 0
+    ? mergeOverridesIntoProfile(baseTallyProfile, ledgerOverrides)
+    : baseTallyProfile;
 
   // Step 6: Load prior batch closing lots as opening balances (multi-FY)
   let tracker: CostLotTracker;

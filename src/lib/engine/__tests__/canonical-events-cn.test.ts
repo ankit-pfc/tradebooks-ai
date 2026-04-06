@@ -105,6 +105,22 @@ describe('buildSecurityIdFromDescription', () => {
     expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', 'EQ', lookup))
       .toBe('ISIN:INE674K01013');
   });
+
+  it('extracts INF-prefix ISIN (ETFs/mutual funds)', () => {
+    expect(buildSecurityIdFromDescription('NSE', 'NIFTYBEES - EQ / INF204KB14Y4', 'EQ'))
+      .toBe('ISIN:INF204KB14Y4');
+  });
+
+  it('extracts IN9-prefix ISIN (government securities)', () => {
+    expect(buildSecurityIdFromDescription('NSE', 'GSEC2030 - EQ / IN9328A01010', 'EQ'))
+      .toBe('ISIN:IN9328A01010');
+  });
+
+  it('does not match non-Indian ISINs (e.g. US)', () => {
+    // US ISINs should not be extracted — we only handle Indian securities
+    expect(buildSecurityIdFromDescription('NSE', 'APPLE - EQ / US0378331005', 'EQ'))
+      .toBe('EQ:APPLE');
+  });
 });
 
 // ---------------------------------------------------------------------------

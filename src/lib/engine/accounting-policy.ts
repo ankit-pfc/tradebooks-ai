@@ -17,6 +17,7 @@ import {
   type TallyProfile,
 } from '../types/accounting';
 import { EventType } from '../types/events';
+import type { LedgerOverride } from '../db/ledger-repository';
 import * as L from '../constants/ledger-names';
 
 // ---------------------------------------------------------------------------
@@ -513,6 +514,92 @@ export function getDefaultTallyProfile(mode: AccountingMode): TallyProfile {
   return mode === AccountingMode.INVESTOR
     ? INVESTOR_TALLY_DEFAULT
     : TRADER_TALLY_DEFAULT;
+}
+
+// ---------------------------------------------------------------------------
+// Merge user ledger overrides into a TallyProfile
+// ---------------------------------------------------------------------------
+
+/** Map from SYSTEM_LEDGER key → charge EventType(s) used in chargeConsolidation. */
+const CHARGE_KEY_TO_EVENT_TYPES: Record<string, EventType[]> = {
+  BROKERAGE: [EventType.BROKERAGE],
+  STT: [EventType.STT],
+  EXCHANGE_CHARGES: [EventType.EXCHANGE_CHARGE, EventType.SEBI_CHARGE],
+  GST_ON_CHARGES: [EventType.GST_ON_CHARGES],
+  STAMP_DUTY: [EventType.STAMP_DUTY],
+  DP_CHARGES: [EventType.DP_CHARGE],
+};
+
+/**
+ * Apply user-saved ledger overrides to a base TallyProfile.
+ * Returns a new TallyProfile with overridden names/groups where applicable.
+ * Only system-key overrides (not custom entries) affect the profile.
+ */
+export function mergeOverridesIntoProfile(
+  base: TallyProfile,
+  overrides: LedgerOverride[],
+): TallyProfile {
+  const profile: TallyProfile = {
+    ...base,
+    chargeConsolidation: base.chargeConsolidation.map((c) => ({ ...c })),
+    customGroups: [...base.customGroups],
+  };
+
+  for (const o of overrides) {
+    if (o.is_custom) continue;
+
+    switch (o.ledger_key) {
+      case 'BROKER':
+        profile.broker = { name: o.name, group: o.parent_group };
+        break;
+      case 'BANK':
+        profile.bank = { name: o.name, group: o.parent_group };
+        break;
+      case 'STCG_PROFIT':
+        profile.stcg = { ...profile.stcg, template: o.name, group: o.parent_group };
+        break;
+      case 'LTCG_PROFIT':
+        profile.ltcg = { ...profile.ltcg, template: o.name, group: o.parent_group };
+        break;
+      case 'STCG_LOSS':
+        profile.stcl = { ...profile.stcl, template: o.name, group: o.parent_group };
+        break;
+      case 'LTCG_LOSS':
+        profile.ltcl = { ...profile.ltcl, template: o.name, group: o.parent_group };
+        break;
+      case 'SPECULATIVE_PROFIT':
+        profile.speculationGain = { name: o.name, group: o.parent_group };
+        break;
+      case 'SPECULATIVE_LOSS':
+        profile.speculationLoss = { name: o.name, group: o.parent_group };
+        break;
+      case 'DIVIDEND_INCOME':
+        profile.dividend = { ...profile.dividend, template: o.name, group: o.parent_group };
+        break;
+      case 'TDS_ON_DIVIDEND':
+        profile.tdsOnDividend = { name: o.name, group: o.parent_group };
+        break;
+      case 'TDS_ON_SECURITIES':
+        profile.tdsOnSecurities = { name: o.name, group: o.parent_group };
+        break;
+      default: {
+        // Check if it's a charge key
+        const eventTypes = CHARGE_KEY_TO_EVENT_TYPES[o.ledger_key];
+        if (eventTypes) {
+          const entry = profile.chargeConsolidation.find((c) =>
+            eventTypes.some((et) => c.eventTypes.includes(et)),
+          );
+          if (entry) {
+            entry.ledgerName = o.name;
+            entry.groupName = o.parent_group;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return profile;
 }
 
 /**
