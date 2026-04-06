@@ -222,13 +222,13 @@ describe('POST /api/batches/[batchId]/process', () => {
     );
   });
 
-  it('passes purchaseMergeMode from request body to the pipeline', async () => {
-    const { request, params } = makeRequest('batch-1', { purchaseMergeMode: 'daily_summary' });
+  it('always uses same_rate purchaseMergeMode', async () => {
+    const { request, params } = makeRequest('batch-1');
     await POST(request, { params });
 
     expect(mockRunProcessingPipeline).toHaveBeenCalledWith(
       expect.objectContaining({
-        purchaseMergeMode: 'daily_summary',
+        purchaseMergeMode: 'same_rate',
       }),
     );
   });

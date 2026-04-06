@@ -194,16 +194,16 @@ describe('useBatchUpload', () => {
 
     let returnedResult: unknown;
     await act(async () => {
-      returnedResult = await result.current.startProcessing('daily_summary');
+      returnedResult = await result.current.startProcessing();
     });
 
     expect(result.current.state.batchStatus).toBe('succeeded');
     expect(returnedResult).toMatchObject({ batchId: 'b1', tradeCount: 10 });
-    expect(fetch).toHaveBeenLastCalledWith('/api/batches/b1/process', expect.objectContaining({
+    expect(fetch).toHaveBeenLastCalledWith('/api/batches/b1/process', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ purchaseMergeMode: 'daily_summary' }),
-    }));
+      body: JSON.stringify({ purchaseMergeMode: 'same_rate' }),
+    });
   });
 
   it('startProcessing sets batchStatus to failed on server error', async () => {
