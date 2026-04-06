@@ -86,12 +86,87 @@ const SEGMENT_MARKERS = new Set([
 ]);
 
 // ---------------------------------------------------------------------------
+// Dynamic column mapping from header row
+// ---------------------------------------------------------------------------
+
+/** Canonical column names the parser needs. */
+interface TradeColumnMap {
+  order_no: number;
+  order_time: number;
+  trade_no: number;
+  trade_time: number;
+  security_description: number;
+  buy_sell: number;
+  quantity: number;
+  exchange: number;
+  gross_rate: number;
+  brokerage_per_unit: number;
+  net_rate: number;
+  net_total: number;
+}
+
+/** Patterns to match header cells → canonical column name. */
+const HEADER_PATTERNS: Array<{ key: keyof TradeColumnMap; patterns: string[] }> = [
+  { key: 'order_no',              patterns: ['order no', 'order no.'] },
+  { key: 'order_time',            patterns: ['order time', 'order time.'] },
+  { key: 'trade_no',              patterns: ['trade no', 'trade no.'] },
+  { key: 'trade_time',            patterns: ['trade time', 'trade time.'] },
+  { key: 'security_description',  patterns: ['security', 'scrip name', 'security/contract description'] },
+  { key: 'buy_sell',              patterns: ['buy', 'b/s', 'buy/sell', 'buy(b)/ sell(s)'] },
+  { key: 'quantity',              patterns: ['quantity', 'qty'] },
+  { key: 'exchange',              patterns: ['exchange'] },
+  { key: 'gross_rate',            patterns: ['gross rate', 'trade price', 'gross rate per unit'] },
+  { key: 'brokerage_per_unit',    patterns: ['brokerage per unit', 'brokerage', 'brokerage per unit (rs)'] },
+  { key: 'net_rate',              patterns: ['net rate', 'net rate per unit', 'net rate per unit (rs)'] },
+  { key: 'net_total',             patterns: ['net total', 'closing rate', 'net total (before levies)'] },
+];
+
+/** Default column positions matching known Zerodha XLSX layout (fallback). */
+const DEFAULT_COLUMN_MAP: TradeColumnMap = {
+  order_no: 0,
+  order_time: 1,
+  trade_no: 2,
+  trade_time: 3,
+  security_description: 4,
+  buy_sell: 5,
+  quantity: 6,
+  exchange: 7,
+  gross_rate: 8,
+  brokerage_per_unit: 9,
+  net_rate: 10,
+  net_total: 12,
+};
+
+/**
+ * Build a column map by matching header cell text against known patterns.
+ * Falls back to default positions for any column not found in the header.
+ * @internal Exported for testing.
+ */
+export function buildColumnMap(headerRow: string[]): TradeColumnMap {
+  const cols = { ...DEFAULT_COLUMN_MAP };
+  const normalized = headerRow.map((c) => (c ?? '').trim().toLowerCase());
+
+  for (const { key, patterns } of HEADER_PATTERNS) {
+    const idx = normalized.findIndex((cell) =>
+      patterns.some((p) => cell === p || cell.startsWith(p)),
+    );
+    if (idx >= 0) {
+      cols[key] = idx;
+    }
+  }
+
+  return cols;
+}
+
+// ---------------------------------------------------------------------------
 // Single sheet parser
 // ---------------------------------------------------------------------------
 
 interface SheetParseResult {
   trades: ZerodhaContractNoteTradeRow[];
   charges: ZerodhaContractNoteCharges | null;
+  /** Non-empty when trades were expected but parsing produced zero rows. */
+  diagnostic?: string;
 }
 
 function parseSheet(rows: string[][]): SheetParseResult {
@@ -113,24 +188,32 @@ function parseSheet(rows: string[][]): SheetParseResult {
     settlementNo = extractCellValue(rows, tradeDateRow, 9);
   }
 
-  // Find the trade header row
+  // Find the trade header row — scan all cells in each row since the header
+  // column may not be at position 0 if the sheet has extra leading columns.
   let tradeHeaderIdx = -1;
   for (let i = 0; i < rows.length; i++) {
-    const firstCell = (rows[i][0] ?? '').trim().toLowerCase();
-    if (firstCell === 'order no.' || firstCell === 'order no') {
-      tradeHeaderIdx = i;
-      break;
+    for (const cell of rows[i]) {
+      const val = (cell ?? '').trim().toLowerCase();
+      if (val === 'order no.' || val === 'order no') {
+        tradeHeaderIdx = i;
+        break;
+      }
     }
+    if (tradeHeaderIdx >= 0) break;
   }
 
   const trades: ZerodhaContractNoteTradeRow[] = [];
   let currentSegment = '';
+  let diagnostic: string | undefined;
 
   if (tradeHeaderIdx >= 0) {
+    // Detect column positions from header row
+    const cols = buildColumnMap(rows[tradeHeaderIdx]);
+
     // Parse trade rows after the header
     for (let i = tradeHeaderIdx + 1; i < rows.length; i++) {
       const row = rows[i];
-      const firstCell = (row[0] ?? '').trim();
+      const firstCell = (row[cols.order_no] ?? '').trim();
       const firstCellLower = firstCell.toLowerCase();
 
       // Check if this is a segment marker
@@ -139,52 +222,60 @@ function parseSheet(rows: string[][]): SheetParseResult {
         continue;
       }
 
-      // Stop at the charges section
-      if (firstCellLower.startsWith('pay in/pay out') ||
-          firstCellLower.startsWith('net total') ||
-          firstCellLower === '') {
-        // Check if it's the charges section or just an empty row
-        if (firstCellLower.startsWith('pay in/pay out')) break;
-        // Empty row might separate segments or end trades
-        // Look ahead for more trades vs charges section
-        const nextNonEmpty = rows.slice(i + 1).findIndex(
-          (r) => (r[0] ?? '').trim() !== '',
-        );
-        if (nextNonEmpty >= 0) {
-          const nextCell = (rows[i + 1 + nextNonEmpty][0] ?? '').trim().toLowerCase();
-          if (nextCell.startsWith('pay in') || nextCell.startsWith('ncl-')) {
-            break;
+      // Stop at the charges section boundary
+      if (firstCellLower.startsWith('pay in/pay out')) break;
+      if (firstCellLower.startsWith('ncl-')) break;
+
+      // Handle empty rows and "net total" boundaries
+      if (firstCellLower === '' || firstCellLower.startsWith('net total')) {
+        // Look ahead past empty rows for more trades vs charges
+        let foundCharges = false;
+        for (let j = i + 1; j < rows.length; j++) {
+          const ahead = (rows[j][cols.order_no] ?? '').trim().toLowerCase();
+          if (ahead === '') continue;
+          // More trades or segment markers ahead — keep going
+          if (SEGMENT_MARKERS.has(ahead) || /^\d/.test(ahead)) break;
+          // Charges boundary — stop the trade loop
+          if (ahead.startsWith('pay in') || ahead.startsWith('ncl-') || ahead.startsWith('net total')) {
+            foundCharges = true;
           }
+          break;
         }
+        if (foundCharges) break;
         continue;
       }
 
       // Try to parse as a trade row — Order No should be numeric
       const orderNo = firstCell;
       if (!orderNo || !/^\d/.test(orderNo)) {
-        // Not a trade row — might be "NCL-Cash" header or similar
-        if (firstCellLower.startsWith('ncl-')) break;
         continue;
       }
 
-      const buySell = (row[5] ?? '').trim().toUpperCase();
+      const buySell = (row[cols.buy_sell] ?? '').trim().toUpperCase();
       if (buySell !== 'B' && buySell !== 'S') continue;
 
       trades.push({
         order_no: orderNo,
-        order_time: (row[1] ?? '').trim(),
-        trade_no: (row[2] ?? '').trim(),
-        trade_time: (row[3] ?? '').trim(),
-        security_description: (row[4] ?? '').trim(),
+        order_time: (row[cols.order_time] ?? '').trim(),
+        trade_no: (row[cols.trade_no] ?? '').trim(),
+        trade_time: (row[cols.trade_time] ?? '').trim(),
+        security_description: (row[cols.security_description] ?? '').trim(),
         buy_sell: buySell as 'B' | 'S',
-        quantity: num((row[6] ?? '').trim()),
-        exchange: (row[7] ?? '').trim(),
-        gross_rate: num((row[8] ?? '').trim()),
-        brokerage_per_unit: num((row[9] ?? '').trim()),
-        net_rate: num((row[10] ?? '').trim()),
-        net_total: num((row[12] ?? '').trim()),
+        quantity: num((row[cols.quantity] ?? '').trim()),
+        exchange: (row[cols.exchange] ?? '').trim(),
+        gross_rate: num((row[cols.gross_rate] ?? '').trim()),
+        brokerage_per_unit: num((row[cols.brokerage_per_unit] ?? '').trim()),
+        net_rate: num((row[cols.net_rate] ?? '').trim()),
+        net_total: num((row[cols.net_total] ?? '').trim()),
         segment: currentSegment,
       });
+    }
+
+    // Diagnostic: header found but no trades extracted
+    if (trades.length === 0) {
+      const headerCells = rows[tradeHeaderIdx].map((c) => (c ?? '').trim()).filter(Boolean);
+      diagnostic = `Trade header found at row ${tradeHeaderIdx + 1} with columns [${headerCells.join(', ')}] but no trade rows were extracted. ` +
+        `Buy/sell column index: ${cols.buy_sell}. Check if the XLSX layout matches expected Zerodha format.`;
     }
   }
 
@@ -222,7 +313,7 @@ function parseSheet(rows: string[][]): SheetParseResult {
     };
   }
 
-  return { trades, charges };
+  return { trades, charges, diagnostic };
 }
 
 // ---------------------------------------------------------------------------
@@ -250,6 +341,7 @@ export function parseContractNotes(
   const allTrades: ZerodhaContractNoteTradeRow[] = [];
   const allCharges: ZerodhaContractNoteCharges[] = [];
   const tradesPerSheet: number[] = [];
+  const diagnostics: string[] = [];
 
   for (const sheetName of workbook.SheetNames) {
     const rows = toStringGrid(workbook.Sheets[sheetName]);
@@ -258,6 +350,9 @@ export function parseContractNotes(
     if (result.charges) {
       allCharges.push(result.charges);
       tradesPerSheet.push(result.trades.length);
+    }
+    if (result.diagnostic) {
+      diagnostics.push(`Sheet "${sheetName}": ${result.diagnostic}`);
     }
   }
 
@@ -271,6 +366,7 @@ export function parseContractNotes(
     trades: allTrades,
     charges: allCharges,
     tradesPerSheet,
+    diagnostics: diagnostics.length > 0 ? diagnostics : undefined,
     metadata: {
       row_count: allTrades.length,
       date_range: dates.length > 0

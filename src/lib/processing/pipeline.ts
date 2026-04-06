@@ -102,6 +102,7 @@ interface ParsedFileSet {
     sheets: ContractNoteSheet[];
     charges: ZerodhaContractNoteCharges[];
     metadata: ParseMetadata;
+    diagnostics?: string[];
   };
   fundsStatement?: { rows: ZerodhaFundsStatementRow[]; metadata: ParseMetadata };
   dividends?: { rows: ZerodhaDividendRow[]; metadata: ParseMetadata };
@@ -188,6 +189,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
           sheets,
           charges: parsed.charges,
           metadata: parsed.metadata,
+          diagnostics: parsed.diagnostics,
         };
         fileIds.contractNote = f.fileId;
         break;
@@ -378,7 +380,11 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       tradeMatchDetails = `All ${matchResult.matched.length} tradebook trades matched to contract note entries.`;
     } else if (totalCN === 0) {
       tradeMatchStatus = 'WARNING';
-      tradeMatchDetails = `Contract note had no individual trade entries to match against. Your ${totalTradebook} tradebook trades were processed as-is. This is normal if your contract note only contains charges.`;
+      const diagInfo = parsedFileSet.contractNote?.diagnostics?.length
+        ? ` Parser diagnostics: ${parsedFileSet.contractNote.diagnostics.join('; ')}`
+        : '';
+      tradeMatchDetails = `Contract note had no individual trade entries to match against. Your ${totalTradebook} tradebook trades were processed as-is. ` +
+        `If your contract note contains trades, the file layout may not match the expected format — please re-check and re-upload.${diagInfo}`;
     } else {
       tradeMatchStatus = 'WARNING';
       tradeMatchDetails =

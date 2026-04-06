@@ -295,6 +295,8 @@ export interface ContractNoteParseResult {
   charges: ZerodhaContractNoteCharges[];
   /** Number of trades per sheet, in the same order as charges[]. */
   tradesPerSheet: number[];
+  /** Per-sheet diagnostics when trades were expected but not found. */
+  diagnostics?: string[];
   metadata: ParseMetadata;
 }
 
