@@ -194,7 +194,17 @@ function StepConfigure({
       fetch(`/api/batches/prior?company_name=${encodeURIComponent(name)}`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.batches) setPriorBatches(data.batches);
+          if (data.batches) {
+            // Dedup: keep only the most recent batch per period range
+            const seen = new Set<string>();
+            const deduped = (data.batches as PriorBatch[]).filter((b) => {
+              const key = `${b.period_from}|${b.period_to}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+            setPriorBatches(deduped);
+          }
         })
         .catch(() => { /* ignore */ })
         .finally(() => setLoadingPrior(false));
@@ -933,119 +943,59 @@ function StepResults({
           Download Tally XML Files
         </p>
         <div className="grid grid-cols-2 gap-3">
-          {result.mastersArtifactId ? (
-            <a
-              href={`/api/artifacts/${result.batchId}/${result.mastersArtifactId}`}
-              download={mastersFilename}
-              onClick={() => setHasDownloaded(true)}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
-            >
-              <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
-                  Masters XML
-                </p>
-                <p className="text-sm text-gray-600">
-                  Ledger definitions &amp; groups ({result.ledgerCount} ledgers)
-                </p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
+          <button
+            onClick={() => { downloadXml(result.mastersXml, mastersFilename); setHasDownloaded(true); }}
+            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+          >
+            <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
-            </a>
-          ) : (
-            <button
-              onClick={() => { downloadXml(result.mastersXml, mastersFilename); setHasDownloaded(true); }}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
-            >
-              <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
-                  Masters XML
-                </p>
-                <p className="text-sm text-gray-600">
-                  Ledger definitions &amp; groups ({result.ledgerCount} ledgers)
-                </p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
+                Masters XML
+              </p>
+              <p className="text-sm text-gray-600">
+                Ledger definitions &amp; groups ({result.ledgerCount} ledgers)
+              </p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+          <button
+            onClick={() => { downloadXml(result.transactionsXml, transactionsFilename); setHasDownloaded(true); }}
+            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+          >
+            <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
               </svg>
-            </button>
-          )}
-          {result.transactionsArtifactId ? (
-            <a
-              href={`/api/artifacts/${result.batchId}/${result.transactionsArtifactId}`}
-              download={transactionsFilename}
-              onClick={() => setHasDownloaded(true)}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
-            >
-              <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
-                  Transactions XML
-                </p>
-                <p className="text-sm text-gray-600">
-                  {result.voucherCount} vouchers (Purchase &amp; Sales)
-                </p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </a>
-          ) : (
-            <button
-              onClick={() => { downloadXml(result.transactionsXml, transactionsFilename); setHasDownloaded(true); }}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
-            >
-              <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
-                  Transactions XML
-                </p>
-                <p className="text-sm text-gray-600">
-                  {result.voucherCount} vouchers (Purchase &amp; Sales)
-                </p>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-          )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
+                Transactions XML
+              </p>
+              <p className="text-sm text-gray-600">
+                {result.voucherCount} vouchers (Purchase &amp; Sales)
+              </p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Files are also saved and re-downloadable anytime from the Batches page.
+          Download now — files are generated fresh each time and not stored on the server.
         </p>
       </div>
 

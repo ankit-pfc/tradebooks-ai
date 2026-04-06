@@ -14,8 +14,6 @@ export function mockBatchRepo(): { [K in keyof BatchRepository]: ReturnType<type
         addUploadedFiles: vi.fn(),
         resolveUploadedFilePath: vi.fn().mockResolvedValue(null),
         saveProcessingOutput: vi.fn(),
-        saveExportArtifacts: vi.fn(),
-        resolveArtifactPath: vi.fn().mockResolvedValue(null),
         listExceptions: vi.fn().mockResolvedValue([]),
         buildDashboardSummary: vi.fn().mockResolvedValue({
             summary: { total_batches: 0, total_vouchers: 0, success_rate: null, open_exceptions: 0 },

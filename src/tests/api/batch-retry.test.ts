@@ -86,8 +86,6 @@ const PIPELINE_OUTPUT = {
   summary: { passed: 1, warnings: 0, failed: 0 },
   mastersXml: '<ENVELOPE/>',
   transactionsXml: '<ENVELOPE/>',
-  mastersArtifactId: 'art-1',
-  transactionsArtifactId: 'art-2',
   filesSummary: [{ fileName: 'tradebook.csv', detectedType: 'tradebook' as const }],
   chargeSource: 'none' as const,
 };
@@ -209,8 +207,6 @@ describe('POST /api/batches/[batchId]/retry', () => {
     expect(body.voucherCount).toBe(1);
     expect(body.ledgerCount).toBe(1);
     expect(body.checks).toBeInstanceOf(Array);
-    expect(body.mastersArtifactId).toBe('art-1');
-    expect(body.transactionsArtifactId).toBe('art-2');
     expect(body.chargeSource).toBe('none');
   });
 

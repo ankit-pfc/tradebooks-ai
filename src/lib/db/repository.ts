@@ -7,7 +7,6 @@ import type {
     BatchProcessingResult,
     BatchRecord,
     DashboardResponse,
-    ExportArtifactRef,
     UploadBatchRequest,
 } from '@/lib/types';
 import type { CostLot } from '@/lib/types/events';
@@ -27,13 +26,6 @@ export type CreateBatchInput = UploadBatchRequest;
  * API DTOs in domain.ts.
  */
 export type UploadedFilePersistenceInput = BatchFileMeta & {
-    storage_path: string;
-};
-
-/**
- * Adapter-facing shape for persisting exported artifact metadata plus storage key.
- */
-export type ExportArtifactPersistenceInput = ExportArtifactRef & {
     storage_path: string;
 };
 
@@ -68,12 +60,6 @@ export interface BatchRepository {
     resolveUploadedFilePath(batchId: string, fileId: string): Promise<string | null>;
 
     saveProcessingOutput(input: SaveProcessingOutputInput): Promise<void>;
-
-    saveExportArtifacts(
-        batchId: string,
-        artifactsWithStoragePath: ExportArtifactPersistenceInput[],
-    ): Promise<void>;
-    resolveArtifactPath(batchId: string, artifactId: string): Promise<string | null>;
 
     listExceptions(): Promise<BatchException[]>;
     buildDashboardSummary(): Promise<DashboardResponse>;

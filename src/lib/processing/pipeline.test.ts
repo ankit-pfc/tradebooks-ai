@@ -15,8 +15,6 @@ const mockRepo = {
     addUploadedFiles: vi.fn(),
     resolveUploadedFilePath: vi.fn(),
     saveProcessingOutput: vi.fn().mockResolvedValue(undefined),
-    saveExportArtifacts: vi.fn().mockResolvedValue(undefined),
-    resolveArtifactPath: vi.fn(),
     listExceptions: vi.fn(),
     buildDashboardSummary: vi.fn(),
     saveClosingLots: vi.fn().mockResolvedValue(undefined),
@@ -26,13 +24,6 @@ const mockRepo = {
     getFilesByBatch: vi.fn(),
     deleteFile: vi.fn(),
     findDuplicateFile: vi.fn(),
-};
-
-const mockStorage = {
-    upload: vi.fn().mockResolvedValue('/mock/storage/path'),
-    download: vi.fn(),
-    delete: vi.fn(),
-    getSignedUrl: vi.fn(),
 };
 
 vi.mock('@/lib/db', () => ({
@@ -47,10 +38,6 @@ vi.mock('@/lib/db', () => ({
         bulkUpsertOverrides: vi.fn(),
         deleteOverride: vi.fn(),
     }),
-}));
-
-vi.mock('@/lib/storage/file-storage', () => ({
-    getFileStorage: () => mockStorage,
 }));
 
 // ---------------------------------------------------------------------------
@@ -87,8 +74,6 @@ const BASE_INPUT: PipelineInput = {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    mockStorage.upload.mockResolvedValue('/mock/storage/path');
-    mockRepo.saveExportArtifacts.mockResolvedValue(undefined);
     mockRepo.updateBatchStatus.mockResolvedValue(undefined);
     mockRepo.saveProcessingOutput.mockResolvedValue(undefined);
     mockRepo.getClosingLots.mockResolvedValue(null);
@@ -138,22 +123,6 @@ describe('runProcessingPipeline — happy path (tradebook)', () => {
             'succeeded',
             'Processing complete',
         );
-    });
-
-    it('uploads artifact files to storage', async () => {
-        await runProcessingPipeline(BASE_INPUT);
-        // 2 artifacts: masters + transactions
-        expect(mockStorage.upload).toHaveBeenCalledTimes(2);
-    });
-
-    it('saves export artifacts to DB', async () => {
-        await runProcessingPipeline(BASE_INPUT);
-        expect(mockRepo.saveExportArtifacts).toHaveBeenCalledOnce();
-        const [batchId, artifacts] = mockRepo.saveExportArtifacts.mock.calls[0];
-        expect(batchId).toBe('batch-001');
-        expect(artifacts).toHaveLength(2);
-        expect(artifacts[0].artifact_type).toBe('masters_xml');
-        expect(artifacts[1].artifact_type).toBe('transactions_xml');
     });
 
     it('processes a mixed-product tradebook end-to-end and emits expected XML voucher structures', async () => {

@@ -4,7 +4,6 @@ import {
     createBatch,
     deleteFile as localDeleteFile,
     findDuplicateFile as localFindDuplicateFile,
-    getArtifactPath,
     getBatch,
     getClosingLots as localGetClosingLots,
     getFilesByBatch as localGetFilesByBatch,
@@ -13,7 +12,6 @@ import {
     listExceptions,
     listPriorBatches as localListPriorBatches,
     saveClosingLots as localSaveClosingLots,
-    saveExportArtifacts,
     saveProcessingOutcome,
     setBatchStatus,
     toPublicBatchDetail,
@@ -66,14 +64,6 @@ const localBatchRepository: BatchRepository = {
 
     async saveProcessingOutput(input: SaveProcessingOutputInput) {
         await saveProcessingOutcome(input);
-    },
-
-    async saveExportArtifacts(batchId, artifactsWithStoragePath) {
-        await saveExportArtifacts(batchId, artifactsWithStoragePath);
-    },
-
-    async resolveArtifactPath(batchId, artifactId) {
-        return getArtifactPath(batchId, artifactId);
     },
 
     async listExceptions() {

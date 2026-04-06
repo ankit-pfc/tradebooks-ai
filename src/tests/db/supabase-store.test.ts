@@ -76,7 +76,6 @@ describe('supabaseBatchRepository', () => {
             expect(result.company_name).toBe('Test Corp');
             expect(result.files).toEqual([]);
             expect(result.exceptions).toEqual([]);
-            expect(result.exports).toEqual([]);
             expect(result.processing_result).toBeNull();
         });
 
@@ -141,7 +140,6 @@ describe('supabaseBatchRepository', () => {
                         checks: [{ check_name: 'test', status: 'PASSED', details: 'ok' }],
                     },
                 ],
-                export_artifacts: [],
             };
 
             fromChain.single.mockResolvedValue({ data: mockData, error: null });

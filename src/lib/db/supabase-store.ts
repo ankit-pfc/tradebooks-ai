@@ -2,7 +2,6 @@ import type { DashboardResponse } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
 import type {
     BatchRepository,
-    ExportArtifactPersistenceInput,
     SaveProcessingOutputInput,
     UploadedFilePersistenceInput,
 } from '@/lib/db/repository';
@@ -14,7 +13,6 @@ import type {
     BatchFileStatus,
     BatchProcessingResult,
     BatchRecord,
-    ExportArtifactRef,
 } from '@/lib/types';
 import type { CostLot } from '@/lib/types/events';
 
@@ -74,18 +72,6 @@ function rowToException(row: any): BatchException {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToArtifact(row: any): ExportArtifactRef {
-    return {
-        id: row.id,
-        batch_id: row.batch_id,
-        artifact_type: row.artifact_type,
-        file_name: row.file_name,
-        mime_type: row.mime_type,
-        created_at: row.created_at,
-    };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToProcessingResult(row: any): BatchProcessingResult {
     return {
         summary: row.summary,
@@ -121,7 +107,6 @@ export const supabaseBatchRepository: BatchRepository = {
             ...rowToBatchRecord(data),
             files: [],
             exceptions: [],
-            exports: [],
             processing_result: null,
         };
     },
@@ -132,7 +117,7 @@ export const supabaseBatchRepository: BatchRepository = {
         const { data, error } = await supabase
             .from('batches')
             .select(
-                '*, batch_files(*), batch_exceptions(*), batch_processing_results(*), export_artifacts(*)',
+                '*, batch_files(*), batch_exceptions(*), batch_processing_results(*)',
             )
             .eq('id', batchId)
             .single();
@@ -145,7 +130,6 @@ export const supabaseBatchRepository: BatchRepository = {
             ...rowToBatchRecord(data),
             files: (data.batch_files ?? []).map(rowToFileMeta),
             exceptions: (data.batch_exceptions ?? []).map(rowToException),
-            exports: (data.export_artifacts ?? []).map(rowToArtifact),
             processing_result: processingRow
                 ? rowToProcessingResult(processingRow)
                 : null,
@@ -269,46 +253,6 @@ export const supabaseBatchRepository: BatchRepository = {
             .eq('id', input.batchId);
     },
 
-    async saveExportArtifacts(batchId, artifactsWithStoragePath) {
-        const supabase = await createClient();
-        const rows = artifactsWithStoragePath.map((a: ExportArtifactPersistenceInput) => ({
-            id: a.id,
-            batch_id: batchId,
-            artifact_type: a.artifact_type,
-            file_name: a.file_name,
-            mime_type: a.mime_type,
-            storage_path: a.storage_path,
-        }));
-
-        const { error } = await supabase
-            .from('export_artifacts')
-            .insert(rows);
-        if (error) throw new Error(`saveExportArtifacts failed: ${error.message}`);
-
-        await supabase
-            .from('batches')
-            .update({ updated_at: new Date().toISOString() })
-            .eq('id', batchId);
-    },
-
-    async resolveArtifactPath(batchId, artifactId) {
-        const supabase = await createClient();
-        const { data, error } = await supabase
-            .from('export_artifacts')
-            .select('storage_path')
-            .eq('id', artifactId)
-            .eq('batch_id', batchId)
-            .single();
-
-        if (error || !data) return null;
-
-        const { data: signedData } = await supabase.storage
-            .from('uploads')
-            .createSignedUrl(data.storage_path, SIGNED_URL_EXPIRY_SECONDS);
-
-        return signedData?.signedUrl ?? null;
-    },
-
     async listExceptions() {
         const supabase = await createClient();
         const { data, error } = await supabase
@@ -353,7 +297,8 @@ export const supabaseBatchRepository: BatchRepository = {
             .eq('user_id', userId)
             .eq('company_name', companyName)
             .eq('status', 'succeeded')
-            .order('period_to', { ascending: false });
+            .order('period_to', { ascending: false })
+            .order('created_at', { ascending: false });
 
         if (error) throw new Error(`listPriorBatches failed: ${error.message}`);
         return (data ?? []).map(rowToBatchRecord);

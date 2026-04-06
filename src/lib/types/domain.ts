@@ -72,15 +72,6 @@ export interface BatchProcessingResult {
     }>;
 }
 
-export interface ExportArtifactRef {
-    id: string;
-    batch_id: string;
-    artifact_type: 'masters_xml' | 'transactions_xml' | 'reconciliation_json';
-    file_name: string;
-    mime_type: string;
-    created_at: string;
-}
-
 export interface BatchRecord {
     id: string;
     user_id: string;
@@ -101,7 +92,6 @@ export interface BatchRecord {
 export interface BatchDetail extends BatchRecord {
     files: BatchFileMeta[];
     exceptions: BatchException[];
-    exports: ExportArtifactRef[];
     processing_result: BatchProcessingResult | null;
 }
 
@@ -166,7 +156,6 @@ export interface ExportBatchRequest {
 export interface ExportBatchResponse {
     batch_id: string;
     status: AppBatchStatus;
-    artifacts: ExportArtifactRef[];
 }
 
 export type BatchListItem = BatchRecord;

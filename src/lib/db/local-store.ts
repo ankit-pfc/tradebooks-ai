@@ -8,13 +8,11 @@ import type {
     BatchFileStatus,
     BatchProcessingResult,
     BatchRecord,
-    ExportArtifactRef,
 } from '@/lib/types';
 import type { CostLot } from '@/lib/types/events';
 
 type PersistedBatch = BatchDetail & {
     uploaded_file_paths: Record<string, string>;
-    exported_file_paths: Record<string, string>;
     closing_lots_snapshot?: Record<string, CostLot[]> | null;
 };
 
@@ -24,13 +22,11 @@ interface AppState {
 
 const DATA_DIR = process.env.DATA_PATH || join(tmpdir(), 'tradebooks-data');
 const UPLOADS_DIR = join(DATA_DIR, 'uploads');
-const ARTIFACTS_DIR = join(DATA_DIR, 'artifacts');
 const DB_FILE = join(DATA_DIR, 'store.json');
 
 async function ensureStore(): Promise<void> {
     await mkdir(DATA_DIR, { recursive: true });
     await mkdir(UPLOADS_DIR, { recursive: true });
-    await mkdir(ARTIFACTS_DIR, { recursive: true });
     try {
         await readFile(DB_FILE, 'utf-8');
     } catch {
@@ -77,10 +73,8 @@ export async function createBatch(input: {
         fy_label: input.fy_label ?? null,
         files: [],
         exceptions: [],
-        exports: [],
         processing_result: null,
         uploaded_file_paths: {},
-        exported_file_paths: {},
         closing_lots_snapshot: null,
     };
     state.batches.unshift(batch);
@@ -91,7 +85,7 @@ export async function createBatch(input: {
 export async function listBatches(): Promise<BatchRecord[]> {
     const state = await readState();
     return state.batches.map(
-        ({ uploaded_file_paths: _u, exported_file_paths: _e, ...rest }) => rest,
+        ({ uploaded_file_paths: _u, ...rest }) => rest,
     );
 }
 
@@ -101,7 +95,7 @@ export async function getBatch(batchId: string): Promise<PersistedBatch | null> 
 }
 
 export function toPublicBatchDetail(batch: PersistedBatch): BatchDetail {
-    const { uploaded_file_paths: _u, exported_file_paths: _e, ...rest } = batch;
+    const { uploaded_file_paths: _u, ...rest } = batch;
     return rest;
 }
 
@@ -220,31 +214,6 @@ export async function saveProcessingOutcome(params: {
     await writeState(state);
 }
 
-export async function saveExportArtifacts(
-    batchId: string,
-    artifacts: Array<ExportArtifactRef & { storage_path: string }>,
-): Promise<void> {
-    const state = await readState();
-    const batch = state.batches.find((b) => b.id === batchId);
-    if (!batch) return;
-    batch.exports = artifacts.map(({ storage_path: _s, ...artifact }) => artifact);
-    for (const artifact of artifacts) {
-        batch.exported_file_paths[artifact.id] = artifact.storage_path;
-    }
-    batch.updated_at = new Date().toISOString();
-    await writeState(state);
-}
-
-export async function getArtifactPath(
-    batchId: string,
-    artifactId: string,
-): Promise<string | null> {
-    const state = await readState();
-    const batch = state.batches.find((b) => b.id === batchId);
-    if (!batch) return null;
-    return batch.exported_file_paths[artifactId] ?? null;
-}
-
 export async function getUploadedFilePath(
     batchId: string,
     fileId: string,
@@ -262,10 +231,6 @@ export async function listExceptions(): Promise<BatchException[]> {
 
 export function getUploadsDir(): string {
     return UPLOADS_DIR;
-}
-
-export function getArtifactsDir(): string {
-    return ARTIFACTS_DIR;
 }
 
 export async function saveClosingLots(
@@ -302,5 +267,5 @@ export async function listPriorBatches(
                 b.status === 'succeeded',
         )
         .sort((a, b) => b.period_to.localeCompare(a.period_to))
-        .map(({ uploaded_file_paths: _u, exported_file_paths: _e, closing_lots_snapshot: _c, ...rest }) => rest);
+        .map(({ uploaded_file_paths: _u, closing_lots_snapshot: _c, ...rest }) => rest);
 }

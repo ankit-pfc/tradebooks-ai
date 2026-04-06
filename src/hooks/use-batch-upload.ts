@@ -35,8 +35,6 @@ export interface ProcessingResult {
   summary: { passed: number; warnings: number; failed: number };
   mastersXml: string;
   transactionsXml: string;
-  mastersArtifactId?: string;
-  transactionsArtifactId?: string;
 }
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────

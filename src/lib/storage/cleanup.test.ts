@@ -16,8 +16,6 @@ function makeRepo(): { [K in keyof BatchRepository]: ReturnType<typeof vi.fn> } 
     addUploadedFiles: vi.fn(),
     resolveUploadedFilePath: vi.fn().mockResolvedValue(null),
     saveProcessingOutput: vi.fn(),
-    saveExportArtifacts: vi.fn(),
-    resolveArtifactPath: vi.fn(),
     listExceptions: vi.fn(),
     buildDashboardSummary: vi.fn(),
     saveClosingLots: vi.fn(),

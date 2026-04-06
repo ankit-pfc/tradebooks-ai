@@ -114,8 +114,6 @@ export async function POST(
       ledgerCount: result.ledgerCount,
       checks: result.checks,
       summary: result.summary,
-      mastersArtifactId: result.mastersArtifactId,
-      transactionsArtifactId: result.transactionsArtifactId,
       filesSummary: result.filesSummary,
       chargeSource: result.chargeSource,
       fyLabel: result.fyLabel,

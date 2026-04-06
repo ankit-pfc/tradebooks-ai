@@ -216,8 +216,6 @@ export async function POST(request: NextRequest) {
       classificationSummary: result.classificationSummary,
       mastersXml: result.mastersXml,
       transactionsXml: result.transactionsXml,
-      mastersArtifactId: result.mastersArtifactId,
-      transactionsArtifactId: result.transactionsArtifactId,
       filesSummary: result.filesSummary,
       chargeSource: result.chargeSource,
       fyLabel: result.fyLabel,

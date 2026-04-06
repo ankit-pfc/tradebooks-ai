@@ -299,7 +299,6 @@ describe('POST /api/process', () => {
         // Verify persistence calls
         expect(batchRepo.createBatch).toHaveBeenCalledOnce();
         expect(batchRepo.addUploadedFiles).toHaveBeenCalledOnce();
-        expect(batchRepo.saveExportArtifacts).toHaveBeenCalledOnce();
         expect(batchRepo.updateBatchStatus).toHaveBeenCalledWith('batch-123', 'succeeded', 'Processing complete');
         expect(batchRepo.saveProcessingOutput).toHaveBeenCalledOnce();
     });

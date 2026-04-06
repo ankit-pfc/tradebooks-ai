@@ -23,7 +23,6 @@ import { AccountingMode } from '@/lib/types/accounting';
 import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
 import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
 import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '@/lib/db';
-import { getFileStorage } from '@/lib/storage/file-storage';
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
@@ -72,8 +71,6 @@ export interface PipelineOutput {
   classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']>;
   mastersXml: string;
   transactionsXml: string;
-  mastersArtifactId: string;
-  transactionsArtifactId: string;
   filesSummary: { fileName: string; detectedType: BatchFileType }[];
   chargeSource: 'contract_note' | 'none';
   fyLabel?: string;
@@ -407,49 +404,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   // Step 9: Compute FY label
   const fyLabel = deriveFYLabel(periodFrom, periodTo);
 
-  // Step 10: Save artifacts to storage
-  const storage = getFileStorage();
-  const mastersArtifactId = crypto.randomUUID();
-  const transactionsArtifactId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  const mastersPath = await storage.upload(
-    userId,
-    batchId,
-    mastersArtifactId,
-    'xml',
-    Buffer.from(mastersXml, 'utf-8'),
-  );
-  const transactionsPath = await storage.upload(
-    userId,
-    batchId,
-    transactionsArtifactId,
-    'xml',
-    Buffer.from(transactionsXml, 'utf-8'),
-  );
-
-  await repo.saveExportArtifacts(batchId, [
-    {
-      id: mastersArtifactId,
-      batch_id: batchId,
-      artifact_type: 'masters_xml',
-      file_name: `${companyName}-masters.xml`,
-      mime_type: 'application/xml',
-      created_at: now,
-      storage_path: mastersPath,
-    },
-    {
-      id: transactionsArtifactId,
-      batch_id: batchId,
-      artifact_type: 'transactions_xml',
-      file_name: `${companyName}-transactions.xml`,
-      mime_type: 'application/xml',
-      created_at: now,
-      storage_path: transactionsPath,
-    },
-  ]);
-
-  // Step 11: Persist processing output and update batch status
+  // Step 10: Persist processing output and update batch status
   await repo.updateBatchStatus(batchId, 'succeeded', 'Processing complete');
 
   await repo.saveProcessingOutput({
@@ -482,8 +437,6 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     classificationSummary,
     mastersXml,
     transactionsXml,
-    mastersArtifactId,
-    transactionsArtifactId,
     filesSummary: parsedFileSet.files.map((f) => ({
       fileName: f.fileName,
       detectedType: f.detectedType,
