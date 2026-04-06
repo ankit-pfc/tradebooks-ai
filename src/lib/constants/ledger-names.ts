@@ -144,15 +144,19 @@ export const LTCG_LOSS: LedgerDef = {
   group: 'Indirect Expenses',
 };
 
-export const SPECULATIVE_PROFIT: LedgerDef = {
-  name: 'Speculative Profit on Shares',
+/** Single unified ledger for speculative (intraday) gain AND loss.
+ *  Both credit (gain) and debit (loss) entries go here so the net
+ *  result is automatically visible in Tally under Indirect Incomes.
+ */
+export const SPECULATIVE_INCOME: LedgerDef = {
+  name: 'Speculative Business Income',
   group: 'Indirect Incomes',
 };
 
-export const SPECULATIVE_LOSS: LedgerDef = {
-  name: 'Speculative Loss on Shares',
-  group: 'Indirect Expenses',
-};
+/** @deprecated Use SPECULATIVE_INCOME instead — kept for backward compat in tests. */
+export const SPECULATIVE_PROFIT = SPECULATIVE_INCOME;
+/** @deprecated Use SPECULATIVE_INCOME instead — kept for backward compat in tests. */
+export const SPECULATIVE_LOSS = SPECULATIVE_INCOME;
 
 // ---------------------------------------------------------------------------
 // P&L ledgers — Trader mode

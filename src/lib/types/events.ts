@@ -76,8 +76,14 @@ export interface CanonicalEvent {
   event_date: string;
   /** Settlement date in ISO-8601 format; may equal event_date for intraday. */
   settlement_date: string | null;
-  /** Foreign key into SecurityMaster; null for fund/charge-only events. */
+  /** Foreign key into SecurityMaster; null for fund/charge-only events.
+   *  For equity, uses ISIN:xxx format when ISIN is available (cross-exchange matching).
+   */
   security_id: string | null;
+  /** Human-readable trading symbol (e.g. "RELIANCE", "HDFC") for ledger/stock naming.
+   *  The security_id may be ISIN-based, so this field preserves the readable name.
+   */
+  security_symbol?: string | null;
   /** Signed quantity as a decimal string (positive = bought/received, negative = sold). */
   quantity: string;
   /** Per-unit rate / price as a decimal string. */

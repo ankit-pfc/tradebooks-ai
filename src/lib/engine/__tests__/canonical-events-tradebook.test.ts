@@ -68,17 +68,17 @@ describe('tradebookRowToEvents', () => {
     expect(events[0].event_date).toBe('2024-06-15');
   });
 
-  it('builds security_id as EQ:SYMBOL for equity segments regardless of ISIN', () => {
+  it('builds security_id as ISIN:xxx for equity segments when ISIN is available', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'nse', symbol: 'reliance', segment: 'EQ' }),
       'batch-1',
       'file-1',
     );
-    // Equity always uses EQ: prefix for cross-exchange unification
-    expect(events[0].security_id).toBe('EQ:RELIANCE');
+    // Equity with ISIN uses ISIN: prefix for cross-exchange unification
+    expect(events[0].security_id).toBe('ISIN:INE002A01018');
   });
 
-  it('uses EQ:SYMBOL for equity segments even when ISIN is unavailable', () => {
+  it('uses EQ:SYMBOL for equity segments when ISIN is unavailable (NA)', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'bse', symbol: 'adsl', isin: 'NA' }),
       'batch-1',
@@ -400,7 +400,7 @@ describe('buildCanonicalEvents', () => {
 });
 
 describe('cross-exchange equity normalisation', () => {
-  it('assigns the same security_id to NSE and BSE trades for the same equity scrip', () => {
+  it('assigns the same security_id to NSE and BSE trades for the same equity scrip via ISIN', () => {
     const buyOnNse = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'NSE', symbol: 'RELIANCE', segment: 'EQ', trade_type: 'buy' }),
       'b', 'f',
@@ -409,9 +409,9 @@ describe('cross-exchange equity normalisation', () => {
       makeTradebookRow({ exchange: 'BSE', symbol: 'RELIANCE', segment: 'EQ', trade_type: 'sell' }),
       'b', 'f',
     );
-    // Both should unify to EQ:RELIANCE regardless of exchange
-    expect(buyOnNse[0].security_id).toBe('EQ:RELIANCE');
-    expect(sellOnBse[0].security_id).toBe('EQ:RELIANCE');
+    // Both should unify to ISIN:INE002A01018 regardless of exchange (default ISIN from factory)
+    expect(buyOnNse[0].security_id).toBe('ISIN:INE002A01018');
+    expect(sellOnBse[0].security_id).toBe('ISIN:INE002A01018');
   });
 
   it('equity without ISIN uses EQ: prefix for cross-exchange unification', () => {
@@ -422,12 +422,13 @@ describe('cross-exchange equity normalisation', () => {
     expect(events[0].security_id).toBe('EQ:INFY');
   });
 
-  it('normalises BSE Book Entry segment (BE) to EQ:SYMBOL', () => {
+  it('normalises BSE Book Entry segment (BE) to ISIN when ISIN is available', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'BSE', symbol: 'INFY', segment: 'BE' }),
       'b', 'f',
     );
-    expect(events[0].security_id).toBe('EQ:INFY');
+    // Default factory ISIN is INE002A01018
+    expect(events[0].security_id).toBe('ISIN:INE002A01018');
   });
 
   it('does not normalise futures/options — exchange stays in the key', () => {

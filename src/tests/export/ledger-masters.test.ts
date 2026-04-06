@@ -64,8 +64,7 @@ describe('collectRequiredLedgers — no TallyProfile', () => {
     expect(names).toContain('Short Term Capital Loss on Sale of Shares');
     expect(names).toContain('Long Term Capital Gain on Sale of Shares');
     expect(names).toContain('Long Term Capital Loss on Sale of Shares');
-    expect(names).toContain('Speculative Profit on Shares');
-    expect(names).toContain('Speculative Loss on Shares');
+    expect(names).toContain('Speculative Business Income');
     expect(names).toContain('Dividend Income');
   });
 

@@ -96,14 +96,14 @@ describe('buildSecurityIdFromDescription', () => {
       .toBe('NSE:BOSCHLTD');
   });
 
-  it('uses tradebook-derived symbol lookup to unify CN symbols when description includes ISIN', () => {
+  it('uses ISIN from description for equity segment when ISIN is present', () => {
     const lookup = new Map<string, string>([
       ['ADSL - EQ / INE674K01013', 'ADSL'],
     ]);
 
-    // With equity segment, the mapped symbol goes through equity unification
+    // With equity segment and ISIN in description, ISIN takes priority
     expect(buildSecurityIdFromDescription('NSE', 'ADSL - EQ / INE674K01013', 'EQ', lookup))
-      .toBe('EQ:ADSL');
+      .toBe('ISIN:INE674K01013');
   });
 });
 
@@ -319,7 +319,7 @@ describe('buildCanonicalEvents', () => {
   it('keeps tradebook events for dates not covered by contract notes', () => {
     // Tradebook has trades on Jan 15 and Jan 20; CN only covers Jan 15
     const tbRow15 = makeTradebookRow({ trade_id: '2001', trade_date: '2024-01-15' });
-    const tbRow20 = makeTradebookRow({ trade_id: '3001', trade_date: '2024-01-20', symbol: 'TCS' });
+    const tbRow20 = makeTradebookRow({ trade_id: '3001', trade_date: '2024-01-20', symbol: 'TCS', isin: 'INE467B01029' });
     const cnTrade = makeCnTrade({ trade_no: '2001' });
 
     const events = buildCanonicalEvents({
@@ -335,7 +335,8 @@ describe('buildCanonicalEvents', () => {
     // CN trade (Jan 15) + tradebook trade (Jan 20) = 2
     expect(tradeEvents).toHaveLength(2);
 
-    const jan20Trade = tradeEvents.find((e) => e.security_id?.includes('TCS'));
+    // security_symbol is set to TCS for tradebook events
+    const jan20Trade = tradeEvents.find((e) => e.security_symbol === 'TCS');
     expect(jan20Trade).toBeDefined();
     expect(jan20Trade!.contract_note_ref).toBeNull(); // from tradebook
   });
@@ -370,8 +371,8 @@ describe('buildCanonicalEvents', () => {
     );
 
     expect(tradeEvents).toHaveLength(2);
-    // symbolByDescription maps to 'ADSL', then equity unification adds EQ: prefix
-    expect(tradeEvents[0].security_id).toBe('EQ:ADSL');
-    expect(tradeEvents[1].security_id).toBe('EQ:ADSL');
+    // Both tradebook and CN events unify to the same ISIN-based security_id
+    expect(tradeEvents[0].security_id).toBe('ISIN:INE674K01013');
+    expect(tradeEvents[1].security_id).toBe('ISIN:INE674K01013');
   });
 });

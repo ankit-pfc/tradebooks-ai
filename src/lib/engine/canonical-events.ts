@@ -80,22 +80,29 @@ function normaliseSecurityToken(value: string): string {
  * Build the canonical security_id used throughout the engine.
  *
  * Unified convention:
- * - For equity-delivery segments (EQ, BE, Equity, NSE-EQ, BSE-EQ), always
- *   use EQ:SYMBOL so BSE/NSE delivery trades share the same FIFO lots.
- *   ISIN is stored as metadata but does NOT affect the security_id — this
- *   avoids splits when one row has ISIN and another doesn't.
+ * - For equity-delivery segments (EQ, BE, Equity, NSE-EQ, BSE-EQ), use
+ *   ISIN as the primary key when available (same across all Indian
+ *   exchanges for a given company).  Falls back to EQ:SYMBOL when ISIN
+ *   is absent.  This ensures BSE/NSE delivery trades share FIFO lots
+ *   even if the symbol differs across exchanges.
  * - For non-equity segments (F&O, CDS, MCX), keep EXCHANGE:SYMBOL.
  */
 export function buildUnifiedSecurityId(
   exchange: string,
   symbol: string,
-  _isin?: string | null,
+  isin?: string | null,
   segment?: string,
 ): string {
   const normalizedSymbol = normaliseSecurityToken(symbol);
   const isEquity = segment ? isEquitySegment(segment) : false;
 
   if (isEquity) {
+    // Prefer ISIN — it's identical across NSE/BSE for the same company.
+    // Skip sentinel values like "NA" that indicate ISIN is unavailable.
+    const trimmedIsin = isin?.trim().toUpperCase();
+    if (trimmedIsin && trimmedIsin.length > 0 && trimmedIsin !== 'NA') {
+      return `ISIN:${trimmedIsin}`;
+    }
     return `EQ:${normalizedSymbol}`;
   }
 
@@ -185,6 +192,7 @@ export function tradebookRowToEvents(
     event_date: eventDate,
     settlement_date: null, // T+1/T+2 settlement date not present in tradebook rows
     security_id: securityId,
+    security_symbol: row.symbol?.trim().toUpperCase() || null,
     quantity: signedQty.toFixed(),
     rate: new Decimal(row.price).toFixed(),
     gross_amount: grossAmount.toFixed(2),
@@ -432,14 +440,25 @@ const CHARGE_EVENT_MAP: Array<{
   ];
 
 /**
+ * Extract ISIN from a contract-note security description if present.
+ * Format: "SYMBOL - EQ / INE123A01036" → "INE123A01036"
+ */
+function extractIsinFromDescription(description: string): string | null {
+  // ISIN pattern: INE followed by alphanumeric chars (Indian ISINs)
+  const match = description.match(/\b(INE[A-Z0-9]{9})\b/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
+/**
  * Build a security_id from a contract-note security description.
  * Contract notes use full names like "RELIANCE INDUSTRIES LTD" while
- * tradebooks use symbols like "RELIANCE". We normalise to
- * "{exchange}:{FIRST_WORD}" which matches the tradebook convention
- * for ~90% of Zerodha equities.
+ * tradebooks use symbols like "RELIANCE".
  *
- * When `segment` indicates an equity segment (EQ, BE, Equity, NSE-EQ …) the
- * exchange prefix is replaced with "EQ" so BSE/NSE lots remain fungible.
+ * For equity segments, prefers ISIN (extracted from description or passed
+ * explicitly) to ensure cross-exchange fungibility with tradebook events.
+ * Falls back to EQ:SYMBOL when ISIN is unavailable.
+ *
+ * Non-equity segments keep EXCHANGE:SYMBOL.
  */
 export function buildSecurityIdFromDescription(
   exchange: string,
@@ -448,10 +467,18 @@ export function buildSecurityIdFromDescription(
   symbolByDescription?: ReadonlyMap<string, string>,
 ): string {
   const cleaned = description.trim().toUpperCase();
+  const isEquity = segment ? isEquitySegment(segment) : false;
+
+  // For equity, try ISIN first — it's the most reliable cross-exchange key.
+  if (isEquity) {
+    const isin = extractIsinFromDescription(cleaned);
+    if (isin) {
+      return `ISIN:${isin}`;
+    }
+  }
+
   const mappedSymbol = symbolByDescription?.get(cleaned);
   if (mappedSymbol) {
-    // Run through the same unification logic so CN events and tradebook
-    // events for the same scrip produce identical security_ids.
     return buildSecurityId(exchange, mappedSymbol, segment);
   }
   // Use the first word as the symbol approximation
@@ -506,6 +533,12 @@ export function contractNoteToEvents(
       trade.gross_rate,
     );
 
+    // Derive symbol for display: prefer symbolByDescription map, then first word
+    const descCleaned = trade.security_description.trim().toUpperCase();
+    const cnSymbol = symbolByDescription?.get(descCleaned)
+      ?? descCleaned.split(/\s+/)[0]
+      ?? descCleaned;
+
     // Trade event
     events.push({
       event_id: crypto.randomUUID(),
@@ -516,6 +549,7 @@ export function contractNoteToEvents(
       event_date: eventDate,
       settlement_date: null,
       security_id: securityId,
+      security_symbol: cnSymbol,
       quantity: signedQty.toFixed(),
       rate: price.toFixed(),
       gross_amount: grossAmount.toFixed(2),

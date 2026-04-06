@@ -437,7 +437,8 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     expect(inventoryEntry.STOCKITEMNAME).toBe('RELIANCE-SH');
     expect(inventoryEntry.AMOUNT).toBe('-25000.00');
     expect(inventoryEntry.RATE).toBe('2500.00/SH');
-    expect(inventoryEntry.ISDEEMEDPOSITIVE).toBe('Yes');
+    // ISDEEMEDPOSITIVE is no longer emitted on INVENTORYALLOCATIONS.LIST
+    expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
   });
 
   it('sales CR line emits negative inventory quantity with UOM and matching signed amount', () => {
@@ -467,7 +468,8 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     expect(inventoryEntry.ACTUALQTY).toBe('-10 SH');
     expect(inventoryEntry.BILLEDQTY).toBe('-10 SH');
     expect(inventoryEntry.AMOUNT).toBe('25000.00');
-    expect(inventoryEntry.ISDEEMEDPOSITIVE).toBe('No');
+    // ISDEEMEDPOSITIVE is no longer emitted on INVENTORYALLOCATIONS.LIST
+    expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
   });
 
   it('omits INVENTORYALLOCATIONS.LIST on non-stock lines', () => {

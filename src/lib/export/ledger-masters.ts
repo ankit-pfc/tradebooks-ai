@@ -118,8 +118,12 @@ function collectLedgersFromProfile(
 
   for (const event of events) {
     if (!event.security_id) continue;
-    const resolved = symbolMap?.get(event.security_id) ?? event.security_id;
-    const symbol = extractSymbol(resolved);
+    // Prefer security_symbol (always the human-readable broker symbol like "RELIANCE")
+    // over extracting from security_id (which may be an ISIN code like "ISIN:INE002A01018").
+    // This mirrors the voucher-builder's symbolFromEvent() logic so that ledger masters
+    // and voucher lines reference the same ledger names.
+    const symbol = event.security_symbol
+      ?? extractSymbol(symbolMap?.get(event.security_id) ?? event.security_id);
 
     if (event.event_type === EventType.BUY_TRADE || event.event_type === EventType.SELL_TRADE) {
       tradeSymbols.add(symbol);

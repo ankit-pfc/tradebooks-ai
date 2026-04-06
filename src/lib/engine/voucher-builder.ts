@@ -41,7 +41,21 @@ export type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Extract the security symbol from a composite security_id ("EXCHANGE:SYMBOL"). */
+/** Extract the human-readable trading symbol from an event.
+ *  Prefers event.security_symbol (always the broker symbol like "RELIANCE"),
+ *  falls back to parsing security_id ("EQ:RELIANCE" → "RELIANCE").
+ *  Avoids using ISIN codes as display names.
+ */
+function symbolFromEvent(event: { security_id: string | null; security_symbol?: string | null }): string {
+  if (event.security_symbol) return event.security_symbol;
+  if (!event.security_id) return 'UNKNOWN';
+  const parts = event.security_id.split(':');
+  return parts.length > 1 ? parts[1] : event.security_id;
+}
+
+/** Extract the security symbol from a composite security_id ("EXCHANGE:SYMBOL").
+ *  For ISIN-prefixed IDs, returns the ISIN code (use symbolFromEvent when an event is available).
+ */
 function symbolFromSecurityId(securityId: string | null): string {
   if (!securityId) return 'UNKNOWN';
   const parts = securityId.split(':');
@@ -49,8 +63,8 @@ function symbolFromSecurityId(securityId: string | null): string {
 }
 
 /** Build the Tally stock item name for a security (symbol + "-SH" suffix). */
-function stockItemNameForSecurity(securityId: string | null): string {
-  return `${symbolFromSecurityId(securityId)}-SH`;
+function stockItemNameForEvent(event: { security_id: string | null; security_symbol?: string | null }): string {
+  return `${symbolFromEvent(event)}-SH`;
 }
 
 /** Build a VoucherLine with an auto-generated ID. */
@@ -105,6 +119,14 @@ function shouldCapitalizeBuyCharges(profile: AccountingProfile): boolean {
     (profile.charge_treatment === ChargeTreatment.HYBRID &&
       profile.mode === AccountingMode.INVESTOR)
   );
+}
+
+/** Intraday/speculative trades should NOT record stock inventory — positions
+ *  net off same-day and nothing carries forward. Only a plain Journal entry
+ *  with the gain/loss is needed.
+ */
+function isSpeculativeTrade(event: CanonicalEvent): boolean {
+  return event.trade_classification === TradeClassification.SPECULATIVE_BUSINESS;
 }
 
 export function deriveEffectiveProfile(
@@ -234,7 +256,7 @@ export function buildBuyVoucher(
 ): BuiltVoucherDraft {
   const effectiveProfile = deriveEffectiveProfile(profile, event);
   const draftId = crypto.randomUUID();
-  const symbol = symbolFromSecurityId(event.security_id);
+  const symbol = symbolFromEvent(event);
   const capitalize = shouldCapitalizeBuyCharges(effectiveProfile);
 
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
@@ -253,29 +275,31 @@ export function buildBuyVoucher(
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
+  // Intraday/speculative trades skip stock inventory — positions net off
+  // same-day and only the gain/loss matters.
+  const skipInventory = isSpeculativeTrade(event);
+
   if (capitalize) {
     // Single DR line: asset absorbs the total inclusive of charges.
-    // RATE must reflect the all-in cost per unit so Tally's stock valuation
-    // (RATE × QTY) matches the actual capitalised amount.
     const capitalizedAmount = grossAmount.add(totalCharges);
     const capitalizedQty = new Decimal(event.quantity).abs();
     const effectiveRate = capitalizedAmount.div(capitalizedQty).toDecimalPlaces(2).toFixed(2);
     lines.push(
-      makeLine(draftId, lineNo++, assetLedger, capitalizedAmount, 'DR', {
+      makeLine(draftId, lineNo++, assetLedger, capitalizedAmount, 'DR', skipInventory ? {} : {
         security_id: event.security_id,
         quantity: event.quantity,
         rate: effectiveRate,
-        stock_item_name: stockItemNameForSecurity(event.security_id),
+        stock_item_name: stockItemNameForEvent(event),
       }),
     );
   } else {
     // DR: asset at gross
     lines.push(
-      makeLine(draftId, lineNo++, assetLedger, grossAmount, 'DR', {
+      makeLine(draftId, lineNo++, assetLedger, grossAmount, 'DR', skipInventory ? {} : {
         security_id: event.security_id,
         quantity: event.quantity,
         rate: event.rate,
-        stock_item_name: stockItemNameForSecurity(event.security_id),
+        stock_item_name: stockItemNameForEvent(event),
       }),
     );
     // DR: each charge to its expense ledger
@@ -354,7 +378,7 @@ export function buildSellVoucher(
 ): BuiltVoucherDraft {
   const effectiveProfile = deriveEffectiveProfile(profile, event);
   const draftId = crypto.randomUUID();
-  const symbol = symbolFromSecurityId(event.security_id);
+  const symbol = symbolFromEvent(event);
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
 
   const grossAmount = new Decimal(event.gross_amount);
@@ -395,21 +419,20 @@ export function buildSellVoucher(
     }
 
     // CR: Investment account at cost basis.
-    // Always emit this line so Tally sees a stock movement for every sale.
-    // RATE must be cost-per-unit (totalCostBasis / qty) so that
-    // qty × rate = AMOUNT — Tally validates this and skips the voucher if it
-    // doesn't reconcile. For zero-cost disposals rate = 0 which Tally accepts.
+    // For non-speculative trades, include inventory so Tally records stock out.
+    // For speculative/intraday, skip inventory — positions net off same-day.
     {
+      const skipInventory = isSpeculativeTrade(event);
       const absQty = new Decimal(event.quantity).abs();
       const costPerUnit = absQty.greaterThan(0)
         ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
         : '0';
       lines.push(
-        makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', {
+        makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', skipInventory ? {} : {
           security_id: event.security_id,
           quantity: event.quantity,
           rate: costPerUnit,
-          stock_item_name: stockItemNameForSecurity(event.security_id),
+          stock_item_name: stockItemNameForEvent(event),
         }),
       );
     }
@@ -497,21 +520,18 @@ export function buildSellVoucher(
     lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
 
     // CR: Shares-in-Trade at cost basis.
-    // Always emit this line so Tally sees a stock movement for every sale.
-    // RATE must be cost-per-unit (totalCostBasis / qty) so that
-    // qty × rate = AMOUNT — Tally validates this and skips the voucher if it
-    // doesn't reconcile. For zero-cost disposals rate = 0 which Tally accepts.
     {
+      const skipInventory = isSpeculativeTrade(event);
       const absQty = new Decimal(event.quantity).abs();
       const costPerUnit = absQty.greaterThan(0)
         ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
         : '0';
       lines.push(
-        makeLine(draftId, lineNo++, stockLedger, totalCostBasis, 'CR', {
+        makeLine(draftId, lineNo++, stockLedger, totalCostBasis, 'CR', skipInventory ? {} : {
           security_id: event.security_id,
           quantity: event.quantity,
           rate: costPerUnit,
-          stock_item_name: stockItemNameForSecurity(event.security_id),
+          stock_item_name: stockItemNameForEvent(event),
         }),
       );
     }
@@ -604,7 +624,7 @@ export function buildDividendVoucher(
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
-  const symbol = symbolFromSecurityId(event.security_id);
+  const symbol = symbolFromEvent(event);
   const grossAmount = new Decimal(event.gross_amount);
   const bankName = tallyProfile?.bank.name ?? L.BANK.name;
   const dividendLedger = tallyProfile
@@ -668,7 +688,7 @@ export function buildCorporateActionVoucher(
   costBasis: Decimal,
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft | null {
-  const symbol = symbolFromSecurityId(event.security_id);
+  const symbol = symbolFromEvent(event);
 
   // BONUS / SPLIT: No accounting entry — lot adjustment is the effect
   if (
@@ -775,7 +795,7 @@ export function buildOffMarketTransferVoucher(
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
-  const symbol = symbolFromSecurityId(event.security_id);
+  const symbol = symbolFromEvent(event);
   const amount = new Decimal(event.gross_amount || '0');
   const effectiveAmount = amount.isZero() ? new Decimal('1') : amount;
 
@@ -825,7 +845,7 @@ export function buildAuctionAdjustmentVoucher(
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft {
   const draftId = crypto.randomUUID();
-  const symbol = symbolFromSecurityId(event.security_id);
+  const symbol = symbolFromEvent(event);
   const proceeds = new Decimal(event.gross_amount);
 
   const totalCostBasis = costDisposals.reduce(

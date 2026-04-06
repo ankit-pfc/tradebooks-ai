@@ -281,6 +281,17 @@ export function generateVouchersXml(
     const tallyVchType =
       VOUCHER_TYPE_MAP[voucher.voucher_type] ?? 'Journal';
 
+    // If any line carries inventory data (quantity + rate), this voucher
+    // affects stock and Tally needs "Invoice Voucher View" to process the
+    // INVENTORYALLOCATIONS.LIST entries.  Without this flag, Tally silently
+    // ignores inventory allocations on Journal vouchers.
+    const hasInventoryLines = voucher.lines.some(
+      (l) => l.quantity !== null && l.rate !== null,
+    );
+    const objView = hasInventoryLines
+      ? 'Invoice Voucher View'
+      : 'Accounting Voucher View';
+
     const msg = requestData.ele('TALLYMESSAGE', {
       'xmlns:UDF': 'TallyUDF',
     });
@@ -288,7 +299,7 @@ export function generateVouchersXml(
     const voucherEle = msg.ele('VOUCHER', {
       VCHTYPE: tallyVchType,
       ACTION: 'Create',
-      OBJVIEW: 'Accounting Voucher View',
+      OBJVIEW: objView,
     });
 
     const tallyDate = toTallyDate(voucher.voucher_date);
@@ -304,6 +315,12 @@ export function generateVouchersXml(
     }
 
     voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
+
+    // Tell Tally this voucher has inventory allocations so it processes
+    // stock movements.  Without this, Journal-type vouchers skip inventory.
+    if (hasInventoryLines) {
+      voucherEle.ele('ISINVOICE').txt('Yes');
+    }
 
     // Sort lines by line_no to preserve intended ordering.
     const sortedLines = [...voucher.lines].sort(
@@ -334,8 +351,6 @@ export function generateVouchersXml(
         const stockItemName = line.stock_item_name ?? line.ledger_name;
         const stockEntry = entry.ele('INVENTORYALLOCATIONS.LIST');
         stockEntry.ele('STOCKITEMNAME').txt(stockItemName);
-        stockEntry.ele('ISDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
-        stockEntry.ele('ISLASTDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
         stockEntry.ele('ACTUALQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('BILLEDQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('RATE').txt(tallyRate(line.rate));
