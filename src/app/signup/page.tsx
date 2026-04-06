@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Logo } from '@/components/ui/logo';
 
 export default function SignupPage() {
     const [email, setEmail] = useState('');
@@ -79,13 +80,7 @@ export default function SignupPage() {
         <div className="flex min-h-screen items-center justify-center px-4">
             <div className="w-full max-w-md">
                 <div className="mb-8 flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-1.5 rounded-full bg-[#1E4FD8]" aria-hidden="true" />
-                        <div>
-                            <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-[#6B7280]">TradeBooks</span>
-                            <span className="block -mt-0.5 text-xl font-bold tracking-tight text-[#0F1C2E]">AI</span>
-                        </div>
-                    </div>
+                    <Logo />
                     <p className="text-sm text-gray-500 text-center">Broker statements to Tally, automatically.</p>
                 </div>
             <Card className="w-full">
