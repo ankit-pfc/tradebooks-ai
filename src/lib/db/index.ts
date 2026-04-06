@@ -29,6 +29,11 @@ import {
     localSettingsRepository,
     supabaseSettingsRepository,
 } from '@/lib/db/settings-repository';
+import type { LedgerRepository } from '@/lib/db/ledger-repository';
+import {
+    localLedgerRepository,
+    supabaseLedgerRepository,
+} from '@/lib/db/ledger-repository';
 
 const LOCAL_RECENT_BATCHES_LIMIT = 10;
 
@@ -155,4 +160,11 @@ export function getSettingsRepository(): SettingsRepository {
         return supabaseSettingsRepository;
     }
     return localSettingsRepository;
+}
+
+export function getLedgerRepository(): LedgerRepository {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        return supabaseLedgerRepository;
+    }
+    return localLedgerRepository;
 }

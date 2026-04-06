@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, FileText, Download } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -20,15 +20,6 @@ type AppBatchStatus =
   | "succeeded"
   | "failed"
   | "needs_review";
-
-interface ExportArtifactRef {
-  id: string;
-  batch_id: string;
-  artifact_type: "masters_xml" | "transactions_xml" | "reconciliation_json";
-  file_name: string;
-  mime_type: string;
-  created_at: string;
-}
 
 interface BatchRecord {
   id: string;
@@ -89,8 +80,6 @@ export default function BatchesPage() {
   const [batches, setBatches] = useState<BatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
   useEffect(() => {
     let cancelled = false;
     const url =
@@ -115,34 +104,14 @@ export default function BatchesPage() {
     return () => { cancelled = true; };
   }, [statusFilter]);
 
-  async function handleDownload(batchId: string) {
-    setDownloadingId(batchId);
-    try {
-      const res = await fetch(`/api/batches/${batchId}`);
-      const data = await res.json();
-      const exports: ExportArtifactRef[] = data?.batch?.exports ?? [];
-      for (const artifact of exports) {
-        if (artifact.artifact_type === "reconciliation_json") continue;
-        const a = document.createElement("a");
-        a.href = `/api/artifacts/${batchId}/${artifact.id}`;
-        a.download = artifact.file_name;
-        a.click();
-        // small delay between downloads so browser doesn't block them
-        await new Promise((r) => setTimeout(r, 300));
-      }
-    } finally {
-      setDownloadingId(null);
-    }
-  }
-
   return (
     <div className="px-8 py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Batches</h1>
+          <h1 className="text-3xl font-bold text-gray-900">History</h1>
           <p className="text-base text-gray-700 mt-1">
-            Track upload and processing lifecycle for each import batch.
+            Past imports and their processing status.
           </p>
         </div>
         <Link
@@ -228,9 +197,6 @@ export default function BatchesPage() {
                   <TableHead className="text-sm font-semibold text-gray-900">
                     Created
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
-                    XML
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -257,20 +223,6 @@ export default function BatchesPage() {
                     </TableCell>
                     <TableCell className="text-base text-gray-700">
                       {formatDate(batch.created_at)}
-                    </TableCell>
-                    <TableCell className="pr-6">
-                      {batch.status === "succeeded" ? (
-                        <button
-                          onClick={() => handleDownload(batch.id)}
-                          disabled={downloadingId === batch.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          {downloadingId === batch.id ? "Fetching…" : "Download XML"}
-                        </button>
-                      ) : (
-                        <span className="text-sm text-gray-400">&mdash;</span>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}

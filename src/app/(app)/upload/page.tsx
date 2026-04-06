@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { FileUploadStatus } from "@/components/upload/file-upload-status";
-import { useBatchUpload, type ProcessingResult, type BatchUploadConfig, type PurchaseMergeMode } from "@/hooks/use-batch-upload";
+import { useBatchUpload, type ProcessingResult, type BatchUploadConfig } from "@/hooks/use-batch-upload";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,6 @@ interface UploadFormData {
   periodFrom: string;
   periodTo: string;
   priorBatchId: string;
-  purchaseMergeMode: PurchaseMergeMode;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -346,51 +345,6 @@ function StepConfigure({
         )}
       </div>
 
-      <div className="space-y-3">
-        <Label className="text-base font-medium text-gray-800">
-          Purchase merge mode
-        </Label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            {
-              value: "same_rate",
-              label: "Keep individual trades",
-              desc: "Only combine split fills when the same stock is bought on the same day at the same rate.",
-            },
-            {
-              value: "daily_summary",
-              label: "Merge daily (weighted avg)",
-              desc: "Combine same-day buys per stock and use a weighted average purchase rate.",
-            },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange({ purchaseMergeMode: option.value as PurchaseMergeMode })}
-              className={`flex flex-col items-start rounded-lg border p-4 text-left transition-all cursor-pointer ${formData.purchaseMergeMode === option.value
-                ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
-                : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.purchaseMergeMode === option.value
-                    ? "border-indigo-600"
-                    : "border-gray-300"
-                    }`}
-                >
-                  {formData.purchaseMergeMode === option.value && (
-                    <div className="w-2 h-2 rounded-full bg-indigo-600" />
-                  )}
-                </div>
-                <span className="text-base font-semibold text-gray-900">{option.label}</span>
-              </div>
-              <p className="pl-6 text-sm text-gray-600">{option.desc}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Prior Batch (Opening Balances) */}
       {priorBatches.length > 0 ? (
         <div className="space-y-1.5">
@@ -532,12 +486,6 @@ function StepUpload({
               </span>
               <span className="text-gray-400">·</span>
               <span className="text-gray-600 capitalize">{formData.accountingMode} mode</span>
-              <span className="text-gray-400">·</span>
-              <span className="text-gray-600">
-                {formData.purchaseMergeMode === 'daily_summary'
-                  ? 'Daily purchase merge'
-                  : 'Individual trade merge'}
-              </span>
               {formData.companyName && (
                 <>
                   <span className="text-gray-400">·</span>
@@ -1137,7 +1085,6 @@ export default function UploadPage() {
     periodFrom: "",
     periodTo: "",
     priorBatchId: "",
-    purchaseMergeMode: "same_rate",
   });
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
 
@@ -1169,21 +1116,21 @@ export default function UploadPage() {
 
   const handleProcess = useCallback(async () => {
     setStep(3);
-    const result = await hook.startProcessing(formData.purchaseMergeMode);
+    const result = await hook.startProcessing();
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
     // If result is null, batchStatus is 'failed' and StepProcessing shows error
-  }, [formData.purchaseMergeMode, hook]);
+  }, [hook]);
 
   const handleRetryProcessing = useCallback(async () => {
-    const result = await hook.startProcessing(formData.purchaseMergeMode);
+    const result = await hook.startProcessing();
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
-  }, [formData.purchaseMergeMode, hook]);
+  }, [hook]);
 
   const handleReset = () => {
     hook.reset();
@@ -1194,7 +1141,6 @@ export default function UploadPage() {
       periodFrom: "",
       periodTo: "",
       priorBatchId: "",
-      purchaseMergeMode: "same_rate",
     });
     setProcessingResult(null);
   };

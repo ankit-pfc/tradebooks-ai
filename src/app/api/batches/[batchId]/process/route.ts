@@ -12,14 +12,7 @@ export async function POST(
   { params }: { params: Promise<{ batchId: string }> },
 ) {
   try {
-    let purchaseMergeMode: PurchaseMergeMode = 'same_rate';
-    const contentType = request.headers.get('content-type') ?? '';
-    if (contentType.includes('application/json')) {
-      const body = await request.json() as { purchaseMergeMode?: PurchaseMergeMode };
-      if (body.purchaseMergeMode === 'daily_summary' || body.purchaseMergeMode === 'same_rate') {
-        purchaseMergeMode = body.purchaseMergeMode;
-      }
-    }
+    const purchaseMergeMode: PurchaseMergeMode = 'same_rate';
 
     const userId = await getAuthenticatedUserId();
     if (!userId) {

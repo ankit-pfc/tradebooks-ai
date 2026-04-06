@@ -336,7 +336,7 @@ export function useBatchUpload() {
     }
   }, []);
 
-  const startProcessing = useCallback(async (purchaseMergeMode: PurchaseMergeMode = 'same_rate'): Promise<ProcessingResult | null> => {
+  const startProcessing = useCallback(async (): Promise<ProcessingResult | null> => {
     const { batchId, batchStatus } = stateRef.current;
     if (!batchId || batchStatus !== 'uploading') return null;
 
@@ -346,7 +346,7 @@ export function useBatchUpload() {
       const res = await fetch(`/api/batches/${batchId}/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseMergeMode }),
+        body: JSON.stringify({ purchaseMergeMode: 'same_rate' }),
       });
       const data = await res.json();
 
