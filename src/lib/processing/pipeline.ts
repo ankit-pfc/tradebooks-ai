@@ -24,7 +24,7 @@ import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
 import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
 import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '@/lib/db';
 import { matchTrades } from '@/lib/engine/trade-matcher';
-import { mergePurchaseVouchers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
+import { mergePurchaseVouchers, disambiguateVoucherNumbers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
 import { TradeClassification } from '@/lib/engine/trade-classifier';
 import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
@@ -268,7 +268,12 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
 
   // Step 7: Build vouchers, collect ledger masters, generate XML
   const rawVouchers = buildVouchers(events, profile, tracker, tallyProfile);
-  const vouchers = mergePurchaseVouchers(rawVouchers, purchaseMergeMode);
+  // mergePurchaseVouchers consolidates same-rate fills; disambiguateVoucherNumbers
+  // appends -2/-3 suffixes to any remaining duplicate VOUCHERNUMBER pairs so
+  // multi-script CNs and multi-rate same-script CNs don't collide on Tally import
+  // (item #16 from 3rd review).
+  const mergedVouchers = mergePurchaseVouchers(rawVouchers, purchaseMergeMode);
+  const vouchers = disambiguateVoucherNumbers(mergedVouchers);
   const ledgers = collectRequiredLedgers(events, profile, { tallyProfile });
 
   const classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']> = {

@@ -4,8 +4,10 @@ import {
   buildCanonicalEvents,
   pairContractNoteData,
   buildSecurityIdFromDescription,
+  reclassifyIntradayTrades,
 } from '../canonical-events';
 import { EventType } from '../../types/events';
+import { TradeClassification } from '../trade-classifier';
 import type {
   ZerodhaContractNoteTradeRow,
   ZerodhaContractNoteCharges,
@@ -225,6 +227,59 @@ describe('contractNoteToEvents', () => {
     expect(contractNoteToEvents([], makeCnCharges(), 'b', 'f')).toHaveLength(0);
   });
 
+  // Zerodha contract notes encode every monetary aggregate from the client's
+  // cash-flow perspective: charges are always negative (money out) regardless
+  // of whether the underlying trade is a buy or sell. The canonical event
+  // model expresses charges as positive expense amounts (the convention used
+  // by every downstream consumer: voucher builder, ledger postings, Tally
+  // export). contractNoteToEvents normalises by taking the absolute value of
+  // the allocated aggregate. A prior review misread this convention and
+  // claimed negative aggregates were "rebates" — they are not; they are the
+  // standard sign convention applied to every Zerodha CN ever issued.
+  it('normalises negative charge aggregates (Zerodha cash-flow convention) into positive expenses', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade()],
+      makeCnCharges({
+        stt: '-25.00',
+        exchange_charges: '-5.00',
+        clearing_charges: '-1.00',
+        sebi_fees: '-0.25',
+        stamp_duty: '-3.75',
+      }),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    const stt = events.find((e) => e.charge_type === 'STT');
+    expect(stt).toBeDefined();
+    expect(stt!.charge_amount).toBe('25.00');
+
+    const exch = events.find((e) => e.charge_type === 'EXCHANGE_CHARGE');
+    expect(exch).toBeDefined();
+    expect(exch!.charge_amount).toBe('5.00');
+
+    const sebi = events.find((e) => e.charge_type === 'SEBI_CHARGE');
+    expect(sebi).toBeDefined();
+    expect(sebi!.charge_amount).toBe('0.25');
+
+    const stamp = events.find((e) => e.charge_type === 'STAMP_DUTY');
+    expect(stamp).toBeDefined();
+    expect(stamp!.charge_amount).toBe('3.75');
+  });
+
+  it('normalises negative GST consolidated total (Zerodha cash-flow convention) into positive expense', () => {
+    const events = contractNoteToEvents(
+      [makeCnTrade()],
+      makeCnCharges({ cgst: '-0.90', sgst: '-0.90', igst: '0' }),
+      'batch-1',
+      'file-cn-1',
+    );
+
+    const gstEvents = events.filter((e) => e.event_type === EventType.GST_ON_CHARGES);
+    expect(gstEvents).toHaveLength(1);
+    expect(gstEvents[0].charge_amount).toBe('1.80');
+  });
+
   it('skips zero-amount charge events', () => {
     const events = contractNoteToEvents(
       [makeCnTrade({ brokerage_per_unit: '0' })],
@@ -390,5 +445,244 @@ describe('buildCanonicalEvents', () => {
     // Both tradebook and CN events unify to the same ISIN-based security_id
     expect(tradeEvents[0].security_id).toBe('ISIN:INE674K01013');
     expect(tradeEvents[1].security_id).toBe('ISIN:INE674K01013');
+  });
+
+  // Regression: bug report item #11 / page 8 item 15. Same company listed on
+  // both NSE and BSE with DIFFERENT ticker symbols was producing two stock
+  // items in Tally because security_symbol carried the per-exchange ticker.
+  // Fix: buildCanonicalEvents now derives a batch-wide ISIN→canonical-symbol
+  // map from the FIRST trade seen for each ISIN, and every subsequent event
+  // (any exchange, any source file) uses that canonical symbol.
+  it('unifies security_symbol across NSE/BSE for the same ISIN even when tickers differ', () => {
+    // NSE CN trade for HDFC, ISIN INE001A01036
+    const nseCnSheet = {
+      charges: makeCnCharges(),
+      trades: [
+        makeCnTrade({
+          trade_no: 'NSE-1',
+          buy_sell: 'B',
+          exchange: 'NSE',
+          security_description: 'HDFC/INE001A01036',
+        }),
+      ],
+    };
+    // BSE CN trade for the same company under a different exchange ticker
+    const bseCnSheet = {
+      charges: makeCnCharges({ trade_date: '16-01-2024' }),
+      trades: [
+        makeCnTrade({
+          trade_no: 'BSE-1',
+          buy_sell: 'S',
+          exchange: 'BSE',
+          security_description: 'HDFCBANK/INE001A01036',
+        }),
+      ],
+    };
+
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [nseCnSheet, bseCnSheet],
+      batchId: 'batch-1',
+      fileIds: { contractNote: 'file-cn' },
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(2);
+
+    // Both trades MUST share the same security_id (ISIN-keyed) AND the same
+    // security_symbol (the FIRST one seen — "HDFC" from the NSE sheet),
+    // so the Tally export produces a single "HDFC-SH" stock item, not
+    // separate "HDFC-SH" and "HDFCBANK-SH" items.
+    for (const e of tradeEvents) {
+      expect(e.security_id).toBe('ISIN:INE001A01036');
+      expect(e.security_symbol).toBe('HDFC');
+    }
+  });
+
+  it('strips the /ISIN suffix from XLSX-format CN descriptions when extracting symbol', () => {
+    // Real Zerodha XLSX CN format observed in production:
+    //   "GEMENVIRO-M/INE0RUJ01013"
+    // Previously the symbol extractor returned the entire string unchanged
+    // (no whitespace to split on), so the Tally stock item became
+    // "GEMENVIRO-M/INE0RUJ01013-SH" — unusable.
+    const events = contractNoteToEvents(
+      [
+        makeCnTrade({
+          trade_no: 'T-1',
+          security_description: 'GEMENVIRO-M/INE0RUJ01013',
+          exchange: 'BSE',
+        }),
+      ],
+      makeCnCharges(),
+      'batch-1',
+      'file-cn',
+    );
+
+    const tradeEvent = events.find(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvent).toBeDefined();
+    expect(tradeEvent!.security_symbol).toBe('GEMENVIRO-M');
+    expect(tradeEvent!.security_id).toBe('ISIN:INE0RUJ01013');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reclassifyIntradayTrades — bug report items #14, #13
+// ---------------------------------------------------------------------------
+
+describe('reclassifyIntradayTrades', () => {
+  it('flips PROFILE_DRIVEN trades that fully net off same-day to SPECULATIVE_BUSINESS', () => {
+    // Two CN trades: buy 25 + sell 25 of HDFC on the same day → fully intraday.
+    // CN trades come in as PROFILE_DRIVEN (no product code in CNs).
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({ trade_date: '20-04-2021' }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'BUY-1',
+              buy_sell: 'B',
+              quantity: '25',
+              gross_rate: '2490',
+              security_description: 'HDFC/INE001A01036',
+            }),
+            makeCnTrade({
+              trade_no: 'SELL-1',
+              buy_sell: 'S',
+              quantity: '25',
+              gross_rate: '2515',
+              security_description: 'HDFC/INE001A01036',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(2);
+    for (const e of tradeEvents) {
+      expect(e.trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+    }
+  });
+
+  it('also flips charge events anchored to a same-day netoff group', () => {
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({
+            trade_date: '20-04-2021',
+            stt: '10.00',
+            brokerage: '5.00',
+          }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'BUY-1',
+              buy_sell: 'B',
+              quantity: '25',
+              security_description: 'HDFC/INE001A01036',
+            }),
+            makeCnTrade({
+              trade_no: 'SELL-1',
+              buy_sell: 'S',
+              quantity: '25',
+              security_description: 'HDFC/INE001A01036',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+    });
+
+    const stt = events.find((e) => e.charge_type === 'STT');
+    expect(stt).toBeDefined();
+    expect(stt!.trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+  });
+
+  it('does NOT reclassify partial-netoff days (out of scope)', () => {
+    // 30 buy + 25 sell same day → 25 intraday + 5 carry-forward delivery.
+    // Partial splitting is deferred; the whole group is left untouched.
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({ trade_date: '20-04-2021' }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'BUY-1',
+              buy_sell: 'B',
+              quantity: '30',
+              security_description: 'HDFC/INE001A01036',
+            }),
+            makeCnTrade({
+              trade_no: 'SELL-1',
+              buy_sell: 'S',
+              quantity: '25',
+              security_description: 'HDFC/INE001A01036',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(2);
+    // Both stay PROFILE_DRIVEN
+    for (const e of tradeEvents) {
+      expect(e.trade_classification).toBe(TradeClassification.PROFILE_DRIVEN);
+    }
+  });
+
+  it('does NOT touch trades with explicit non-PROFILE_DRIVEN classification (e.g. CNC delivery that nets off same-day)', () => {
+    // Build the events directly to bypass classifyTrade — simulate a tradebook
+    // CNC same-day netoff which classifyTrade tags as INVESTMENT.
+    const baseEvent = {
+      event_id: 'a',
+      import_batch_id: 'b',
+      event_date: '2024-04-15',
+      settlement_date: null,
+      security_id: 'ISIN:INE001A01036',
+      security_symbol: 'HDFC',
+      rate: '2500',
+      gross_amount: '25000',
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: 'f',
+      source_row_ids: ['r1'],
+      contract_note_ref: null,
+      external_ref: null,
+      event_hash: 'h1',
+    };
+    const buy = {
+      ...baseEvent,
+      event_id: 'buy-1',
+      event_type: EventType.BUY_TRADE,
+      event_hash: 'h-buy',
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      quantity: '10',
+    };
+    const sell = {
+      ...baseEvent,
+      event_id: 'sell-1',
+      event_type: EventType.SELL_TRADE,
+      event_hash: 'h-sell',
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      quantity: '-10',
+    };
+
+    const result = reclassifyIntradayTrades([buy, sell]);
+    expect(result[0].trade_classification).toBe(TradeClassification.INVESTMENT);
+    expect(result[1].trade_classification).toBe(TradeClassification.INVESTMENT);
   });
 });

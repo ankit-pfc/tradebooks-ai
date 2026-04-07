@@ -144,6 +144,36 @@ export function mergePurchaseVouchers(
   return mergeSameRatePurchaseVouchers(vouchers);
 }
 
+/**
+ * Append numeric suffixes to vouchers whose `external_reference` (= Tally
+ * VOUCHERNUMBER) collides with another voucher in the list. Required because
+ * a single contract note may legitimately produce multiple vouchers (multi-
+ * security CN, or same-security multi-rate fills that don't merge), and Tally
+ * rejects duplicate voucher numbers within a voucher type.
+ *
+ * Strategy: voucher numbers are grouped by (voucher_type, external_reference).
+ * The first voucher in each group keeps the original number; subsequent ones
+ * get "-2", "-3", … suffixes preserving deterministic order (input order is
+ * stable, so re-imports of the same data produce the same suffix assignments
+ * and Tally raises duplicate-voucher-number errors as intended).
+ *
+ * Vouchers without an external_reference are passed through unchanged.
+ */
+export function disambiguateVoucherNumbers(
+  vouchers: BuiltVoucherDraft[],
+): BuiltVoucherDraft[] {
+  // Map<"voucherType|externalRef", count-so-far>
+  const seen = new Map<string, number>();
+  return vouchers.map((v) => {
+    if (!v.external_reference) return v;
+    const key = `${v.voucher_type}|${v.external_reference}`;
+    const count = (seen.get(key) ?? 0) + 1;
+    seen.set(key, count);
+    if (count === 1) return v;
+    return { ...v, external_reference: `${v.external_reference}-${count}` };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

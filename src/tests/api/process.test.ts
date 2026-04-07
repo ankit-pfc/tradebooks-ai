@@ -86,8 +86,11 @@ describe('process pipeline (tradebook-only)', () => {
         const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
 
         const types = vouchers.map((v) => v.voucher_type);
-        // Investor mode uses JOURNAL for both buy and sell
-        expect(types).toContain('JOURNAL');
+        // Delivery investor trades use Purchase/Sales (Invoice Voucher View)
+        // so Tally records inventory. Speculative/intraday trades stay as
+        // Journal vouchers.
+        expect(types).toContain('PURCHASE');
+        expect(types).toContain('SALES');
     });
 
     it('produces reconciliation-ready check data', () => {

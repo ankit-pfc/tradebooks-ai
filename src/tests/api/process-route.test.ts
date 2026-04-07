@@ -78,6 +78,7 @@ vi.mock('@/lib/engine/voucher-builder', () => ({
 
 vi.mock('@/lib/engine/voucher-merger', () => ({
     mergePurchaseVouchers: (vouchers: unknown[]) => vouchers,
+    disambiguateVoucherNumbers: (vouchers: unknown[]) => vouchers,
 }));
 
 vi.mock('@/lib/engine/cost-lots', () => ({

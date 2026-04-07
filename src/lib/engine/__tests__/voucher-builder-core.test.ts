@@ -44,11 +44,15 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     expect(crLine.amount).toBe('25002.50');
   });
 
-  it('voucher is balanced and has JOURNAL type for investor mode', () => {
+  it('voucher is balanced and uses PURCHASE type so Tally records inventory', () => {
+    // Delivery investor buys must be Purchase vouchers (Invoice Voucher View)
+    // because Tally's Accounting Voucher View silently drops
+    // INVENTORYALLOCATIONS.LIST on import. Speculative/intraday buys remain
+    // Journal vouchers (no inventory carry-forward).
     const event = makeBuyEvent({ gross_amount: '25000.00' });
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
     expect(voucher.total_debit).toBe(voucher.total_credit);
-    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(voucher.voucher_type).toBe(VoucherType.PURCHASE);
   });
 });
 
@@ -182,7 +186,7 @@ describe('buildSellVoucher — investor', () => {
 
     const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
     expect(gainLine).toBeDefined();
-    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(voucher.voucher_type).toBe(VoucherType.SALES);
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 
@@ -522,12 +526,13 @@ describe('buildVouchers holding period routing', () => {
       tracker,
     );
 
-    // Investor mode sell vouchers use JOURNAL type, not SALES
+    // Delivery investor sell vouchers use SALES type (Invoice Voucher View)
+    // so Tally records inventory outflow.
     const saleVoucher = vouchers.find((voucher) =>
       voucher.narrative?.includes('Sale of'),
     );
     expect(saleVoucher).toBeDefined();
-    expect(saleVoucher?.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(saleVoucher?.voucher_type).toBe(VoucherType.SALES);
     expect(
       saleVoucher?.lines.some(
         (line) =>

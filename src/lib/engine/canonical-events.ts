@@ -10,7 +10,7 @@
 import Decimal from 'decimal.js';
 import { createHash } from 'crypto';
 import { EventType, type CanonicalEvent } from '../types/events';
-import { classifyTrade } from './trade-classifier';
+import { classifyTrade, TradeClassification } from './trade-classifier';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -158,6 +158,7 @@ export function tradebookRowToEvents(
   row: ZerodhaTradebookRow,
   batchId: string,
   fileId: string,
+  isinSymbolMap?: ReadonlyMap<string, string>,
 ): CanonicalEvent[] {
   const eventId = crypto.randomUUID();
   const eventType =
@@ -183,6 +184,15 @@ export function tradebookRowToEvents(
     row.price,
   );
 
+  // Cross-exchange symbol unification: if this trade's ISIN appears in the
+  // batch-wide ISIN→canonical-symbol map, use that symbol so NSE and BSE
+  // trades for the same security render to a single Tally stock item.
+  const isinKey = row.isin?.trim().toUpperCase();
+  const canonicalSymbol =
+    isinKey && isinKey !== 'NA' && isinKey !== 'N/A' && isinKey !== '-'
+      ? isinSymbolMap?.get(isinKey) ?? row.symbol?.trim().toUpperCase() ?? null
+      : row.symbol?.trim().toUpperCase() ?? null;
+
   const event: CanonicalEvent = {
     event_id: eventId,
     import_batch_id: batchId,
@@ -192,7 +202,7 @@ export function tradebookRowToEvents(
     event_date: eventDate,
     settlement_date: null, // T+1/T+2 settlement date not present in tradebook rows
     security_id: securityId,
-    security_symbol: row.symbol?.trim().toUpperCase() || null,
+    security_symbol: canonicalSymbol,
     quantity: signedQty.toFixed(),
     rate: new Decimal(row.price).toFixed(),
     gross_amount: grossAmount.toFixed(2),
@@ -450,6 +460,29 @@ function extractIsinFromDescription(description: string): string | null {
 }
 
 /**
+ * Extract a clean trading symbol from a Zerodha CN security description.
+ *
+ * Handles both formats Zerodha emits:
+ *   - XLSX cash-equity:  "GEMENVIRO-M/INE0RUJ01013"   → "GEMENVIRO-M"
+ *   - PDF/XML format:    "RELIANCE - EQ / INE002A01018" → "RELIANCE"
+ *   - F&O format:        "NIFTY24DECFUT" (no ISIN)    → "NIFTY24DECFUT"
+ *
+ * Strips any trailing /ISIN before taking the first whitespace-delimited
+ * token. The previous implementation split on whitespace only, which left
+ * the slash-separated XLSX format unparsed and produced bad stock item
+ * names like "GEMENVIRO-M/INE0RUJ01013-SH" in the Tally export.
+ */
+export function extractCleanSymbolFromCnDescription(description: string): string {
+  const cleaned = description.trim().toUpperCase();
+  // Strip trailing "/ISIN" or " / ISIN"
+  const withoutIsin = cleaned.replace(/\s*\/\s*IN[A-Z0-9]{10}\s*$/i, '').trim();
+  // Strip the optional " - SEGMENT" suffix on the PDF format and any other
+  // trailing " - X" tokens. Take the first whitespace-delimited token.
+  const firstToken = withoutIsin.split(/\s+/)[0] || withoutIsin;
+  return firstToken;
+}
+
+/**
  * Build a security_id from a contract-note security description.
  * Contract notes use full names like "RELIANCE INDUSTRIES LTD" while
  * tradebooks use symbols like "RELIANCE".
@@ -487,6 +520,42 @@ export function buildSecurityIdFromDescription(
 }
 
 /**
+ * Build a Map<ISIN, canonicalSymbol> spanning all trade rows in a batch.
+ *
+ * Same-ISIN trades from different exchanges (NSE vs BSE) frequently use
+ * different ticker symbols (e.g. NSE "HDFC" vs BSE "HDFC-A"). Without
+ * unification, the Tally export creates a separate stock item per symbol
+ * even though they refer to the same security, breaking inventory tracking
+ * and FIFO across exchanges. This map ensures the FIRST symbol seen for a
+ * given ISIN becomes the canonical symbol for every subsequent event.
+ *
+ * Trade rows without an extractable ISIN are not added to the map — they
+ * fall through to per-row symbol extraction.
+ */
+export function buildIsinSymbolMap(opts: {
+  contractNoteSheets?: ContractNoteSheet[];
+  tradebookRows?: ZerodhaTradebookRow[];
+}): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const sheet of opts.contractNoteSheets ?? []) {
+    for (const trade of sheet.trades) {
+      const isin = extractIsinFromDescription(trade.security_description);
+      if (!isin || map.has(isin)) continue;
+      const symbol = extractCleanSymbolFromCnDescription(trade.security_description);
+      if (symbol) map.set(isin, symbol);
+    }
+  }
+  for (const row of opts.tradebookRows ?? []) {
+    const isin = row.isin?.trim().toUpperCase();
+    if (!isin || isin === 'NA' || isin === 'N/A' || isin === '-') continue;
+    if (map.has(isin)) continue;
+    const symbol = row.symbol?.trim().toUpperCase();
+    if (symbol) map.set(isin, symbol);
+  }
+  return map;
+}
+
+/**
  * Convert a set of contract-note trades and their aggregate charges for a
  * single trading date into CanonicalEvents.
  *
@@ -500,6 +569,7 @@ export function contractNoteToEvents(
   batchId: string,
   fileId: string,
   symbolByDescription?: ReadonlyMap<string, string>,
+  isinSymbolMap?: ReadonlyMap<string, string>,
 ): CanonicalEvent[] {
   if (trades.length === 0) return [];
 
@@ -533,10 +603,21 @@ export function contractNoteToEvents(
       trade.gross_rate,
     );
 
-    // Derive symbol for display: prefer symbolByDescription map, then first word
+    // Derive a clean trading symbol for display and Tally stock-item naming.
+    // Priority order:
+    //   1. ISIN → canonical-symbol map (so NSE & BSE trades for the same ISIN
+    //      always render to the SAME stock item in Tally — fixes the bug
+    //      where "scrips with different names across exchanges" produced
+    //      duplicate stock items).
+    //   2. extractCleanSymbolFromCnDescription (handles both "SYMBOL/ISIN"
+    //      and "SYMBOL - SEGMENT / ISIN" Zerodha formats).
+    //   3. legacy symbolByDescription lookup (kept for backwards compat).
     const descCleaned = trade.security_description.trim().toUpperCase();
-    const cnSymbol = symbolByDescription?.get(descCleaned)
-      ?? descCleaned.split(/\s+/)[0]
+    const isinFromDesc = extractIsinFromDescription(descCleaned);
+    const canonicalFromIsin = isinFromDesc ? isinSymbolMap?.get(isinFromDesc) : undefined;
+    const cnSymbol = canonicalFromIsin
+      ?? extractCleanSymbolFromCnDescription(descCleaned)
+      ?? symbolByDescription?.get(descCleaned)
       ?? descCleaned;
 
     // Trade event
@@ -715,6 +796,15 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
 
   const events: CanonicalEvent[] = [];
 
+  // Pre-pass: build the batch-wide ISIN → canonical-symbol map. CN sheets
+  // are walked first so CN-derived symbols win over tradebook symbols when
+  // both sources reference the same ISIN. This map is the cross-exchange
+  // unifier — see buildIsinSymbolMap docstring.
+  const isinSymbolMap = buildIsinSymbolMap({
+    contractNoteSheets,
+    tradebookRows,
+  });
+
   // Collect CN trade_no values for dedup against tradebook trade_id
   const cnTradeNos = new Set<string>();
 
@@ -726,6 +816,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       batchId,
       fileIds.contractNote ?? '',
       contractNoteSymbolByDescription,
+      isinSymbolMap,
     );
     for (const e of cnEvents) {
       events.push(e);
@@ -741,7 +832,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
   // 2. Tradebook events — skip those whose trade_id matches a CN trade_no
   for (const row of tradebookRows) {
     if (cnTradeNos.has(row.trade_id)) continue;
-    const rowEvents = tradebookRowToEvents(row, batchId, fileIds.tradebook ?? '');
+    const rowEvents = tradebookRowToEvents(row, batchId, fileIds.tradebook ?? '', isinSymbolMap);
     events.push(...rowEvents);
   }
 
@@ -768,5 +859,107 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
     events.push(...actionEvents);
   }
 
-  return events;
+  // 6. Post-pass: detect intraday (same-day buy + sell of the same security
+  //    that fully nets off) and reclassify those trades as
+  //    SPECULATIVE_BUSINESS so the voucher builder routes them to a Journal
+  //    voucher with no inventory and the speculation P&L ledger.
+  //    CN-sourced events come in as PROFILE_DRIVEN (no product code in CNs),
+  //    so this pass is the ONLY place same-day netoff intraday gets detected
+  //    when the input is CN-only. See bug report items #14 and #13.
+  return reclassifyIntradayTrades(events);
+}
+
+/**
+ * Group BUY/SELL trade events by (security_id, event_date). For groups where
+ * total buy quantity exactly equals total sell quantity (full intraday
+ * netoff), reclassify all trade events in the group as SPECULATIVE_BUSINESS
+ * so the voucher builder treats them as intraday — Journal voucher, no
+ * inventory line, gain/loss to the speculation ledger.
+ *
+ * Charge events tied to those trades inherit the new classification too,
+ * because they were assigned the trade's classification at creation time.
+ *
+ * NOTE: Partial-netoff days (e.g. 20 buys + 15 sells = 15 intraday + 5
+ * delivery) are NOT split. The current implementation leaves all events in
+ * such groups untouched, so they flow through as delivery. This is rare in
+ * the user's data and the right fix requires per-share splitting which is
+ * deferred. Filed as a TODO for B1-followup.
+ */
+export function reclassifyIntradayTrades(events: CanonicalEvent[]): CanonicalEvent[] {
+  // Build groups: key = `${security_id}|${event_date}`, value = trade event indexes
+  const groups = new Map<string, number[]>();
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (e.event_type !== EventType.BUY_TRADE && e.event_type !== EventType.SELL_TRADE) continue;
+    if (!e.security_id) continue;
+    const key = `${e.security_id}|${e.event_date}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(i);
+  }
+
+  // For each group, decide if it's a full intraday netoff. ONLY reclassify
+  // trades whose existing classification is PROFILE_DRIVEN (i.e. CN-sourced
+  // equity rows where the broker did not provide a product code). Trades
+  // with explicit product codes — CNC (INVESTMENT), NRML
+  // (NON_SPECULATIVE_BUSINESS), MIS (SPECULATIVE_BUSINESS already) — were
+  // tagged at the broker by the user with intent and must be respected.
+  // A CNC trade that happens to net off same-day is still a delivery trade
+  // for tax purposes; it carries forward and the user pays STCG.
+  const intradayTradeIndexes = new Set<number>();
+  for (const indexes of groups.values()) {
+    if (indexes.length < 2) continue; // need at least one buy + one sell
+    // Skip the whole group if any trade in it has an explicit non-PROFILE_DRIVEN
+    // classification — mixed-product days are out of scope for auto-detection.
+    const allProfileDriven = indexes.every(
+      (idx) => events[idx].trade_classification === TradeClassification.PROFILE_DRIVEN,
+    );
+    if (!allProfileDriven) continue;
+
+    let buyQty = new Decimal(0);
+    let sellQty = new Decimal(0);
+    let hasBuy = false;
+    let hasSell = false;
+    for (const idx of indexes) {
+      const e = events[idx];
+      const qty = new Decimal(e.quantity).abs();
+      if (e.event_type === EventType.BUY_TRADE) {
+        buyQty = buyQty.add(qty);
+        hasBuy = true;
+      } else {
+        sellQty = sellQty.add(qty);
+        hasSell = true;
+      }
+    }
+    if (!hasBuy || !hasSell) continue;
+    if (!buyQty.equals(sellQty)) continue; // partial netoff — leave alone
+    for (const idx of indexes) intradayTradeIndexes.add(idx);
+  }
+
+  if (intradayTradeIndexes.size === 0) return events;
+
+  // Also reclassify charge events whose source_row_ids are anchored on a
+  // reclassified trade. We approximate by matching on (security_id, event_date)
+  // — every charge event in the same security/date group as a reclassified
+  // trade should also flip.
+  const intradayKeys = new Set<string>();
+  for (const idx of intradayTradeIndexes) {
+    const e = events[idx];
+    intradayKeys.add(`${e.security_id}|${e.event_date}`);
+  }
+
+  return events.map((e, i) => {
+    if (intradayTradeIndexes.has(i)) {
+      return { ...e, trade_classification: TradeClassification.SPECULATIVE_BUSINESS };
+    }
+    // Charge events anchored to an intraday trade
+    if (
+      e.event_type !== EventType.BUY_TRADE &&
+      e.event_type !== EventType.SELL_TRADE &&
+      e.security_id &&
+      intradayKeys.has(`${e.security_id}|${e.event_date}`)
+    ) {
+      return { ...e, trade_classification: TradeClassification.SPECULATIVE_BUSINESS };
+    }
+    return e;
+  });
 }

@@ -568,10 +568,12 @@ export function mergeOverridesIntoProfile(
         profile.ltcl = { ...profile.ltcl, template: o.name, group: o.parent_group };
         break;
       case 'SPECULATIVE_PROFIT':
-        profile.speculationGain = { name: o.name, group: o.parent_group };
-        break;
       case 'SPECULATIVE_LOSS':
-        profile.speculationLoss = { name: o.name, group: o.parent_group };
+        // Single intraday net ledger — gains and losses both post here.
+        // Either override key updates BOTH fields so the profile remains
+        // self-consistent regardless of which key the override uses.
+        profile.speculationGain = { name: o.name, group: o.parent_group };
+        profile.speculationLoss = profile.speculationGain;
         break;
       case 'DIVIDEND_INCOME':
         profile.dividend = { ...profile.dividend, template: o.name, group: o.parent_group };

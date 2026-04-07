@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  disambiguateVoucherNumbers,
   mergeDailySummaryPurchaseVouchers,
   mergePurchaseVouchers,
   mergeSameRatePurchaseVouchers,
@@ -287,5 +288,68 @@ describe('mergePurchaseVouchers', () => {
     const result = mergePurchaseVouchers([v1, v2]);
     expect(result).toHaveLength(1);
     expect(result[0].lines.find((line) => line.quantity !== null)?.rate).toBe('100.00');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// disambiguateVoucherNumbers
+// ---------------------------------------------------------------------------
+
+describe('disambiguateVoucherNumbers', () => {
+  it('passes through vouchers with unique external_reference unchanged', () => {
+    const v1 = makePurchaseVoucher({});
+    v1.external_reference = 'CNT-24/25-1/RELIANCE';
+    const v2 = makePurchaseVoucher({});
+    v2.external_reference = 'CNT-24/25-1/INFY';
+    const result = disambiguateVoucherNumbers([v1, v2]);
+    expect(result[0].external_reference).toBe('CNT-24/25-1/RELIANCE');
+    expect(result[1].external_reference).toBe('CNT-24/25-1/INFY');
+  });
+
+  it('appends -2, -3 suffixes to duplicates within the same voucher type', () => {
+    // Multi-rate fills of the same security on the same CN: same external_reference
+    // (CN/symbol) but different rates → didn't merge → would collide on Tally import.
+    const v1 = makePurchaseVoucher({});
+    v1.external_reference = 'CNT-24/25-1/RELIANCE';
+    const v2 = makePurchaseVoucher({});
+    v2.external_reference = 'CNT-24/25-1/RELIANCE';
+    const v3 = makePurchaseVoucher({});
+    v3.external_reference = 'CNT-24/25-1/RELIANCE';
+    const result = disambiguateVoucherNumbers([v1, v2, v3]);
+    expect(result[0].external_reference).toBe('CNT-24/25-1/RELIANCE');
+    expect(result[1].external_reference).toBe('CNT-24/25-1/RELIANCE-2');
+    expect(result[2].external_reference).toBe('CNT-24/25-1/RELIANCE-3');
+  });
+
+  it('namespaces duplicates per voucher type — Purchase and Sales with same number do NOT collide', () => {
+    // Tally allows duplicate voucher numbers across different voucher types.
+    // A Purchase and a Sales voucher with the same number is fine.
+    const buy = makePurchaseVoucher({});
+    buy.external_reference = 'CNT-24/25-1/RELIANCE';
+    const sell = makeSalesVoucher();
+    sell.external_reference = 'CNT-24/25-1/RELIANCE';
+    const result = disambiguateVoucherNumbers([buy, sell]);
+    expect(result[0].external_reference).toBe('CNT-24/25-1/RELIANCE');
+    expect(result[1].external_reference).toBe('CNT-24/25-1/RELIANCE');
+  });
+
+  it('passes through vouchers with null external_reference', () => {
+    const v = makeSalesVoucher();
+    v.external_reference = null;
+    const result = disambiguateVoucherNumbers([v]);
+    expect(result[0].external_reference).toBeNull();
+  });
+
+  it('is deterministic — same input order produces same suffix assignments on repeated runs', () => {
+    const make = () => {
+      const a = makePurchaseVoucher({});
+      a.external_reference = 'CN-1/HDFC';
+      const b = makePurchaseVoucher({});
+      b.external_reference = 'CN-1/HDFC';
+      return [a, b];
+    };
+    const run1 = disambiguateVoucherNumbers(make());
+    const run2 = disambiguateVoucherNumbers(make());
+    expect(run1.map((v) => v.external_reference)).toEqual(run2.map((v) => v.external_reference));
   });
 });

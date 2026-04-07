@@ -199,34 +199,33 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
 
   const result = runFullPipeline(csv);
 
-  it('buy voucher is Journal type (investor mode)', () => {
+  it('buy voucher is Purchase type (investor mode delivery — so Tally records inventory)', () => {
     const buyVoucher = result.vouchers.find(v => v.narrative?.includes('Purchase'));
     expect(buyVoucher).toBeDefined();
-    expect(buyVoucher!.voucher_type).toBe('JOURNAL');
+    expect(buyVoucher!.voucher_type).toBe('PURCHASE');
   });
 
-  it('buy voucher uses Accounting Voucher View (Journal type)', () => {
-    // Journal vouchers must stay on Accounting Voucher View even when they
-    // carry INVENTORYALLOCATIONS.LIST entries — Invoice Voucher View is
-    // reserved for Sales/Purchase types and causes Tally to reject imports
-    // with "did not match the Import settings".
+  it('buy voucher uses Invoice Voucher View (Purchase type carries inventory)', () => {
+    // Delivery Purchase vouchers MUST use Invoice Voucher View so Tally
+    // processes INVENTORYALLOCATIONS.LIST. Accounting Voucher View silently
+    // drops inventory on import — that was the prior bug.
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
+    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
   });
 
-  it('buy voucher has no ISINVOICE element (Journal voucher)', () => {
+  it('buy voucher emits ISINVOICE=Yes (so Tally treats it as inventory-carrying)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>).ISINVOICE).toBeUndefined();
+    expect((buyV as Record<string, unknown>).ISINVOICE).toBe('Yes');
   });
 
   it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with HDFC-SH', () => {
@@ -479,7 +478,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
     expect(specLine).toBeDefined();
   });
 
-  it('RELIANCE delivery buy HAS INVENTORYALLOCATIONS.LIST (control)', () => {
+  it('RELIANCE delivery buy HAS INVENTORYALLOCATIONS.LIST and uses Invoice Voucher View (control)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const relianceBuy = vouchers.find(v =>
@@ -487,7 +486,8 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     )!;
     expect(relianceBuy).toBeDefined();
-    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
+    // Delivery Purchase voucher → Invoice Voucher View so Tally processes inventory.
+    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
 
     const lines = getVoucherLines(relianceBuy);
     const lineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0);
@@ -555,6 +555,117 @@ describe('Scenario 4: Speculative gain/loss single ledger', () => {
       const parent = String((sl as Record<string, unknown>).PARENT ?? '');
       expect(parent).toBe('Speculative Business Income');
     }
+  });
+});
+
+// ===========================================================================
+// Scenario 4b: CN-sourced intraday — bug report items #14, #13, #12, #15
+// (Phase B1 + B2 + B3 — full intraday subsystem from contract note input)
+// ===========================================================================
+
+describe('Scenario 4b: CN-sourced intraday end-to-end (B1+B2+B3)', () => {
+  // Build a CN with a same-day buy+sell of HDFC. CN data carries no product
+  // code, so the per-row classifier returns PROFILE_DRIVEN. The post-pass
+  // reclassifyIntradayTrades must detect the netoff and flip both events
+  // to SPECULATIVE_BUSINESS so the voucher builder produces the correct
+  // intraday shape.
+  const events = buildCanonicalEvents({
+    contractNoteSheets: [
+      {
+        charges: {
+          contract_note_no: 'CNT-INTRADAY-1',
+          trade_date: '20-04-2021',
+          settlement_no: 'S-001',
+          pay_in_pay_out: '0',
+          brokerage: '20.00',
+          exchange_charges: '5.00',
+          clearing_charges: '0',
+          cgst: '1.80',
+          sgst: '1.80',
+          igst: '0',
+          stt: '60.00',
+          sebi_fees: '0.50',
+          stamp_duty: '7.50',
+          net_amount: '2386.40',
+        },
+        trades: [
+          {
+            order_no: '1', order_time: '09:30:00',
+            trade_no: 'INTRA-BUY-1', trade_time: '09:30:01',
+            security_description: 'HDFC/INE001A01036',
+            buy_sell: 'B', quantity: '10', exchange: 'NSE',
+            gross_rate: '2490.00', brokerage_per_unit: '0',
+            net_rate: '2490.00', net_total: '-24900.00',
+            segment: 'Equity',
+          },
+          {
+            order_no: '2', order_time: '14:00:00',
+            trade_no: 'INTRA-SELL-1', trade_time: '14:00:01',
+            security_description: 'HDFC/INE001A01036',
+            buy_sell: 'S', quantity: '10', exchange: 'NSE',
+            gross_rate: '2515.00', brokerage_per_unit: '0',
+            net_rate: '2515.00', net_total: '25150.00',
+            segment: 'Equity',
+          },
+        ],
+      },
+    ],
+    batchId: 'b-intra',
+    fileIds: { contractNote: 'f-intra' },
+  });
+
+  const tracker = new CostLotTracker();
+  const tallyProfile = getDefaultTallyProfile(AccountingMode.INVESTOR);
+  const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker, tallyProfile);
+
+  it('B1: both trade events are reclassified as SPECULATIVE_BUSINESS by the post-pass', () => {
+    const tradeEvents = events.filter(
+      (e) => e.event_type === 'BUY_TRADE' || e.event_type === 'SELL_TRADE',
+    );
+    expect(tradeEvents).toHaveLength(2);
+    for (const e of tradeEvents) {
+      expect(e.trade_classification).toBe('SPECULATIVE_BUSINESS');
+    }
+  });
+
+  it('B2: buy voucher is JOURNAL (not Purchase) and has NO inventory line', () => {
+    const buyVoucher = vouchers.find((v) => v.narrative?.includes('Purchase'));
+    expect(buyVoucher).toBeDefined();
+    expect(buyVoucher!.voucher_type).toBe('JOURNAL');
+    const lineWithInventory = buyVoucher!.lines.find((l) => l.quantity !== null);
+    expect(lineWithInventory).toBeUndefined();
+  });
+
+  it('B2: sell voucher is JOURNAL and routes gain to the SINGLE intraday net ledger', () => {
+    const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'));
+    expect(sellVoucher).toBeDefined();
+    expect(sellVoucher!.voucher_type).toBe('JOURNAL');
+    // Gain CR should land on the unified intraday ledger (CA_SPECULATION_GAIN
+    // is now the single net ledger — losses also post here as DR-side).
+    const gainLine = sellVoucher!.lines.find(
+      (l) => l.ledger_name === 'Intraday Gain on Sale of Shares - ZERODHA',
+    );
+    expect(gainLine).toBeDefined();
+    expect(gainLine!.dr_cr).toBe('CR');
+  });
+
+  it('B3: sell voucher includes DR lines for each charge ledger from the CN', () => {
+    // Charges are allocated to each trade pro-rata; sell side gets ~half of
+    // the aggregate brokerage/STT/etc. Debit lines must appear inside the
+    // intraday JV so they reduce the net P&L on import — this is the bug
+    // report item #15 contract.
+    const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'))!;
+    const chargeDrs = sellVoucher.lines.filter(
+      (l) =>
+        l.dr_cr === 'DR' &&
+        (l.ledger_name.toLowerCase().includes('brokerage') ||
+          l.ledger_name.toLowerCase().includes('stt') ||
+          l.ledger_name.toLowerCase().includes('exchange') ||
+          l.ledger_name.toLowerCase().includes('gst') ||
+          l.ledger_name.toLowerCase().includes('sebi') ||
+          l.ledger_name.toLowerCase().includes('stamp')),
+    );
+    expect(chargeDrs.length).toBeGreaterThan(0);
   });
 });
 
@@ -823,15 +934,21 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
   // -- Voucher required attributes --
 
-  it('every voucher has VCHTYPE, ACTION="Create", and OBJVIEW=Accounting Voucher View', () => {
+  it('every voucher has VCHTYPE, ACTION="Create", and the correct OBJVIEW for its voucher type', () => {
     const vouchers = getAllVouchers();
     expect(vouchers.length).toBeGreaterThan(0);
     for (const v of vouchers) {
       expect(v['@_VCHTYPE']).toBeDefined();
       expect(v['@_ACTION']).toBe('Create');
-      // All vouchers are Journal type — must use Accounting Voucher View.
-      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
-      expect(v.PERSISTEDVIEW).toBe('Accounting Voucher View');
+      // Purchase/Sales vouchers carry inventory → Invoice Voucher View.
+      // Everything else (Journal/Receipt/Payment) → Accounting Voucher View.
+      const vchType = String(v['@_VCHTYPE']);
+      const expectedView =
+        vchType === 'Purchase' || vchType === 'Sales'
+          ? 'Invoice Voucher View'
+          : 'Accounting Voucher View';
+      expect(v['@_OBJVIEW']).toBe(expectedView);
+      expect(v.PERSISTEDVIEW).toBe(expectedView);
     }
   });
 
@@ -935,14 +1052,21 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
   // -- INVENTORYALLOCATIONS.LIST conformance --
 
-  it('all vouchers (inventory or not) stay on Accounting Voucher View with no ISINVOICE', () => {
-    // Journal vouchers carrying INVENTORYALLOCATIONS.LIST must NOT flip to
-    // Invoice Voucher View — Tally rejects that combination with
-    // "did not match the Import settings".
+  it('Purchase/Sales vouchers use Invoice Voucher View; all others use Accounting Voucher View', () => {
+    // Delivery Purchase/Sales vouchers must use Invoice Voucher View + ISINVOICE=Yes
+    // so Tally processes INVENTORYALLOCATIONS.LIST. Journal/Receipt/Payment
+    // vouchers stay on Accounting Voucher View with no ISINVOICE.
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
-      expect(v.ISINVOICE).toBeUndefined();
+      const vchType = String(v['@_VCHTYPE'] ?? '');
+      const isInvoiceVoucher = vchType === 'Purchase' || vchType === 'Sales';
+      if (isInvoiceVoucher) {
+        expect(v['@_OBJVIEW']).toBe('Invoice Voucher View');
+        expect(v.ISINVOICE).toBe('Yes');
+      } else {
+        expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+        expect(v.ISINVOICE).toBeUndefined();
+      }
     }
   });
 

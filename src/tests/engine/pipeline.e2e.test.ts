@@ -36,8 +36,10 @@ describe('tradebook pipeline e2e', () => {
         const xml = generateVouchersXml(vouchers, 'Demo Company');
         expect(xml).toContain('<ENVELOPE>');
         expect(xml).toContain('<VOUCHER');
-        // Investor mode uses Journal voucher type for both buy and sell
-        expect(xml).toContain('Journal');
+        // Delivery investor trades use Purchase/Sales vouchers so Tally
+        // records inventory through Invoice Voucher View.
+        expect(xml).toContain('Purchase');
+        expect(xml).toContain('Sales');
         expect(xml).toContain('INFY');
     });
 });

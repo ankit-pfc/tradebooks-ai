@@ -304,15 +304,19 @@ export const CA_AMC_CHARGES: LedgerDef = {
 // Capital Account — Speculation (intraday)
 // ---------------------------------------------------------------------------
 
+// SINGLE intraday net ledger. Per bug report items #12 and #13: intraday
+// gains and losses net off in the SAME Tally ledger, no separate gain/loss
+// segregation. Gains are CR-side, losses are DR-side to the same ledger,
+// producing a net position on the ledger.
 export const CA_SPECULATION_GAIN: LedgerDef = {
   name: 'Intraday Gain on Sale of Shares - ZERODHA',
   group: CA_SPECULATION_GROUP,
 };
 
-export const CA_SPECULATION_LOSS: LedgerDef = {
-  name: 'Intraday Loss on Sale of Shares - ZERODHA',
-  group: CA_SPECULATION_GROUP,
-};
+/** @deprecated Aliased to CA_SPECULATION_GAIN — there is no separate loss
+ *  ledger. Kept exported for backwards compatibility with profile overrides
+ *  that may still reference the old name. */
+export const CA_SPECULATION_LOSS: LedgerDef = CA_SPECULATION_GAIN;
 
 export const CA_STT_INTRADAY: LedgerDef = {
   name: 'STT AND OTHER CHARGES-INTRADAY',
@@ -395,8 +399,12 @@ export const SYSTEM_LEDGERS: readonly SystemLedgerEntry[] = [
   { key: 'LTCG_PROFIT', name: LTCG_PROFIT.name, group: LTCG_PROFIT.group },
   { key: 'STCG_LOSS', name: STCG_LOSS.name, group: STCG_LOSS.group },
   { key: 'LTCG_LOSS', name: LTCG_LOSS.name, group: LTCG_LOSS.group },
+  // Single intraday net ledger (per bug report items #12, #13). Gains
+  // post CR, losses post DR — both into the same Tally ledger so they net.
+  // SPECULATIVE_LOSS as a system key is intentionally omitted: there is no
+  // separate loss ledger. Override handlers in accounting-policy.ts still
+  // accept SPECULATIVE_LOSS as an alias for backwards compat.
   { key: 'SPECULATIVE_PROFIT', name: CA_SPECULATION_GAIN.name, group: CA_SPECULATION_GAIN.group },
-  { key: 'SPECULATIVE_LOSS', name: CA_SPECULATION_LOSS.name, group: CA_SPECULATION_LOSS.group },
   { key: 'DIVIDEND_INCOME', name: CA_DIVIDEND_INCOME.name, group: CA_DIVIDEND_INCOME.group },
   { key: 'TDS_ON_DIVIDEND', name: TDS_ON_DIVIDEND.name, group: TDS_ON_DIVIDEND.group },
   { key: 'TDS_ON_SECURITIES', name: TDS_ON_SECURITIES.name, group: TDS_ON_SECURITIES.group },

@@ -322,9 +322,22 @@ export function buildBuyVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    voucher_type: effectiveProfile.mode === AccountingMode.INVESTOR ? VoucherType.JOURNAL : VoucherType.PURCHASE,
+    // Speculative (intraday) trades remain Journal vouchers — they have no
+    // carry-forward inventory, so an Invoice-view Purchase voucher would be
+    // wrong. Delivery/investment trades MUST be Purchase vouchers regardless
+    // of investor/trader accounting mode, because Tally's Accounting Voucher
+    // View silently drops INVENTORYALLOCATIONS.LIST on import — only Invoice
+    // Voucher View (Purchase/Sales) processes inventory.
+    voucher_type: skipInventory ? VoucherType.JOURNAL : VoucherType.PURCHASE,
     voucher_date: event.event_date,
-    external_reference: event.contract_note_ref ?? event.external_ref ?? null,
+    // Voucher number = CN number / security symbol. Unique per (CN, security)
+    // so multi-script CNs don't collide on Tally import while still carrying
+    // the CN number for re-import duplicate detection. Same-symbol multi-rate
+    // fills within one CN get a numeric suffix applied later by
+    // disambiguateVoucherNumbers (post-merge step).
+    external_reference: event.contract_note_ref
+      ? `${event.contract_note_ref}/${symbol}`
+      : event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
       `Purchase of ${symbol} @ ${event.rate} × ${new Decimal(event.quantity).abs().toFixed()} units`,
       event,
@@ -394,6 +407,7 @@ export function buildSellVoucher(
     (sum, d) => sum.add(new Decimal(d.gain_or_loss)),
     new Decimal(0),
   );
+  const skipInventory = isSpeculativeTrade(event);
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
@@ -422,7 +436,6 @@ export function buildSellVoucher(
     // For non-speculative trades, include inventory so Tally records stock out.
     // For speculative/intraday, skip inventory — positions net off same-day.
     {
-      const skipInventory = isSpeculativeTrade(event);
       const absQty = new Decimal(event.quantity).abs();
       const costPerUnit = absQty.greaterThan(0)
         ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
@@ -521,7 +534,6 @@ export function buildSellVoucher(
 
     // CR: Shares-in-Trade at cost basis.
     {
-      const skipInventory = isSpeculativeTrade(event);
       const absQty = new Decimal(event.quantity).abs();
       const costPerUnit = absQty.greaterThan(0)
         ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
@@ -541,9 +553,18 @@ export function buildSellVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    voucher_type: isInvestor ? VoucherType.JOURNAL : VoucherType.SALES,
+    // Speculative (intraday) trades remain Journal vouchers — no inventory
+    // carry-forward, so Invoice-view Sales would be wrong. Delivery trades
+    // MUST be Sales vouchers regardless of accounting mode (Journal +
+    // Accounting Voucher View silently drops INVENTORYALLOCATIONS.LIST in
+    // Tally; only Invoice Voucher View processes them).
+    voucher_type: skipInventory ? VoucherType.JOURNAL : VoucherType.SALES,
     voucher_date: event.event_date,
-    external_reference: event.contract_note_ref ?? event.external_ref ?? null,
+    // Voucher number = CN number / security symbol. See buildBuyVoucher for
+    // the rationale and disambiguation strategy.
+    external_reference: event.contract_note_ref
+      ? `${event.contract_note_ref}/${symbol}`
+      : event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
       `Sale of ${symbol} @ ${event.rate} × ${qty.toFixed()} units`,
       event,

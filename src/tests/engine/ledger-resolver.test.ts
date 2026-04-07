@@ -124,14 +124,17 @@ describe('resolveCapitalGainLedger', () => {
     expect(result.group).toBe('Speculative Business Income');
   });
 
-  it('intraday → speculation loss', () => {
+  it('intraday → routes losses to the SAME ledger as gains (single net ledger)', () => {
+    // Per bug report items #12/#13: intraday gains and losses must net off in
+    // the same Tally ledger. Loss postings hit the gain ledger as DR-side
+    // entries instead of routing to a separate loss ledger.
     const result = resolveCapitalGainLedger(
       INVESTOR_TALLY_DEFAULT,
       'RELIANCE',
       0,
       false,
     );
-    expect(result.name).toBe('Intraday Loss on Sale of Shares - ZERODHA');
+    expect(result.name).toBe('Intraday Gain on Sale of Shares - ZERODHA');
   });
 
   it('short term gain → per-scrip STCG', () => {
