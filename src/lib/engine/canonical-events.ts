@@ -564,7 +564,7 @@ export function contractNoteToEvents(
 
     // Charge events (non-GST)
     for (const { field, eventType: chargeEventType, chargeType } of CHARGE_EVENT_MAP) {
-      const amount = new Decimal(alloc[field]);
+      const amount = new Decimal(alloc[field]).abs();
       if (amount.isZero()) continue;
 
       events.push({
@@ -592,7 +592,8 @@ export function contractNoteToEvents(
     // GST: consolidate CGST + SGST + IGST into one GST_ON_CHARGES event
     const gstTotal = new Decimal(alloc.cgst)
       .add(new Decimal(alloc.sgst))
-      .add(new Decimal(alloc.igst));
+      .add(new Decimal(alloc.igst))
+      .abs();
     if (!gstTotal.isZero()) {
       events.push({
         event_id: crypto.randomUUID(),

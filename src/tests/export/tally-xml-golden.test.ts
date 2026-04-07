@@ -127,13 +127,16 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
 
   it('transactions XML has correct envelope', () => {
     const doc = parser.parse(transactionsXml);
-    expect(doc.ENVELOPE.HEADER.TALLYREQUEST).toBe('Import Data');
-    expect(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDESC.REPORTNAME).toBe('Vouchers');
+    expect(doc.ENVELOPE.HEADER.VERSION).toBe('1');
+    expect(doc.ENVELOPE.HEADER.TALLYREQUEST).toBe('Import');
+    expect(doc.ENVELOPE.HEADER.TYPE).toBe('Data');
+    expect(doc.ENVELOPE.HEADER.ID).toBe('Vouchers');
+    expect(doc.ENVELOPE.BODY.DESC.STATICVARIABLES.SVCURRENTCOMPANY).toBe('Golden Test Co');
   });
 
   it('every voucher has required attributes and elements', () => {
     const doc = parser.parse(transactionsXml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucherMsgs = messages.filter((m: Record<string, unknown>) => m.VOUCHER);
 
     expect(voucherMsgs.length).toBeGreaterThan(0);
@@ -143,6 +146,7 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
       expect(v['@_ACTION']).toBe('Create');
       // Vouchers with inventory lines use "Invoice Voucher View", others use "Accounting Voucher View"
       expect(['Accounting Voucher View', 'Invoice Voucher View']).toContain(v['@_OBJVIEW']);
+      expect(v.PERSISTEDVIEW).toBe(v['@_OBJVIEW']);
       expect(v.DATE).toBeTruthy();
       expect(v.EFFECTIVEDATE).toBeTruthy();
       expect(v.VOUCHERTYPENAME).toBeTruthy();
@@ -152,12 +156,12 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
 
   it('every voucher has balanced amounts (sum = 0)', () => {
     const doc = parser.parse(transactionsXml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucherMsgs = messages.filter((m: Record<string, unknown>) => m.VOUCHER);
 
     for (const msg of voucherMsgs) {
       const v = msg.VOUCHER as Record<string, unknown>;
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       const sum = entries.reduce(
         (acc: number, e: Record<string, unknown>) => acc + parseFloat(String(e.AMOUNT)),
         0,
@@ -168,12 +172,12 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
 
   it('every voucher line has required fields', () => {
     const doc = parser.parse(transactionsXml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucherMsgs = messages.filter((m: Record<string, unknown>) => m.VOUCHER);
 
     for (const msg of voucherMsgs) {
       const v = msg.VOUCHER as Record<string, unknown>;
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
 
       for (const entry of entries) {
         expect(entry.LEDGERNAME).toBeTruthy();
@@ -187,12 +191,12 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
 
   it('no empty or null ledger names in voucher lines', () => {
     const doc = parser.parse(transactionsXml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucherMsgs = messages.filter((m: Record<string, unknown>) => m.VOUCHER);
 
     for (const msg of voucherMsgs) {
       const v = msg.VOUCHER as Record<string, unknown>;
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
 
       for (const entry of entries) {
         const name = String(entry.LEDGERNAME).trim();
@@ -213,13 +217,13 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
     );
 
     const txDoc = parser.parse(transactionsXml);
-    const txMessages = asArray(txDoc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const txMessages = asArray(txDoc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucherMsgs = txMessages.filter((m: Record<string, unknown>) => m.VOUCHER);
 
     const missingLedgers = new Set<string>();
     for (const msg of voucherMsgs) {
       const v = msg.VOUCHER as Record<string, unknown>;
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         const name = String(entry.LEDGERNAME);
         if (!masterLedgerNames.has(name)) {
@@ -236,7 +240,7 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
 
   it('date format is YYYYMMDD (8 digits, no separators)', () => {
     const doc = parser.parse(transactionsXml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucherMsgs = messages.filter((m: Record<string, unknown>) => m.VOUCHER);
 
     for (const msg of voucherMsgs) {

@@ -94,7 +94,11 @@ describe('Tally envelope structure', () => {
   it('vouchers has REPORTNAME = Vouchers', () => {
     const xml = generateVouchersXml([makeVoucher()], 'Test Co');
     const doc = parseXml(xml);
-    expect(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDESC.REPORTNAME).toBe('Vouchers');
+    expect(doc.ENVELOPE.HEADER.VERSION).toBe('1');
+    expect(doc.ENVELOPE.HEADER.TALLYREQUEST).toBe('Import');
+    expect(doc.ENVELOPE.HEADER.TYPE).toBe('Data');
+    expect(doc.ENVELOPE.HEADER.ID).toBe('Vouchers');
+    expect(doc.ENVELOPE.BODY.DESC.STATICVARIABLES.SVCURRENTCOMPANY).toBe('Test Co');
   });
 });
 
@@ -242,7 +246,7 @@ describe('Element ordering', () => {
 describe('VOUCHER conformance', () => {
   function getVouchers(xml: string) {
     const doc = parseXml(xml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     return messages.filter((m: Record<string, unknown>) => m.VOUCHER).map((m: Record<string, unknown>) => m.VOUCHER);
   }
 
@@ -315,18 +319,23 @@ describe('VOUCHER conformance', () => {
     const vouchers = getVouchers(xml);
     expect(vouchers[0].VOUCHERNUMBER).toBe('CN-12345');
   });
+  it('has PERSISTEDVIEW matching OBJVIEW', () => {
+    const xml = generateVouchersXml([makeVoucher()], 'Co');
+    const vouchers = getVouchers(xml);
+    expect(vouchers[0].PERSISTEDVIEW).toBe(vouchers[0]['@_OBJVIEW']);
+  });
 });
 
 // ---------------------------------------------------------------------------
-// ALLLEDGERENTRIES.LIST conformance
+// LEDGERENTRIES.LIST conformance
 // ---------------------------------------------------------------------------
 
-describe('ALLLEDGERENTRIES.LIST conformance', () => {
+describe('LEDGERENTRIES.LIST conformance', () => {
   function getEntries(xml: string) {
     const doc = parseXml(xml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucher = messages.find((m: Record<string, unknown>) => m.VOUCHER)?.VOUCHER;
-    return asArray(voucher?.['ALLLEDGERENTRIES.LIST']);
+    return asArray(voucher?.['LEDGERENTRIES.LIST'] ?? voucher?.['ALLLEDGERENTRIES.LIST']);
   }
 
   const voucher = makeVoucher({
@@ -403,9 +412,9 @@ describe('ALLLEDGERENTRIES.LIST conformance', () => {
 describe('INVENTORYALLOCATIONS.LIST conformance', () => {
   function getEntries(xml: string) {
     const doc = parseXml(xml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucher = messages.find((m: Record<string, unknown>) => m.VOUCHER)?.VOUCHER;
-    return asArray(voucher?.['ALLLEDGERENTRIES.LIST']);
+    return asArray(voucher?.['LEDGERENTRIES.LIST'] ?? voucher?.['ALLLEDGERENTRIES.LIST']);
   }
 
   it('purchase DR line emits positive inventory quantity with UOM and matching signed amount', () => {
@@ -544,9 +553,9 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
 describe('Sign convention — trade scenarios', () => {
   function getEntries(xml: string) {
     const doc = parseXml(xml);
-    const messages = asArray(doc.ENVELOPE.BODY.IMPORTDATA.REQUESTDATA.TALLYMESSAGE);
+    const messages = asArray(doc.ENVELOPE.BODY.DATA.TALLYMESSAGE);
     const voucher = messages.find((m: Record<string, unknown>) => m.VOUCHER)?.VOUCHER;
-    return asArray(voucher?.['ALLLEDGERENTRIES.LIST']);
+    return asArray(voucher?.['LEDGERENTRIES.LIST'] ?? voucher?.['ALLLEDGERENTRIES.LIST']);
   }
 
   it('buy trade: investment DR (negative), broker CR (positive)', () => {

@@ -26,9 +26,12 @@ describe('generateVouchersXml', () => {
     const xml = generateVouchersXml([makeVoucherWithLines()], 'Test Co');
     expect(xml).toContain('<ENVELOPE');
     expect(xml).toContain('<HEADER');
-    expect(xml).toContain('<TALLYREQUEST>Import Data</TALLYREQUEST>');
+    expect(xml).toContain('<VERSION>1</VERSION>');
+    expect(xml).toContain('<TALLYREQUEST>Import</TALLYREQUEST>');
+    expect(xml).toContain('<TYPE>Data</TYPE>');
+    expect(xml).toContain('<ID>Vouchers</ID>');
     expect(xml).toContain('<BODY');
-    expect(xml).toContain('<IMPORTDATA');
+    expect(xml).toContain('<DATA');
     expect(xml).toContain('<SVCURRENTCOMPANY>Test Co</SVCURRENTCOMPANY>');
   });
 
@@ -104,7 +107,7 @@ describe('generateVouchersXml', () => {
     expect(xml).toContain('<VOUCHERNUMBER>REF-001</VOUCHERNUMBER>');
   });
 
-  it('emits purchase inventory entries nested under ALLLEDGERENTRIES.LIST with signed quantity', () => {
+  it('emits purchase inventory entries nested under LEDGERENTRIES.LIST with signed quantity', () => {
     const voucher = makeVoucherWithLines({
       voucher_type: VoucherType.PURCHASE,
       lines: [
@@ -128,7 +131,7 @@ describe('generateVouchersXml', () => {
     expect(xml).toContain('/SH');
   });
 
-  it('emits sales inventory entries nested under ALLLEDGERENTRIES.LIST with negative quantity', () => {
+  it('emits sales inventory entries nested under LEDGERENTRIES.LIST with negative quantity', () => {
     const voucher = makeVoucherWithLines({
       voucher_type: VoucherType.SALES,
       lines: [
@@ -162,7 +165,7 @@ describe('generateVouchersXml', () => {
 
   it('handles empty vouchers array', () => {
     const xml = generateVouchersXml([], 'Co');
-    expect(xml).toContain('<REQUESTDATA/>');
+    expect(xml).toContain('<DATA/>');
   });
 });
 
@@ -176,6 +179,6 @@ describe('generateFullExport', () => {
     expect(result.mastersXml).toContain('All Masters');
     expect(result.mastersXml).toContain('Bank Account');
     expect(result.transactionsXml).toContain('Vouchers');
-    expect(result.transactionsXml).toContain('ALLLEDGERENTRIES.LIST');
+    expect(result.transactionsXml).toContain('LEDGERENTRIES.LIST');
   });
 });

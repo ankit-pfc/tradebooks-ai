@@ -130,9 +130,10 @@ function parseXml(xml: string) {
 /** Extract all VOUCHER elements from parsed transactions XML. */
 function getVouchers(parsed: Record<string, unknown>): Record<string, unknown>[] {
   const body = parsed?.ENVELOPE as Record<string, unknown>;
-  const importData = body?.BODY as Record<string, unknown>;
-  const reqData = (importData?.IMPORTDATA as Record<string, unknown>)?.REQUESTDATA as Record<string, unknown>;
-  const messages = reqData?.TALLYMESSAGE;
+  const bodyNode = body?.BODY as Record<string, unknown>;
+  const messages =
+    (bodyNode?.DATA as Record<string, unknown>)?.TALLYMESSAGE ??
+    ((bodyNode?.IMPORTDATA as Record<string, unknown>)?.REQUESTDATA as Record<string, unknown>)?.TALLYMESSAGE;
   if (!messages) return [];
   const arr = Array.isArray(messages) ? messages : [messages];
   return arr
@@ -166,9 +167,11 @@ function getStockItems(parsed: Record<string, unknown>): Record<string, unknown>
     .map((m: Record<string, unknown>) => m.STOCKITEM as Record<string, unknown>);
 }
 
-/** Get all ALLLEDGERENTRIES.LIST from a voucher (always as array). */
+/** Get all voucher ledger entries (always as array). */
 function getVoucherLines(voucher: Record<string, unknown>): Record<string, unknown>[] {
-  const lines = (voucher as Record<string, unknown>)['ALLLEDGERENTRIES.LIST'];
+  const lines =
+    (voucher as Record<string, unknown>)['LEDGERENTRIES.LIST'] ??
+    (voucher as Record<string, unknown>)['ALLLEDGERENTRIES.LIST'];
   if (!lines) return [];
   return Array.isArray(lines) ? lines : [lines];
 }
@@ -786,7 +789,10 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   }
 
   function getAllVouchers() {
-    const messages = asArray(txnParsed.ENVELOPE?.BODY?.IMPORTDATA?.REQUESTDATA?.TALLYMESSAGE);
+    const messages = asArray(
+      txnParsed.ENVELOPE?.BODY?.DATA?.TALLYMESSAGE ??
+      txnParsed.ENVELOPE?.BODY?.IMPORTDATA?.REQUESTDATA?.TALLYMESSAGE,
+    );
     return messages
       .filter((m: Record<string, unknown>) => m.VOUCHER)
       .map((m: Record<string, unknown>) => m.VOUCHER as Record<string, unknown>);
@@ -801,10 +807,13 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
   // -- Envelope structure --
 
-  it('transactions XML has valid Tally envelope (ENVELOPE > HEADER > BODY > IMPORTDATA)', () => {
+  it('transactions XML has valid Tally transaction envelope', () => {
     expect(txnParsed.ENVELOPE).toBeDefined();
-    expect(txnParsed.ENVELOPE.HEADER.TALLYREQUEST).toBe('Import Data');
-    expect(txnParsed.ENVELOPE.BODY.IMPORTDATA.REQUESTDESC.REPORTNAME).toBe('Vouchers');
+    expect(txnParsed.ENVELOPE.HEADER.VERSION).toBe(1);
+    expect(txnParsed.ENVELOPE.HEADER.TALLYREQUEST).toBe('Import');
+    expect(txnParsed.ENVELOPE.HEADER.TYPE).toBe('Data');
+    expect(txnParsed.ENVELOPE.HEADER.ID).toBe('Vouchers');
+    expect(txnParsed.ENVELOPE.BODY.DESC.STATICVARIABLES.SVCURRENTCOMPANY).toBe('TEST COMPANY');
   });
 
   it('masters XML has valid Tally envelope with REPORTNAME = All Masters', () => {
@@ -822,6 +831,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
       expect(v['@_ACTION']).toBe('Create');
       // All vouchers are Journal type — must use Accounting Voucher View.
       expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.PERSISTEDVIEW).toBe('Accounting Voucher View');
     }
   });
 
@@ -848,12 +858,12 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     }
   });
 
-  // -- ALLLEDGERENTRIES.LIST conformance --
+  // -- LEDGERENTRIES.LIST conformance --
 
   it('every ledger entry has ISDEEMEDPOSITIVE matching sign convention (DR=Yes/negative, CR=No/positive)', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         const amount = parseFloat(String(entry.AMOUNT));
         const deemed = String(entry.ISDEEMEDPOSITIVE);
@@ -869,7 +879,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   it('every ledger entry has ISLASTDEEMEDPOSITIVE mirroring ISDEEMEDPOSITIVE', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         expect(entry.ISLASTDEEMEDPOSITIVE).toBe(entry.ISDEEMEDPOSITIVE);
       }
@@ -879,7 +889,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   it('first ledger entry has ISPARTYLEDGER=Yes, others have No', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       if (entries.length > 0) {
         expect(entries[0].ISPARTYLEDGER).toBe('Yes');
         for (let i = 1; i < entries.length; i++) {
@@ -892,7 +902,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   it('every ledger entry has LEDGERFROMITEM=No and REMOVEZEROENTRIES=No', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         expect(entry.LEDGERFROMITEM).toBe('No');
         expect(entry.REMOVEZEROENTRIES).toBe('No');
@@ -903,7 +913,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   it('every voucher amounts sum to zero (balanced double-entry)', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       const sum = entries.reduce(
         (acc: number, e: Record<string, unknown>) => acc + parseFloat(String(e.AMOUNT)),
         0,
@@ -915,7 +925,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   it('no ledger entry has empty or null LEDGERNAME', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         expect(entry.LEDGERNAME).toBeDefined();
         expect(String(entry.LEDGERNAME).trim().length).toBeGreaterThan(0);
@@ -939,7 +949,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
   it('inventory allocations have STOCKITEMNAME, ACTUALQTY, BILLEDQTY, RATE, AMOUNT', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         const allocs = asArray(entry['INVENTORYALLOCATIONS.LIST'] as Record<string, unknown>[]);
         for (const alloc of allocs) {
@@ -1002,7 +1012,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         const name = String(entry.LEDGERNAME);
         expect(masterLedgerNames.has(name)).toBe(true);
@@ -1014,7 +1024,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     const vouchers = getAllVouchers();
     const stockItemNames = new Set<string>();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
       for (const entry of entries) {
         const allocs = asArray(entry['INVENTORYALLOCATIONS.LIST'] as Record<string, unknown>[]);
         for (const alloc of allocs) {

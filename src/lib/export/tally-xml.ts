@@ -119,20 +119,43 @@ function tallyRate(rate: string, unit = 'SH'): string {
   return `${Math.abs(n).toFixed(2)}/${unit}`;
 }
 
+type EnvelopeKind = 'masters' | 'vouchers';
+
 /**
- * Creates the outer ENVELOPE / HEADER / BODY / IMPORTDATA skeleton shared by
- * both masters and transactions XML documents.
+ * Creates the outer ENVELOPE skeleton used by Tally imports.
  *
- * Returns the `<REQUESTDATA>` element so callers can append TALLYMESSAGE
- * children directly.
+ * Tally's published masters samples still use the older IMPORTDATA envelope,
+ * while published voucher samples use the stricter DATA/DESC request contract
+ * with VERSION / TYPE / ID in the header. The voucher path is the one Tally
+ * Prime validates against while importing transactions from the UI.
  */
-function buildEnvelope(reportName: string, companyName: string) {
+function buildEnvelope(
+  reportName: string,
+  companyName: string,
+  kind: EnvelopeKind = 'masters',
+) {
   const doc = create({ version: '1.0', encoding: 'UTF-8' }).ele('ENVELOPE');
+  const header = doc.ele('HEADER');
 
-  // HEADER
-  doc.ele('HEADER').ele('TALLYREQUEST').txt('Import Data');
+  if (kind === 'vouchers') {
+    header.ele('VERSION').txt('1');
+    header.ele('TALLYREQUEST').txt('Import');
+    header.ele('TYPE').txt('Data');
+    header.ele('ID').txt(reportName);
 
-  // BODY
+    const body = doc.ele('BODY');
+    const desc = body.ele('DESC');
+    desc
+      .ele('STATICVARIABLES')
+      .ele('SVCURRENTCOMPANY')
+      .txt(companyName);
+
+    const requestData = body.ele('DATA');
+    return { root: doc, requestData };
+  }
+
+  header.ele('TALLYREQUEST').txt('Import Data');
+
   const body = doc.ele('BODY');
   const importData = body.ele('IMPORTDATA');
 
@@ -275,7 +298,7 @@ export function generateVouchersXml(
   vouchers: VoucherDraftWithLines[],
   companyName: string,
 ): string {
-  const { root, requestData } = buildEnvelope('Vouchers', companyName);
+  const { root, requestData } = buildEnvelope('Vouchers', companyName, 'vouchers');
 
   for (const voucher of vouchers) {
     const tallyVchType =
@@ -313,6 +336,7 @@ export function generateVouchersXml(
     const tallyDate = toTallyDate(voucher.voucher_date);
     voucherEle.ele('DATE').txt(tallyDate);
     voucherEle.ele('EFFECTIVEDATE').txt(tallyDate);
+    voucherEle.ele('PERSISTEDVIEW').txt(objView);
 
     if (voucher.narrative) {
       voucherEle.ele('NARRATION').txt(voucher.narrative);
@@ -341,7 +365,7 @@ export function generateVouchersXml(
     }
 
     for (const line of sortedLines) {
-      const entry = voucherEle.ele('ALLLEDGERENTRIES.LIST');
+      const entry = voucherEle.ele('LEDGERENTRIES.LIST');
 
       entry.ele('LEDGERNAME').txt(line.ledger_name);
       entry.ele('ISDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
