@@ -77,55 +77,22 @@ function makeVoucher(
   };
 }
 
-describe('generateVouchersXml — OBJVIEW / ISINVOICE branching', () => {
-  it('investor-mode Journal voucher with stock lines uses Accounting Voucher View (no ISINVOICE)', () => {
-    const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.JOURNAL, true)],
-      'Test Co',
-    );
-    expect(xml).toContain('OBJVIEW="Accounting Voucher View"');
-    expect(xml).not.toContain('Invoice Voucher View');
-    expect(xml).not.toContain('<ISINVOICE>');
-    // Inventory allocations are still emitted on the line.
-    expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
-    expect(xml).toContain('<STOCKITEMNAME>INFY</STOCKITEMNAME>');
-  });
+describe('generateVouchersXml — all vouchers use Accounting Voucher View', () => {
+  for (const type of [VoucherType.JOURNAL, VoucherType.PURCHASE, VoucherType.SALES]) {
+    it(`${type} voucher with stock lines uses Accounting Voucher View (no ISINVOICE)`, () => {
+      const xml = generateVouchersXml([makeVoucher(type, true)], 'Test Co');
+      expect(xml).toContain('OBJVIEW="Accounting Voucher View"');
+      expect(xml).not.toContain('Invoice Voucher View');
+      expect(xml).not.toContain('<ISINVOICE>');
+      expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
+      expect(xml).toContain('<STOCKITEMNAME>INFY</STOCKITEMNAME>');
+    });
 
-  it('trader-mode Purchase voucher with stock lines uses Invoice Voucher View + ISINVOICE=Yes', () => {
-    const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.PURCHASE, true)],
-      'Test Co',
-    );
-    expect(xml).toContain('OBJVIEW="Invoice Voucher View"');
-    expect(xml).toContain('<ISINVOICE>Yes</ISINVOICE>');
-    expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
-  });
-
-  it('trader-mode Sales voucher with stock lines uses Invoice Voucher View + ISINVOICE=Yes', () => {
-    const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.SALES, true)],
-      'Test Co',
-    );
-    expect(xml).toContain('OBJVIEW="Invoice Voucher View"');
-    expect(xml).toContain('<ISINVOICE>Yes</ISINVOICE>');
-  });
-
-  it('trader-mode Purchase voucher without inventory lines stays on Accounting Voucher View', () => {
-    const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.PURCHASE, false)],
-      'Test Co',
-    );
-    expect(xml).toContain('OBJVIEW="Accounting Voucher View"');
-    expect(xml).not.toContain('Invoice Voucher View');
-    expect(xml).not.toContain('<ISINVOICE>');
-  });
-
-  it('Journal voucher without inventory lines uses Accounting Voucher View', () => {
-    const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.JOURNAL, false)],
-      'Test Co',
-    );
-    expect(xml).toContain('OBJVIEW="Accounting Voucher View"');
-    expect(xml).not.toContain('<ISINVOICE>');
-  });
+    it(`${type} voucher without inventory lines stays on Accounting Voucher View`, () => {
+      const xml = generateVouchersXml([makeVoucher(type, false)], 'Test Co');
+      expect(xml).toContain('OBJVIEW="Accounting Voucher View"');
+      expect(xml).not.toContain('Invoice Voucher View');
+      expect(xml).not.toContain('<ISINVOICE>');
+    });
+  }
 });

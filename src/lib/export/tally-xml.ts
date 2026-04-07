@@ -242,6 +242,13 @@ export function generateMastersXml(
     ledgerEle
       .ele('AFFECTSSTOCK')
       .txt(ledger.affects_stock === true ? 'Yes' : 'No');
+    // F12 "Use Inventory Allocations for Ledgers : Yes" — required for Tally
+    // to process INVENTORYALLOCATIONS.LIST entries nested inside journal
+    // voucher ledger entries. Without this flag, Tally silently drops the
+    // stock movements. See bug-report PDF page 6.
+    ledgerEle
+      .ele('ISINVENTORYAFFECTED')
+      .txt(ledger.affects_stock === true ? 'Yes' : 'No');
     ledgerEle.ele('COUNTRYOFRESIDENCE').txt('India');
 
     const langList = ledgerEle.ele('LANGUAGENAME.LIST');
@@ -308,24 +315,10 @@ export function generateVouchersXml(
       'xmlns:UDF': 'TallyUDF',
     });
 
-    // OBJVIEW must match the voucher type:
-    //   - Journal vouchers MUST use "Accounting Voucher View" even when they
-    //     carry INVENTORYALLOCATIONS.LIST entries. Using "Invoice Voucher View"
-    //     on a Journal makes Tally reject the import with "did not match the
-    //     Import settings" (investor-mode regression).
-    //   - Sales/Purchase vouchers that carry stock lines MUST use
-    //     "Invoice Voucher View" + ISINVOICE=Yes so Tally processes the
-    //     inventory allocations (trader-mode requirement).
-    const isStockVoucher =
-      voucher.voucher_type === VoucherType.PURCHASE ||
-      voucher.voucher_type === VoucherType.SALES;
-    const hasInventoryLines = voucher.lines.some(
-      (l) => l.quantity !== null && l.rate !== null,
-    );
-    const useInvoiceView = isStockVoucher && hasInventoryLines;
-    const objView = useInvoiceView
-      ? 'Invoice Voucher View'
-      : 'Accounting Voucher View';
+    // All vouchers use Accounting Voucher View. Inventory movements on
+    // journal vouchers are enabled by the ISINVENTORYAFFECTED flag on the
+    // ledger master, not by switching to Invoice Voucher View.
+    const objView = 'Accounting Voucher View';
 
     const voucherEle = msg.ele('VOUCHER', {
       VCHTYPE: tallyVchType,
@@ -347,12 +340,6 @@ export function generateVouchersXml(
     }
 
     voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
-
-    // Tell Tally this Sales/Purchase voucher carries inventory allocations
-    // so stock movements are processed.
-    if (useInvoiceView) {
-      voucherEle.ele('ISINVOICE').txt('Yes');
-    }
 
     // Sort lines by line_no to preserve intended ordering.
     const sortedLines = [...voucher.lines].sort(

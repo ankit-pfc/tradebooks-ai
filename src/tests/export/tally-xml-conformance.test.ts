@@ -195,8 +195,12 @@ describe('LEDGER conformance', () => {
     expect(reliance.PARENT).toBe('Investments');
     expect(reliance.ISBILLWISEON).toBe('No');
     expect(reliance.AFFECTSSTOCK).toBe('Yes');
+    // F12 "Use Inventory Allocations for Ledgers" — required for Tally to
+    // process INVENTORYALLOCATIONS.LIST inside journal voucher entries.
+    expect(reliance.ISINVENTORYAFFECTED).toBe('Yes');
 
     expect(bank!.AFFECTSSTOCK).toBe('No');
+    expect(bank!.ISINVENTORYAFFECTED).toBe('No');
   });
 
   it('has ISCOSTCENTRESON and COUNTRYOFRESIDENCE', () => {

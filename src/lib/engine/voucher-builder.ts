@@ -322,13 +322,12 @@ export function buildBuyVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    // Speculative (intraday) trades remain Journal vouchers — they have no
-    // carry-forward inventory, so an Invoice-view Purchase voucher would be
-    // wrong. Delivery/investment trades MUST be Purchase vouchers regardless
-    // of investor/trader accounting mode, because Tally's Accounting Voucher
-    // View silently drops INVENTORYALLOCATIONS.LIST on import — only Invoice
-    // Voucher View (Purchase/Sales) processes inventory.
-    voucher_type: skipInventory ? VoucherType.JOURNAL : VoucherType.PURCHASE,
+    // All trade vouchers are Journal vouchers. Tally processes inventory
+    // allocations inside journal vouchers when the target ledger has the F12
+    // flag "Use Inventory Allocations for Ledgers" enabled — emitted as
+    // ISINVENTORYAFFECTED=Yes on the ledger master. See bug-report PDF
+    // pages 5-6.
+    voucher_type: VoucherType.JOURNAL,
     voucher_date: event.event_date,
     // Voucher number = CN number / security symbol. Unique per (CN, security)
     // so multi-script CNs don't collide on Tally import while still carrying
@@ -553,12 +552,10 @@ export function buildSellVoucher(
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
-    // Speculative (intraday) trades remain Journal vouchers — no inventory
-    // carry-forward, so Invoice-view Sales would be wrong. Delivery trades
-    // MUST be Sales vouchers regardless of accounting mode (Journal +
-    // Accounting Voucher View silently drops INVENTORYALLOCATIONS.LIST in
-    // Tally; only Invoice Voucher View processes them).
-    voucher_type: skipInventory ? VoucherType.JOURNAL : VoucherType.SALES,
+    // All trade vouchers are Journal vouchers. Inventory flows through via
+    // the F12 "Use Inventory Allocations for Ledgers" flag on the investment
+    // ledger master (ISINVENTORYAFFECTED=Yes). See bug-report PDF pages 5-6.
+    voucher_type: VoucherType.JOURNAL,
     voucher_date: event.event_date,
     // Voucher number = CN number / security symbol. See buildBuyVoucher for
     // the rationale and disambiguation strategy.
@@ -781,7 +778,7 @@ export function buildCorporateActionVoucher(
     const draft: BuiltVoucherDraft = {
       voucher_draft_id: draftId,
       import_batch_id: event.import_batch_id,
-      voucher_type: VoucherType.PURCHASE,
+      voucher_type: VoucherType.JOURNAL,
       voucher_date: event.event_date,
       external_reference: event.external_ref ?? null,
       narrative: `Rights issue subscription - ${symbol} @ ${event.rate}`,

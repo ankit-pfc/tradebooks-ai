@@ -44,15 +44,11 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     expect(crLine.amount).toBe('25002.50');
   });
 
-  it('voucher is balanced and uses PURCHASE type so Tally records inventory', () => {
-    // Delivery investor buys must be Purchase vouchers (Invoice Voucher View)
-    // because Tally's Accounting Voucher View silently drops
-    // INVENTORYALLOCATIONS.LIST on import. Speculative/intraday buys remain
-    // Journal vouchers (no inventory carry-forward).
+  it('voucher is balanced and uses JOURNAL type (inventory via ISINVENTORYAFFECTED on ledger master)', () => {
     const event = makeBuyEvent({ gross_amount: '25000.00' });
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
     expect(voucher.total_debit).toBe(voucher.total_credit);
-    expect(voucher.voucher_type).toBe(VoucherType.PURCHASE);
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
   });
 });
 
@@ -186,7 +182,7 @@ describe('buildSellVoucher — investor', () => {
 
     const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
     expect(gainLine).toBeDefined();
-    expect(voucher.voucher_type).toBe(VoucherType.SALES);
+    expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 
@@ -395,7 +391,7 @@ describe('buildCorporateActionVoucher', () => {
     });
     const voucher = buildCorporateActionVoucher(event, new Decimal('5000'));
     expect(voucher).not.toBeNull();
-    expect(voucher!.voucher_type).toBe(VoucherType.PURCHASE);
+    expect(voucher!.voucher_type).toBe(VoucherType.JOURNAL);
 
     const drInv = findLine(voucher!.lines, 'Investment', 'DR');
     expect(drInv?.amount).toBe('5000.00');
@@ -526,13 +522,12 @@ describe('buildVouchers holding period routing', () => {
       tracker,
     );
 
-    // Delivery investor sell vouchers use SALES type (Invoice Voucher View)
-    // so Tally records inventory outflow.
+    // All trade vouchers are Journal vouchers; inventory via ledger master flag.
     const saleVoucher = vouchers.find((voucher) =>
       voucher.narrative?.includes('Sale of'),
     );
     expect(saleVoucher).toBeDefined();
-    expect(saleVoucher?.voucher_type).toBe(VoucherType.SALES);
+    expect(saleVoucher?.voucher_type).toBe(VoucherType.JOURNAL);
     expect(
       saleVoucher?.lines.some(
         (line) =>
