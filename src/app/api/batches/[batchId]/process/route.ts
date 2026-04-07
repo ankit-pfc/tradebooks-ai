@@ -109,11 +109,14 @@ export async function POST(
 
     return NextResponse.json({
       batchId,
+      tradeCount: result.tradeCount,
       eventCount: result.eventCount,
       voucherCount: result.voucherCount,
       ledgerCount: result.ledgerCount,
       checks: result.checks,
       summary: result.summary,
+      mastersXml: result.mastersXml,
+      transactionsXml: result.transactionsXml,
       filesSummary: result.filesSummary,
       chargeSource: result.chargeSource,
       fyLabel: result.fyLabel,
