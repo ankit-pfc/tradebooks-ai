@@ -265,18 +265,17 @@ describe('buildVouchers orchestrator with TallyProfile', () => {
 
     expect(vouchers).toHaveLength(2);
 
-    // Delivery investor trades use Purchase/Sales vouchers so Tally
-    // processes INVENTORYALLOCATIONS.LIST through Invoice Voucher View.
+    // All trade vouchers are Journal; inventory via ledger master flag.
     const buyVoucher = vouchers.find(v => v.narrative?.includes('Purchase'));
     expect(buyVoucher).toBeDefined();
-    expect(buyVoucher!.voucher_type).toBe('PURCHASE');
+    expect(buyVoucher!.voucher_type).toBe('JOURNAL');
     const buyAssetLine = buyVoucher!.lines.find(l => l.dr_cr === 'DR');
     expect(buyAssetLine?.ledger_name).toBe('RELIANCE-SH');
 
     // Sell voucher should use Capital Account gain ledger
     const sellVoucher = vouchers.find(v => v.narrative?.includes('Sale'));
     expect(sellVoucher).toBeDefined();
-    expect(sellVoucher!.voucher_type).toBe('SALES');
+    expect(sellVoucher!.voucher_type).toBe('JOURNAL');
     const gainLine = sellVoucher!.lines.find(l => l.ledger_name.includes('STCG'));
     expect(gainLine?.ledger_name).toBe('STCG ON RELIANCE');
 

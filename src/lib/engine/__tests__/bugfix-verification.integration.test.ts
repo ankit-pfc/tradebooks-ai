@@ -199,33 +199,30 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
 
   const result = runFullPipeline(csv);
 
-  it('buy voucher is Purchase type (investor mode delivery — so Tally records inventory)', () => {
+  it('buy voucher is Journal type', () => {
     const buyVoucher = result.vouchers.find(v => v.narrative?.includes('Purchase'));
     expect(buyVoucher).toBeDefined();
-    expect(buyVoucher!.voucher_type).toBe('PURCHASE');
+    expect(buyVoucher!.voucher_type).toBe('JOURNAL');
   });
 
-  it('buy voucher uses Invoice Voucher View (Purchase type carries inventory)', () => {
-    // Delivery Purchase vouchers MUST use Invoice Voucher View so Tally
-    // processes INVENTORYALLOCATIONS.LIST. Accounting Voucher View silently
-    // drops inventory on import — that was the prior bug.
+  it('buy voucher uses Accounting Voucher View (inventory via ledger master flag)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
+    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
   });
 
-  it('buy voucher emits ISINVOICE=Yes (so Tally treats it as inventory-carrying)', () => {
+  it('buy voucher does NOT emit ISINVOICE', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>).ISINVOICE).toBe('Yes');
+    expect((buyV as Record<string, unknown>).ISINVOICE).toBeUndefined();
   });
 
   it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with HDFC-SH', () => {
@@ -478,7 +475,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
     expect(specLine).toBeDefined();
   });
 
-  it('RELIANCE delivery buy HAS INVENTORYALLOCATIONS.LIST and uses Invoice Voucher View (control)', () => {
+  it('RELIANCE delivery buy HAS INVENTORYALLOCATIONS.LIST on an Accounting Voucher View Journal (control)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const relianceBuy = vouchers.find(v =>
@@ -486,8 +483,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     )!;
     expect(relianceBuy).toBeDefined();
-    // Delivery Purchase voucher → Invoice Voucher View so Tally processes inventory.
-    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
+    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
 
     const lines = getVoucherLines(relianceBuy);
     const lineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0);
@@ -940,15 +936,10 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     for (const v of vouchers) {
       expect(v['@_VCHTYPE']).toBeDefined();
       expect(v['@_ACTION']).toBe('Create');
-      // Purchase/Sales vouchers carry inventory → Invoice Voucher View.
-      // Everything else (Journal/Receipt/Payment) → Accounting Voucher View.
-      const vchType = String(v['@_VCHTYPE']);
-      const expectedView =
-        vchType === 'Purchase' || vchType === 'Sales'
-          ? 'Invoice Voucher View'
-          : 'Accounting Voucher View';
-      expect(v['@_OBJVIEW']).toBe(expectedView);
-      expect(v.PERSISTEDVIEW).toBe(expectedView);
+      // All vouchers use Accounting Voucher View; inventory on journal
+      // vouchers flows via the ledger master ISINVENTORYAFFECTED flag.
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.PERSISTEDVIEW).toBe('Accounting Voucher View');
     }
   });
 
@@ -1052,21 +1043,11 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
   // -- INVENTORYALLOCATIONS.LIST conformance --
 
-  it('Purchase/Sales vouchers use Invoice Voucher View; all others use Accounting Voucher View', () => {
-    // Delivery Purchase/Sales vouchers must use Invoice Voucher View + ISINVOICE=Yes
-    // so Tally processes INVENTORYALLOCATIONS.LIST. Journal/Receipt/Payment
-    // vouchers stay on Accounting Voucher View with no ISINVOICE.
+  it('all vouchers use Accounting Voucher View and do not emit ISINVOICE', () => {
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const vchType = String(v['@_VCHTYPE'] ?? '');
-      const isInvoiceVoucher = vchType === 'Purchase' || vchType === 'Sales';
-      if (isInvoiceVoucher) {
-        expect(v['@_OBJVIEW']).toBe('Invoice Voucher View');
-        expect(v.ISINVOICE).toBe('Yes');
-      } else {
-        expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
-        expect(v.ISINVOICE).toBeUndefined();
-      }
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.ISINVOICE).toBeUndefined();
     }
   });
 
@@ -1177,6 +1158,70 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     const firstLedgerIdx = messages.findIndex((m: Record<string, unknown>) => m.LEDGER);
     if (firstGroupIdx >= 0 && firstLedgerIdx >= 0) {
       expect(firstGroupIdx).toBeLessThan(firstLedgerIdx);
+    }
+  });
+});
+
+// ===========================================================================
+// Regression: every input trade produces exactly one trade voucher.
+// Guards against silent "missing sales" regressions like the A1 pivot caused.
+// ===========================================================================
+
+describe('Regression: no trades are dropped between input and generated XML', () => {
+  const csv = buildTradebookCsv([
+    // 3 delivery buys, different securities
+    ['01-04-2024', 'NSE', 'EQ', 'INFY',     'INE009A01021', 'buy',  '10', '1500.00', 'CNC', 'B1', 'O1', '09:30:00'],
+    ['01-04-2024', 'NSE', 'EQ', 'RELIANCE', 'INE002A01018', 'buy',  '20', '2500.00', 'CNC', 'B2', 'O2', '09:31:00'],
+    ['02-04-2024', 'NSE', 'EQ', 'TCS',      'INE467B01029', 'buy',  '5',  '3600.00', 'CNC', 'B3', 'O3', '10:00:00'],
+    // 2 delivery sells of previously bought stock
+    ['05-04-2024', 'NSE', 'EQ', 'INFY',     'INE009A01021', 'sell', '10', '1600.00', 'CNC', 'S1', 'O4', '11:00:00'],
+    ['06-04-2024', 'NSE', 'EQ', 'RELIANCE', 'INE002A01018', 'sell', '20', '2650.00', 'CNC', 'S2', 'O5', '11:05:00'],
+    // 1 full intraday netoff (HDFC MIS buy+sell same day, same qty) — collapses into a single speculative journal
+    ['07-04-2024', 'NSE', 'EQ', 'HDFC',     'INE001A01036', 'buy',  '50', '1700.00', 'MIS', 'I1', 'O6', '09:45:00'],
+    ['07-04-2024', 'NSE', 'EQ', 'HDFC',     'INE001A01036', 'sell', '50', '1710.00', 'MIS', 'I2', 'O7', '14:30:00'],
+  ]);
+
+  const result = runFullPipeline(csv);
+
+  it('every delivery buy/sell appears exactly once in generated XML as a Journal voucher', () => {
+    const vouchers = getVouchers(parseXml(result.transactionsXml));
+
+    const tradeVouchers = vouchers.filter(v => {
+      const narr = String(v.NARRATION ?? '');
+      return narr.includes('Purchase of') || narr.includes('Sale of');
+    });
+
+    // 3 delivery buys + 2 delivery sells + 2 intraday (HDFC buy + sell, each
+    // reclassified to speculative but emitted as separate journal vouchers).
+    expect(tradeVouchers).toHaveLength(7);
+
+    // All trade vouchers are Journal.
+    for (const v of tradeVouchers) {
+      expect(v['@_VCHTYPE']).toBe('Journal');
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.ISINVOICE).toBeUndefined();
+    }
+
+    // Every symbol from input sells must appear as a Sale narrative in output.
+    const sellNarratives = tradeVouchers
+      .map(v => String(v.NARRATION ?? ''))
+      .filter(n => n.includes('Sale of'));
+    expect(sellNarratives.some(n => n.includes('INFY'))).toBe(true);
+    expect(sellNarratives.some(n => n.includes('RELIANCE'))).toBe(true);
+  });
+
+  it('investment ledgers in masters XML have ISINVENTORYAFFECTED=Yes (F12 flag)', () => {
+    const ledgers = getLedgers(parseXml(result.mastersXml));
+
+    const stockLedgers = ledgers.filter(l => l.AFFECTSSTOCK === 'Yes');
+    expect(stockLedgers.length).toBeGreaterThan(0);
+    for (const l of stockLedgers) {
+      expect(l.ISINVENTORYAFFECTED).toBe('Yes');
+    }
+
+    const nonStockLedgers = ledgers.filter(l => l.AFFECTSSTOCK === 'No');
+    for (const l of nonStockLedgers) {
+      expect(l.ISINVENTORYAFFECTED).toBe('No');
     }
   });
 });

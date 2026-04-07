@@ -137,7 +137,7 @@ function runPipeline() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('XML contract note pipeline — investor mode delivery trades use Sales/Purchase vouchers', () => {
+describe('XML contract note pipeline — investor mode delivery trades use Journal vouchers', () => {
   it('parses the XML and produces both BUY_TRADE and SELL_TRADE events', () => {
     const { events } = runPipeline();
     const trades = events.filter((e) =>
@@ -150,11 +150,11 @@ describe('XML contract note pipeline — investor mode delivery trades use Sales
     expect(sells).toHaveLength(1); // one sell trade
   });
 
-  it('produces Sales vouchers for delivery sells in investor mode (so Tally records inventory)', () => {
+  it('produces Journal vouchers for delivery sells in investor mode', () => {
     const { vouchers } = runPipeline();
     const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'));
     expect(sellVoucher).toBeDefined();
-    expect(sellVoucher!.voucher_type).toBe(VoucherType.SALES);
+    expect(sellVoucher!.voucher_type).toBe(VoucherType.JOURNAL);
   });
 
   it('sell Journal voucher has a CR line on the investment ledger (cost basis)', () => {
@@ -187,12 +187,14 @@ describe('XML contract note pipeline — investor mode delivery trades use Sales
     expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
   });
 
-  it('transactionsXml contains Purchase and Sales voucher entries for delivery trades', () => {
+  it('transactionsXml contains Journal voucher entries for delivery trades', () => {
     const { transactionsXml } = runPipeline();
-    // Delivery trades (investor mode) flow through Purchase/Sales vouchers
-    // so Tally's Invoice Voucher View processes INVENTORYALLOCATIONS.LIST.
-    expect(transactionsXml).toContain('VCHTYPE="Purchase"');
-    expect(transactionsXml).toContain('VCHTYPE="Sales"');
+    // All trade vouchers are Journal vouchers; inventory flows through the
+    // ISINVENTORYAFFECTED flag on the investment ledger master.
+    expect(transactionsXml).toContain('VCHTYPE="Journal"');
+    expect(transactionsXml).not.toContain('VCHTYPE="Purchase"');
+    expect(transactionsXml).not.toContain('VCHTYPE="Sales"');
+    expect(transactionsXml).not.toContain('Invoice Voucher View');
   });
 });
 
@@ -200,7 +202,7 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
   it('raw vouchers have 2 buy Purchase vouchers (one per fill)', () => {
     const { rawVouchers } = runPipeline();
     const buyVouchers = rawVouchers.filter((v) =>
-      v.voucher_type === VoucherType.PURCHASE && v.narrative?.includes('Purchase'),
+      v.voucher_type === VoucherType.JOURNAL && v.narrative?.includes('Purchase'),
     );
     expect(buyVouchers).toHaveLength(2);
   });
@@ -208,7 +210,7 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
   it('after merge, only 1 buy Purchase voucher remains', () => {
     const { vouchers } = runPipeline();
     const buyVouchers = vouchers.filter((v) =>
-      v.voucher_type === VoucherType.PURCHASE && v.narrative?.includes('Purchase'),
+      v.voucher_type === VoucherType.JOURNAL && v.narrative?.includes('Purchase'),
     );
     expect(buyVouchers).toHaveLength(1);
   });
@@ -216,7 +218,7 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
   it('merged buy Purchase voucher has combined quantity (100 shares)', () => {
     const { vouchers } = runPipeline();
     const buyVoucher = vouchers.find((v) =>
-      v.voucher_type === VoucherType.PURCHASE && v.narrative?.includes('Purchase'),
+      v.voucher_type === VoucherType.JOURNAL && v.narrative?.includes('Purchase'),
     )!;
     const stockDrLine = buyVoucher.lines.find(
       (l) => l.dr_cr === 'DR' && l.quantity !== null,
@@ -228,7 +230,7 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
   it('merged buy Purchase voucher has combined gross amount (250,000 + charges)', () => {
     const { vouchers } = runPipeline();
     const buyVoucher = vouchers.find((v) =>
-      v.voucher_type === VoucherType.PURCHASE && v.narrative?.includes('Purchase'),
+      v.voucher_type === VoucherType.JOURNAL && v.narrative?.includes('Purchase'),
     )!;
     const stockDrLine = buyVoucher.lines.find(
       (l) => l.dr_cr === 'DR' && l.quantity !== null,
@@ -240,10 +242,10 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
   it('merged buy Purchase voucher source_event_ids covers both fills', () => {
     const { vouchers, rawVouchers } = runPipeline();
     const rawBuys = rawVouchers.filter((v) =>
-      v.voucher_type === VoucherType.PURCHASE && v.narrative?.includes('Purchase'),
+      v.voucher_type === VoucherType.JOURNAL && v.narrative?.includes('Purchase'),
     );
     const mergedBuy = vouchers.find((v) =>
-      v.voucher_type === VoucherType.PURCHASE && v.narrative?.includes('Purchase'),
+      v.voucher_type === VoucherType.JOURNAL && v.narrative?.includes('Purchase'),
     )!;
 
     const rawTradeEventIds = rawBuys.flatMap((v) => v.source_event_ids);
@@ -252,12 +254,12 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
     }
   });
 
-  it('transactionsXml has Purchase and Sales voucher nodes for investor delivery trades', () => {
+  it('transactionsXml has Journal voucher nodes for investor delivery trades', () => {
     const { transactionsXml } = runPipeline();
-    const purchaseMatches = transactionsXml.match(/VCHTYPE="Purchase"/gi) ?? [];
-    const salesMatches = transactionsXml.match(/VCHTYPE="Sales"/gi) ?? [];
-    expect(purchaseMatches.length).toBeGreaterThanOrEqual(1);
-    expect(salesMatches.length).toBeGreaterThanOrEqual(1);
+    const journalMatches = transactionsXml.match(/VCHTYPE="Journal"/gi) ?? [];
+    expect(journalMatches.length).toBeGreaterThanOrEqual(2);
+    expect(transactionsXml).not.toContain('VCHTYPE="Purchase"');
+    expect(transactionsXml).not.toContain('VCHTYPE="Sales"');
   });
 });
 
