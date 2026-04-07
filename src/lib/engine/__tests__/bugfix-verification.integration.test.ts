@@ -202,24 +202,28 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(buyVoucher!.voucher_type).toBe('JOURNAL');
   });
 
-  it('buy voucher has OBJVIEW="Invoice Voucher View" in XML', () => {
+  it('buy voucher uses Accounting Voucher View (Journal type)', () => {
+    // Journal vouchers must stay on Accounting Voucher View even when they
+    // carry INVENTORYALLOCATIONS.LIST entries — Invoice Voucher View is
+    // reserved for Sales/Purchase types and causes Tally to reject imports
+    // with "did not match the Import settings".
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
+    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
   });
 
-  it('buy voucher has ISINVOICE=Yes', () => {
+  it('buy voucher has no ISINVOICE element (Journal voucher)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>).ISINVOICE).toBe('Yes');
+    expect((buyV as Record<string, unknown>).ISINVOICE).toBeUndefined();
   });
 
   it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with HDFC-SH', () => {
@@ -480,7 +484,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     )!;
     expect(relianceBuy).toBeDefined();
-    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
+    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
 
     const lines = getVoucherLines(relianceBuy);
     const lineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0);
@@ -810,13 +814,14 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
   // -- Voucher required attributes --
 
-  it('every voucher has VCHTYPE, ACTION="Create", and valid OBJVIEW', () => {
+  it('every voucher has VCHTYPE, ACTION="Create", and OBJVIEW=Accounting Voucher View', () => {
     const vouchers = getAllVouchers();
     expect(vouchers.length).toBeGreaterThan(0);
     for (const v of vouchers) {
       expect(v['@_VCHTYPE']).toBeDefined();
       expect(v['@_ACTION']).toBe('Create');
-      expect(['Invoice Voucher View', 'Accounting Voucher View']).toContain(v['@_OBJVIEW']);
+      // All vouchers are Journal type — must use Accounting Voucher View.
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
     }
   });
 
@@ -920,17 +925,14 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
 
   // -- INVENTORYALLOCATIONS.LIST conformance --
 
-  it('inventory vouchers: OBJVIEW=Invoice Voucher View + ISINVOICE=Yes', () => {
+  it('all vouchers (inventory or not) stay on Accounting Voucher View with no ISINVOICE', () => {
+    // Journal vouchers carrying INVENTORYALLOCATIONS.LIST must NOT flip to
+    // Invoice Voucher View — Tally rejects that combination with
+    // "did not match the Import settings".
     const vouchers = getAllVouchers();
     for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
-      const hasInventory = entries.some(e => e['INVENTORYALLOCATIONS.LIST'] !== undefined);
-      if (hasInventory) {
-        expect(v['@_OBJVIEW']).toBe('Invoice Voucher View');
-        expect(v.ISINVOICE).toBe('Yes');
-      } else {
-        expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
-      }
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.ISINVOICE).toBeUndefined();
     }
   });
 
@@ -954,18 +956,9 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     }
   });
 
-  it('no inventory allocation has ISDEEMEDPOSITIVE (Tally computes this automatically)', () => {
-    const vouchers = getAllVouchers();
-    for (const v of vouchers) {
-      const entries = asArray(v['ALLLEDGERENTRIES.LIST'] as Record<string, unknown>[]);
-      for (const entry of entries) {
-        const allocs = asArray(entry['INVENTORYALLOCATIONS.LIST'] as Record<string, unknown>[]);
-        for (const alloc of allocs) {
-          expect(alloc.ISDEEMEDPOSITIVE).toBeUndefined();
-        }
-      }
-    }
-  });
+  // NOTE: ISDEEMEDPOSITIVE is intentionally NOT emitted on
+  // INVENTORYALLOCATIONS.LIST — sign is conveyed through ACTUALQTY/BILLEDQTY/
+  // AMOUNT. See tally-xml-conformance.test.ts for the canonical assertion.
 
   // -- Masters ledger conformance --
 

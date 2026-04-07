@@ -58,14 +58,23 @@ function num(value: string): string {
   }
 }
 
+/** Collapse whitespace and strip spaces around '/' so "pay in / pay out" matches "pay in/pay out". */
+function normalizeLabel(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function findRowStartingWith(
   rows: string[][],
   prefix: string,
   startFrom = 0,
 ): number {
-  const lowerPrefix = prefix.toLowerCase();
+  const lowerPrefix = normalizeLabel(prefix);
   for (let i = startFrom; i < rows.length; i++) {
-    const firstCell = (rows[i][0] ?? '').trim().toLowerCase();
+    const firstCell = normalizeLabel(rows[i][0] ?? '');
     if (firstCell.startsWith(lowerPrefix)) return i;
   }
   return -1;
@@ -118,7 +127,7 @@ const HEADER_PATTERNS: Array<{ key: keyof TradeColumnMap; patterns: string[] }> 
   { key: 'gross_rate',            patterns: ['gross rate', 'trade price', 'gross rate per unit'] },
   { key: 'brokerage_per_unit',    patterns: ['brokerage per unit', 'brokerage', 'brokerage per unit (rs)'] },
   { key: 'net_rate',              patterns: ['net rate', 'net rate per unit', 'net rate per unit (rs)'] },
-  { key: 'net_total',             patterns: ['net total', 'closing rate', 'net total (before levies)'] },
+  { key: 'net_total',             patterns: ['net total', 'net total (before levies)'] },
 ];
 
 /** Default column positions matching known Zerodha XLSX layout (fallback). */
@@ -130,6 +139,11 @@ const DEFAULT_COLUMN_MAP: TradeColumnMap = {
   security_description: 4,
   buy_sell: 5,
   quantity: 6,
+  // Position 7 is the documented Zerodha XLSX layout for the exchange column.
+  // Kept as a positional fallback so a header-text drift (e.g. "Exchg",
+  // "Exch.") does not silently blank the exchange — losing it would degrade
+  // non-equity security IDs to ":SYMBOL" and misroute MCX trades through
+  // classification.
   exchange: 7,
   gross_rate: 8,
   brokerage_per_unit: 9,
@@ -251,7 +265,10 @@ function parseSheet(rows: string[][]): SheetParseResult {
         continue;
       }
 
-      const buySell = (row[cols.buy_sell] ?? '').trim().toUpperCase();
+      // Buy/sell cell may be "B"/"S" or "buy"/"sell" (case-insensitive) —
+      // normalize to the first character.
+      const buySellRaw = (row[cols.buy_sell] ?? '').trim().toUpperCase();
+      const buySell = buySellRaw.charAt(0);
       if (buySell !== 'B' && buySell !== 'S') continue;
 
       trades.push({
@@ -284,15 +301,37 @@ function parseSheet(rows: string[][]): SheetParseResult {
 
   const payInRow = findRowStartingWith(rows, 'pay in/pay out');
   if (payInRow >= 0) {
-    // Charges use the "NET TOTAL" column (col 10, 0-indexed)
-    // or the NCL-Cash column (col 7, 0-indexed)
-    // The net total column is consistently at col 10
+    // Detect the "NET TOTAL" column dynamically — its position shifts with
+    // the number of exchange/segment columns (NSE-EQ, NSE-F&O, …, NET TOTAL).
+    // Scan a few rows above payInRow for the header row that labels the
+    // charge columns.
+    let netTotalCol = -1;
+    for (let r = Math.max(0, payInRow - 3); r < payInRow; r++) {
+      const row = rows[r] ?? [];
+      for (let c = 0; c < row.length; c++) {
+        if (normalizeLabel(row[c] ?? '') === 'net total') {
+          netTotalCol = c;
+          break;
+        }
+      }
+      if (netTotalCol >= 0) break;
+    }
+
     const getChargeVal = (prefix: string): string => {
       const idx = findRowStartingWith(rows, prefix, payInRow);
       if (idx < 0) return '0';
-      // Try net total column first (col 10), then NCL-Cash (col 7)
-      const v = extractCellValue(rows, idx, 10) || extractCellValue(rows, idx, 7);
-      return num(v);
+      const row = rows[idx] ?? [];
+      // Prefer the detected NET TOTAL column; fall back to the last non-empty
+      // numeric cell on the row (robust against layout drift).
+      if (netTotalCol >= 0) {
+        const v = (row[netTotalCol] ?? '').trim();
+        if (v) return num(v);
+      }
+      for (let c = row.length - 1; c >= 0; c--) {
+        const v = (row[c] ?? '').trim();
+        if (v && /^-?[\d,.]+$/.test(v.replace(/₹/g, '').trim())) return num(v);
+      }
+      return '0';
     };
 
     charges = {

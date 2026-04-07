@@ -125,6 +125,46 @@ describe('buildColumnMap', () => {
     expect(cols.buy_sell).toBe(6);
     expect(cols.quantity).toBe(7);
   });
+
+  it('falls back to positional default 7 for exchange when header text drifts', () => {
+    // "Exchg" / "Exch." don't match the "exchange" pattern — the parser must
+    // still pick up the column from the documented default position so that
+    // non-equity security IDs and MCX classification keep working.
+    const driftedHeader = [
+      'Order No.', 'Order Time.', 'Trade No.', 'Trade Time.',
+      'Security / Contract Description', 'Buy(B)/ Sell(S)',
+      'Quantity', 'Exchg', 'Gross Rate per Unit (Rs)',
+      'Brokerage per Unit (Rs)', 'Net Rate per Unit (Rs)',
+      '', 'Net Total (Before Levies)',
+    ];
+    const cols = buildColumnMap(driftedHeader);
+    expect(cols.exchange).toBe(7);
+  });
+});
+
+describe('parseContractNotes — exchange fallback', () => {
+  it('still extracts exchange when header text does not match "Exchange"', () => {
+    const driftedHeader = [
+      'Order No.', 'Order Time.', 'Trade No.', 'Trade Time.',
+      'Security / Contract Description', 'Buy(B)/ Sell(S)',
+      'Quantity', 'Exchg', 'Gross Rate per Unit (Rs)',
+      'Brokerage per Unit (Rs)', 'Net Rate per Unit (Rs)',
+      '', 'Net Total (Before Levies)',
+    ];
+    const sheet = buildStandardSheet([tradeRow()]);
+    const headerIdx = sheet.findIndex(
+      (r) => (r[0] ?? '').toLowerCase().startsWith('order no'),
+    );
+    sheet[headerIdx] = driftedHeader;
+
+    const buf = buildTestXlsx({ '15-01-2024': sheet });
+    const result = parseContractNotes(buf, 'test.xlsx');
+
+    expect(result.trades).toHaveLength(1);
+    // Exchange must NOT be blank — fallback to positional default 7 keeps
+    // non-equity security IDs and MCX routing intact.
+    expect(result.trades[0].exchange).toBe('NSE');
+  });
 });
 
 // ---------------------------------------------------------------------------

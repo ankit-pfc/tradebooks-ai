@@ -281,20 +281,28 @@ export function generateVouchersXml(
     const tallyVchType =
       VOUCHER_TYPE_MAP[voucher.voucher_type] ?? 'Journal';
 
-    // If any line carries inventory data (quantity + rate), this voucher
-    // affects stock and Tally needs "Invoice Voucher View" to process the
-    // INVENTORYALLOCATIONS.LIST entries.  Without this flag, Tally silently
-    // ignores inventory allocations on Journal vouchers.
-    const hasInventoryLines = voucher.lines.some(
-      (l) => l.quantity !== null && l.rate !== null,
-    );
-    const objView = hasInventoryLines
-      ? 'Invoice Voucher View'
-      : 'Accounting Voucher View';
-
     const msg = requestData.ele('TALLYMESSAGE', {
       'xmlns:UDF': 'TallyUDF',
     });
+
+    // OBJVIEW must match the voucher type:
+    //   - Journal vouchers MUST use "Accounting Voucher View" even when they
+    //     carry INVENTORYALLOCATIONS.LIST entries. Using "Invoice Voucher View"
+    //     on a Journal makes Tally reject the import with "did not match the
+    //     Import settings" (investor-mode regression).
+    //   - Sales/Purchase vouchers that carry stock lines MUST use
+    //     "Invoice Voucher View" + ISINVOICE=Yes so Tally processes the
+    //     inventory allocations (trader-mode requirement).
+    const isStockVoucher =
+      voucher.voucher_type === VoucherType.PURCHASE ||
+      voucher.voucher_type === VoucherType.SALES;
+    const hasInventoryLines = voucher.lines.some(
+      (l) => l.quantity !== null && l.rate !== null,
+    );
+    const useInvoiceView = isStockVoucher && hasInventoryLines;
+    const objView = useInvoiceView
+      ? 'Invoice Voucher View'
+      : 'Accounting Voucher View';
 
     const voucherEle = msg.ele('VOUCHER', {
       VCHTYPE: tallyVchType,
@@ -316,9 +324,9 @@ export function generateVouchersXml(
 
     voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
 
-    // Tell Tally this voucher has inventory allocations so it processes
-    // stock movements.  Without this, Journal-type vouchers skip inventory.
-    if (hasInventoryLines) {
+    // Tell Tally this Sales/Purchase voucher carries inventory allocations
+    // so stock movements are processed.
+    if (useInvoiceView) {
       voucherEle.ele('ISINVOICE').txt('Yes');
     }
 
@@ -351,6 +359,10 @@ export function generateVouchersXml(
         const stockItemName = line.stock_item_name ?? line.ledger_name;
         const stockEntry = entry.ele('INVENTORYALLOCATIONS.LIST');
         stockEntry.ele('STOCKITEMNAME').txt(stockItemName);
+        // ISDEEMEDPOSITIVE / ISLASTDEEMEDPOSITIVE are intentionally NOT
+        // emitted on INVENTORYALLOCATIONS.LIST — the sign is conveyed by
+        // ACTUALQTY/BILLEDQTY/AMOUNT and emitting them here breaks Tally
+        // import conformance (see tally-xml-conformance.test.ts).
         stockEntry.ele('ACTUALQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('BILLEDQTY').txt(tallyQty(line.quantity, line.dr_cr));
         stockEntry.ele('RATE').txt(tallyRate(line.rate));
