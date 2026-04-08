@@ -110,12 +110,27 @@ describe('CostLotTracker', () => {
       expect(lots[0].open_quantity).toBe('7');
     });
 
-    it('throws when sell quantity exceeds available lots', () => {
+    it('emits a zero-cost uncovered disposal when sell quantity exceeds available lots', () => {
+      // Engine policy (see cost-lots.ts): an excess sell no longer throws.
+      // The covered portion disposes normally; the uncovered remainder is
+      // recorded as a zero-cost disposal so the voucher pipeline can still
+      // emit a balanced voucher and Tally reconciles the stock register.
       const tracker = new CostLotTracker();
       tracker.addLot(makeBuyEvent({ quantity: '5', rate: '2500' }));
-      expect(() =>
-        tracker.disposeLots(makeSellEvent({ quantity: '-10', rate: '2600' }), 'FIFO'),
-      ).toThrow('sell quantity exceeds');
+      const disposals = tracker.disposeLots(
+        makeSellEvent({ quantity: '-10', rate: '2600' }),
+        'FIFO',
+      );
+      // Covered lot (5 @ 2500) + uncovered remainder (5 @ 0 cost).
+      expect(disposals).toHaveLength(2);
+      const uncovered = disposals.find((d) => d.lot_id === 'uncovered')!;
+      expect(uncovered).toBeDefined();
+      expect(uncovered.quantity_sold).toBe('5');
+      expect(uncovered.total_cost).toBe('0.00');
+      // Full proceeds on the uncovered slice land as gain: 5 * 2600 = 13000.
+      expect(uncovered.gain_or_loss).toBe('13000.00');
+      // All covered lots fully consumed.
+      expect(tracker.getOpenLots('NSE:RELIANCE')).toHaveLength(0);
     });
 
     it('throws on non-SELL_TRADE event', () => {
@@ -145,12 +160,37 @@ describe('CostLotTracker', () => {
       expect(disposals[0].gain_or_loss).toBe('750.00');
     });
 
-    it('throws when sell exceeds total open quantity', () => {
+    it('emits a zero-cost uncovered disposal when sell exceeds total open quantity', () => {
+      // Same policy as FIFO — the covered slice is priced at the weighted
+      // average, and the uncovered remainder becomes a zero-cost disposal.
       const tracker = new CostLotTracker();
       tracker.addLot(makeBuyEvent({ quantity: '5', rate: '2500' }));
-      expect(() =>
-        tracker.disposeLots(makeSellEvent({ quantity: '-10', rate: '2600' }), 'WEIGHTED_AVERAGE'),
-      ).toThrow('sell quantity exceeds');
+      const disposals = tracker.disposeLots(
+        makeSellEvent({ quantity: '-10', rate: '2600' }),
+        'WEIGHTED_AVERAGE',
+      );
+      expect(disposals).toHaveLength(2);
+      const covered = disposals.find((d) => d.lot_id === 'WEIGHTED_AVERAGE')!;
+      const uncovered = disposals.find((d) => d.lot_id === 'uncovered')!;
+      expect(covered.quantity_sold).toBe('5');
+      expect(covered.total_cost).toBe('12500.00');
+      expect(covered.gain_or_loss).toBe('500.00'); // 5 * (2600-2500)
+      expect(uncovered.quantity_sold).toBe('5');
+      expect(uncovered.total_cost).toBe('0.00');
+      expect(uncovered.gain_or_loss).toBe('13000.00'); // 5 * 2600
+      expect(tracker.getOpenLots('NSE:RELIANCE')).toHaveLength(0);
+    });
+
+    it('emits a fully uncovered disposal when there are no open lots at all', () => {
+      const tracker = new CostLotTracker();
+      const disposals = tracker.disposeLots(
+        makeSellEvent({ quantity: '-10', rate: '2600' }),
+        'WEIGHTED_AVERAGE',
+      );
+      expect(disposals).toHaveLength(1);
+      expect(disposals[0].lot_id).toBe('uncovered');
+      expect(disposals[0].total_cost).toBe('0.00');
+      expect(disposals[0].gain_or_loss).toBe('26000.00');
     });
   });
 

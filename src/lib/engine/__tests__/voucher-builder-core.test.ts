@@ -17,7 +17,6 @@ import { VoucherType } from '../../types/vouchers';
 import { CostLotTracker } from '../cost-lots';
 import { TradeClassification, TradeClassificationStrategy } from '../trade-classifier';
 import { buildCanonicalEvents, pairContractNoteData } from '../canonical-events';
-import { isPipelineValidationError } from '../../errors/pipeline-validation';
 import type { CostDisposal } from '../cost-lots';
 import { makeBuyEvent, makeSellEvent, makeChargeEvent, makeEvent } from '../../../tests/helpers/factories';
 
@@ -531,40 +530,49 @@ describe('buildBuyVoucher — capitalize RATE reflects all-in cost', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug 5 — Zero-cost disposal must not produce 0.00-amount asset lines
+// Uncovered (zero-cost) disposal — emitted by cost-lots.ts when sell quantity
+// exceeds open lots. Voucher builder must emit a balanced voucher with NO
+// asset / stock-in-trade CR line (nothing to clear), routing the full
+// proceeds to the gain ledger.
 // ---------------------------------------------------------------------------
-describe('buildSellVoucher — zero-cost disposal', () => {
+describe('buildSellVoucher — uncovered disposal (zero cost basis)', () => {
   const zeroCostDisposals = [{
-    lot_id: 'UNKNOWN',
+    lot_id: 'uncovered',
     acquisition_date: '2024-06-15',
     quantity_sold: '10',
-    unit_cost: '0',
-    total_cost: '0',
+    unit_cost: '0.000000',
+    total_cost: '0.00',
     gain_or_loss: '26000.00',
   }];
 
-  it('investor mode: rejects zero-cost inventory rather than emitting a 0-rate stock line', () => {
+  it('investor mode: emits a balanced voucher without an asset CR line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
-    expect(() => buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100))
-      .toThrow('Sell vouchers cannot emit inventory allocations without a positive cost basis');
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    // No CR on the investment asset ledger — there is nothing to clear.
+    expect(
+      voucher.lines.find((l) => l.dr_cr === 'CR' && l.ledger_name.includes('Investment in Equity Shares')),
+    ).toBeUndefined();
+    // Full gross proceeds land on the STCG/gain ledger (holding = 100 days).
+    const gainLine = voucher.lines.find((l) => l.dr_cr === 'CR' && l.ledger_name.includes('Short Term Capital Gain'));
+    expect(gainLine).toBeDefined();
+    expect(gainLine!.amount).toBe('26000.00');
   });
 
-  it('trader mode: rejects zero-cost inventory rather than emitting a 0-rate stock line', () => {
+  it('trader mode: emits a balanced voucher without a Shares-in-Trade CR line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
-    expect(() => buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals))
-      .toThrow('Sell vouchers cannot emit inventory allocations without a positive cost basis');
-  });
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
 
-  it('throws a typed validation error for zero-cost inventory', () => {
-    try {
-      buildSellVoucher(makeSellEvent({ gross_amount: '26000.00' }), INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
-      throw new Error('Expected zero-cost inventory validation failure');
-    } catch (err) {
-      expect(isPipelineValidationError(err)).toBe(true);
-      if (isPipelineValidationError(err)) {
-        expect(err.code).toBe('E_MISSING_COST_BASIS_FOR_INVENTORY');
-      }
-    }
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    // No Cost of Shares Sold DR — already guarded upstream when cost = 0.
+    expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeUndefined();
+    // No Shares-in-Trade CR either — there is nothing to clear.
+    expect(findLine(voucher.lines, 'Shares-in-Trade', 'CR')).toBeUndefined();
+    // Trading Sales CR still absorbs the gross.
+    const salesLine = findLine(voucher.lines, 'Trading Sales', 'CR');
+    expect(salesLine).toBeDefined();
+    expect(salesLine!.amount).toBe('26000.00');
   });
 });
 

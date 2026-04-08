@@ -490,18 +490,12 @@ export function buildSellVoucher(
   // stays balanced even when per-lot rounded disposals introduce a 0.01 drift.
   const totalGainLoss = grossAmount.sub(totalCostBasis);
   const skipInventory = isSpeculativeTrade(event);
-  if (!skipInventory && totalCostBasis.lte(0)) {
-    throw new PipelineValidationError(
-      'E_MISSING_COST_BASIS_FOR_INVENTORY',
-      'Sell vouchers cannot emit inventory allocations without a positive cost basis.',
-      {
-        event_id: event.event_id,
-        security_id: event.security_id,
-        gross_amount: event.gross_amount,
-        quantity: event.quantity,
-      },
-    );
-  }
+  // Uncovered disposal: cost-lots engine emits a zero-cost disposal when
+  // sell quantity exceeds the open lots (see cost-lots.ts _disposeFifo /
+  // _disposeWeightedAverage). In that case there is no inventory to clear,
+  // so we skip the asset CR line entirely and route the full proceeds to
+  // the gain ledger. Tally handles the stock-register reconciliation.
+  const hasZeroCostBasis = totalCostBasis.isZero();
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
@@ -528,7 +522,10 @@ export function buildSellVoucher(
     // CR: Investment account at cost basis.
     // For non-speculative trades, include inventory so Tally records stock out.
     // For speculative/intraday, skip inventory — positions net off same-day.
-    {
+    // For uncovered (zero cost basis) disposals, skip the asset line entirely:
+    // there's nothing to clear, and a 0-amount line would be both meaningless
+    // and a Tally inventory-rate error.
+    if (!hasZeroCostBasis) {
       const absQty = new Decimal(event.quantity).abs();
       const costPerUnit = absQty.greaterThan(0)
         ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
@@ -625,7 +622,9 @@ export function buildSellVoucher(
     lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
 
     // CR: Shares-in-Trade at cost basis.
-    {
+    // Uncovered disposals have zero cost basis — skip the line entirely so
+    // we don't emit a 0-amount/0-rate stock-out entry (see investor path).
+    if (!hasZeroCostBasis) {
       const absQty = new Decimal(event.quantity).abs();
       const costPerUnit = absQty.greaterThan(0)
         ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
