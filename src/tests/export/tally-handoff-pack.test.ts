@@ -374,7 +374,11 @@ describe('Tally handoff pack', () => {
     };
   });
 
-  it('rejects the checked-in negative-charge contract note fixture with a typed validation error', () => {
+  it('handles the checked-in negative-charge contract note and produces balanced vouchers', () => {
+    // Regression: real Zerodha CNs include small negative exchange-charge
+    // rebates (e.g. -0.59). The handoff pack used to throw before the user
+    // ever saw a voucher; it now absorbs the rebate into the capitalized
+    // asset cost on the buy side and produces a balanced Tally export.
     const fixture = JSON.parse(readFileSync(resolve(process.cwd(), 'src', 'tests', 'fixtures', 'negative-charge-cn.json'), 'utf8')) as {
       tradebookRows: ReturnType<typeof parseTradebook>['rows'];
       contractNote: {
@@ -383,13 +387,20 @@ describe('Tally handoff pack', () => {
       };
     };
 
-    expect(() => buildPipeline(fixture.tradebookRows, [{
+    const build = buildPipeline(fixture.tradebookRows, [{
       noteNo: fixture.contractNote.charges.contract_note_no,
       tradeDate: fixture.contractNote.charges.trade_date,
       settlementNo: fixture.contractNote.charges.settlement_no,
       trades: fixture.contractNote.trades,
       charges: fixture.contractNote.charges,
-    }])).toThrow('Negative contract-note charges are not yet supported in buy vouchers.');
+    }]);
+
+    expect(build.vouchers.length).toBeGreaterThan(0);
+    for (const v of build.vouchers) {
+      expect(v.total_debit).toBe(v.total_credit);
+    }
+    expect(build.mastersXml).toContain('<ENVELOPE>');
+    expect(build.transactionsXml).toContain('<ENVELOPE>');
   });
 
   it('writes deterministic artifact files for each sample', () => {

@@ -56,19 +56,27 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
   });
 
-  it('rejects negative contract-note charges with a typed validation error', () => {
-    const event = makeBuyEvent({ gross_amount: '25000.00' });
-    const charges = [makeChargeEvent(EventType.STT, '-2.50')];
+  it('absorbs negative contract-note charges into the capitalized asset (HYBRID/CAPITALIZE path)', () => {
+    // Real Zerodha CNs occasionally emit small negative exchange-charge
+    // rebates. Under HYBRID, the buy voucher capitalizes all charges into
+    // a single DR asset line, so a -0.59 rebate simply lowers the asset
+    // cost by 0.59 instead of failing the upload.
+    const event = makeBuyEvent({ quantity: '10', rate: '2500', gross_amount: '25000.00' });
+    const charges = [
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.EXCHANGE_CHARGE, '-0.59'),
+    ];
+    const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, charges);
 
-    try {
-      buildBuyVoucher(event, INVESTOR_DEFAULT, charges);
-      throw new Error('Expected negative charge validation failure');
-    } catch (err) {
-      expect(isPipelineValidationError(err)).toBe(true);
-      if (isPipelineValidationError(err)) {
-        expect(err.code).toBe('E_NEGATIVE_CONTRACT_NOTE_CHARGE');
-      }
-    }
+    // Single DR = 25000 + 20.00 + (-0.59) = 25019.41
+    const drLine = voucher.lines.find((l) => l.dr_cr === 'DR')!;
+    expect(drLine.amount).toBe('25019.41');
+    expect(drLine.ledger_name).toContain('Investment in Equity Shares');
+
+    // CR broker mirrors the DR — voucher stays balanced
+    const crLine = voucher.lines.find((l) => l.dr_cr === 'CR')!;
+    expect(crLine.amount).toBe('25019.41');
+    expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 });
 
@@ -107,6 +115,34 @@ describe('buildBuyVoucher — trader EXPENSE', () => {
 
     const sttLine = findLine(voucher.lines, 'Securities Transaction Tax', 'DR');
     expect(sttLine).toBeUndefined();
+  });
+
+  it('posts a negative charge as a CR refund line on the same expense ledger and balances the voucher', () => {
+    // Real-world: Zerodha CN with -0.59 exchange-charge rebate. Trader EXPENSE
+    // path posts each charge separately, so the rebate must show up as a CR
+    // on the EXCHANGE CHARGES ledger (not silently dropped) for the voucher
+    // to balance against the broker line.
+    const event = makeBuyEvent({ quantity: '10', rate: '2500', gross_amount: '25000.00' });
+    const charges = [
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.EXCHANGE_CHARGE, '-0.59'),
+    ];
+    const voucher = buildBuyVoucher(event, TRADER_DEFAULT, charges);
+
+    expect(findLine(voucher.lines, 'Shares-in-Trade', 'DR')?.amount).toBe('25000.00');
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+
+    const exchangeRefund = voucher.lines.find(
+      (l) => l.ledger_name.includes('Exchange') && l.dr_cr === 'CR',
+    );
+    expect(exchangeRefund?.amount).toBe('0.59');
+
+    // Broker payable = 25000 + 20.00 + (-0.59) = 25019.41
+    const brokerCr = voucher.lines.find(
+      (l) => l.dr_cr === 'CR' && !l.ledger_name.includes('Exchange'),
+    );
+    expect(brokerCr?.amount).toBe('25019.41');
+    expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 });
 
@@ -282,6 +318,25 @@ describe('buildSellVoucher — investor', () => {
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, lossDisposals, 100);
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
+
+  it('posts a negative sell-side charge as a CR refund and stays balanced', () => {
+    // Sell-side regression for the same FY 24-25 Zerodha CN behavior:
+    // a -0.59 exchange-charge rebate must produce a CR on the EXCHANGE
+    // CHARGES expense ledger and the broker line gets the corresponding
+    // boost (broker pays you the rebate as part of settlement).
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [
+      makeChargeEvent(EventType.STT, '25.00'),
+      makeChargeEvent(EventType.EXCHANGE_CHARGE, '-0.59'),
+    ];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
+
+    const exchangeRefund = voucher.lines.find(
+      (l) => l.ledger_name.includes('Exchange') && l.dr_cr === 'CR',
+    );
+    expect(exchangeRefund?.amount).toBe('0.59');
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
 });
 
 describe('buildSellVoucher — trader', () => {
@@ -301,6 +356,22 @@ describe('buildSellVoucher — trader', () => {
     expect(findLine(voucher.lines, 'Trading Sales', 'CR')).toBeDefined();
     expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeDefined();
     expect(findLine(voucher.lines, 'Shares-in-Trade', 'CR')).toBeDefined();
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
+
+  it('posts a negative trader sell-side charge as a CR refund and stays balanced', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.EXCHANGE_CHARGE, '-0.59'),
+    ];
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, charges, costDisposals);
+
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')?.amount).toBe('20.00');
+    const exchangeRefund = voucher.lines.find(
+      (l) => l.ledger_name.includes('Exchange') && l.dr_cr === 'CR',
+    );
+    expect(exchangeRefund?.amount).toBe('0.59');
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 });
@@ -498,7 +569,11 @@ describe('buildSellVoucher — zero-cost disposal', () => {
 });
 
 describe('buildVouchers — negative charge regression fixture', () => {
-  it('throws E_NEGATIVE_CONTRACT_NOTE_CHARGE for the checked-in contract note fixture', () => {
+  it('produces a balanced buy voucher for the checked-in negative-charge contract note', () => {
+    // Regression: the CN below mirrors a real Zerodha export with a -0.59
+    // exchange-charge rebate. The pipeline used to throw
+    // E_NEGATIVE_CONTRACT_NOTE_CHARGE; it now absorbs the rebate into the
+    // capitalized asset cost so the upload succeeds.
     const fixturePath = resolve(process.cwd(), 'src', 'tests', 'fixtures', 'negative-charge-cn.json');
     const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
       tradebookRows: Array<Record<string, string>>;
@@ -521,17 +596,22 @@ describe('buildVouchers — negative charge regression fixture', () => {
       classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
-    try {
-      buildVouchers(events, INVESTOR_DEFAULT, new CostLotTracker());
-      throw new Error('Expected negative-charge regression to throw');
-    } catch (err) {
-      expect(isPipelineValidationError(err)).toBe(true);
-      if (isPipelineValidationError(err)) {
-        expect(err.code).toBe('E_NEGATIVE_CONTRACT_NOTE_CHARGE');
-        expect(err.details?.contract_note_ref).toBe('CN-NEG-0001');
-        expect(err.details?.charge_type).toBe('EXCHANGE_CHARGE');
-      }
+    const vouchers = buildVouchers(events, INVESTOR_DEFAULT, new CostLotTracker());
+    expect(vouchers.length).toBeGreaterThan(0);
+
+    // Every voucher must balance — that's the whole point of the regression.
+    for (const v of vouchers) {
+      expect(v.total_debit).toBe(v.total_credit);
     }
+
+    // The buy voucher for INFY should capitalize gross + brokerage + rebate
+    // = 100 + 0 + (-0.59) = 99.41 — matching the contract note's pay_in.
+    const buyVoucher = vouchers.find((v) => v.invoice_intent === 'PURCHASE');
+    expect(buyVoucher).toBeDefined();
+    const assetDr = buyVoucher!.lines.find(
+      (l) => l.dr_cr === 'DR' && l.ledger_name.includes('Investment in Equity Shares'),
+    );
+    expect(assetDr?.amount).toBe('99.41');
   });
 });
 

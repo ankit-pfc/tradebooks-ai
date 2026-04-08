@@ -131,6 +131,13 @@ function isSpeculativeTrade(event: CanonicalEvent): boolean {
   return event.trade_classification === TradeClassification.SPECULATIVE_BUSINESS;
 }
 
+/**
+ * Reject negative charge events for contexts that have no semantically valid
+ * meaning for refunds (e.g. STT summary, dividend TDS — neither broker nor
+ * tax authority issues "negative" amounts there). For trade buy/sell vouchers
+ * we instead post negative charges as CR (refund) lines, since Zerodha
+ * legitimately emits small negative exchange-charge rebates on contract notes.
+ */
 function assertKnownChargeSign(
   chargeEvents: CanonicalEvent[],
   context: string,
@@ -155,6 +162,35 @@ function assertKnownChargeSign(
       external_ref: negativeCharge.external_ref,
     },
   );
+}
+
+/**
+ * Append a charge expense line to a voucher draft, choosing DR for normal
+ * charges and CR for negative refunds (e.g. exchange-charge rebates that
+ * Zerodha occasionally emits on real contract notes). Zero-amount charges
+ * are skipped.
+ *
+ * Returns the next free line number so callers can keep numbering monotonic.
+ */
+function appendChargeLine(
+  lines: VoucherLine[],
+  draftId: string,
+  startLineNo: number,
+  ledgerName: string,
+  chargeAmount: Decimal,
+): number {
+  if (chargeAmount.isZero()) {
+    return startLineNo;
+  }
+  if (chargeAmount.isPositive()) {
+    lines.push(makeLine(draftId, startLineNo, ledgerName, chargeAmount, 'DR'));
+  } else {
+    // Negative charge → refund/rebate → credit the expense ledger with the
+    // absolute amount. The signed totalCharges aggregator already accounts
+    // for this on the broker line, so the voucher stays in balance.
+    lines.push(makeLine(draftId, startLineNo, ledgerName, chargeAmount.abs(), 'CR'));
+  }
+  return startLineNo + 1;
 }
 
 export function deriveEffectiveProfile(
@@ -297,7 +333,10 @@ export function buildBuyVoucher(
   const draftId = crypto.randomUUID();
   const symbol = symbolFromEvent(event);
   const capitalize = shouldCapitalizeBuyCharges(effectiveProfile);
-  assertKnownChargeSign(chargeEvents, 'buy vouchers');
+  // Negative charges (e.g. small Zerodha exchange-charge rebates on real
+  // contract notes) are supported via sign-aware posting in the non-capitalize
+  // path below, and are absorbed into the capitalized asset line in the
+  // capitalize path. No need to reject them.
 
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
   const assetLedger = tallyProfile
@@ -342,19 +381,21 @@ export function buildBuyVoucher(
         stock_item_name: stockItemNameForEvent(event),
       }),
     );
-    // DR: each charge to its expense ledger
+    // DR: each positive charge to its expense ledger
+    // CR: each negative charge (rebate / refund) to the same expense ledger
     for (const ce of chargeEvents) {
       const chargeLedger = tallyProfile
         ? resolveChargeLedger(tallyProfile, ce.event_type).name
         : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
       const chargeAmt = new Decimal(ce.charge_amount);
-      if (chargeAmt.greaterThan(0)) {
-        lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
-      }
+      lineNo = appendChargeLine(lines, draftId, lineNo, chargeLedger, chargeAmt);
     }
   }
 
-  // CR: Broker — total payable (gross + charges always)
+  // CR: Broker — total payable (gross + signed charges).
+  // When totalCharges contains a negative component (e.g. exchange-charge
+  // rebate), the broker payable is correctly reduced; the signed math keeps
+  // the voucher balanced against the per-charge DR/CR lines above.
   const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
   const totalPayable = grossAmount.add(totalCharges);
   lines.push(makeLine(draftId, lineNo++, brokerName, totalPayable, 'CR'));
@@ -433,7 +474,8 @@ export function buildSellVoucher(
   const draftId = crypto.randomUUID();
   const symbol = symbolFromEvent(event);
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
-  assertKnownChargeSign(chargeEvents, 'sell vouchers');
+  // Negative charges on sell vouchers (e.g. exchange-charge rebates) are
+  // posted as CR refund lines in both investor and trader paths below.
 
   const grossAmount = new Decimal(event.gross_amount);
   const totalCharges = chargeEvents.reduce(
@@ -473,15 +515,14 @@ export function buildSellVoucher(
     const netProceeds = grossAmount.sub(totalCharges);
     lines.push(makeLine(draftId, lineNo++, brokerName, netProceeds, 'DR'));
 
-    // DR: charge ledgers (expensed separately)
+    // DR: charge ledgers (expensed separately) — negative charges become
+    // CR refund lines on the same expense ledger.
     for (const ce of chargeEvents) {
       const chargeLedger = tallyProfile
         ? resolveChargeLedger(tallyProfile, ce.event_type).name
         : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
       const chargeAmt = new Decimal(ce.charge_amount);
-      if (chargeAmt.greaterThan(0)) {
-        lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
-      }
+      lineNo = appendChargeLine(lines, draftId, lineNo, chargeLedger, chargeAmt);
     }
 
     // CR: Investment account at cost basis.
@@ -563,15 +604,14 @@ export function buildSellVoucher(
     const netProceeds = grossAmount.sub(totalCharges);
     lines.push(makeLine(draftId, lineNo++, brokerName, netProceeds, 'DR'));
 
-    // DR: charge ledgers
+    // DR: charge ledgers — negative charges become CR refund lines on the
+    // same expense ledger.
     for (const ce of chargeEvents) {
       const chargeLedger = tallyProfile
         ? resolveChargeLedger(tallyProfile, ce.event_type).name
         : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
       const chargeAmt = new Decimal(ce.charge_amount);
-      if (chargeAmt.greaterThan(0)) {
-        lines.push(makeLine(draftId, lineNo++, chargeLedger, chargeAmt, 'DR'));
-      }
+      lineNo = appendChargeLine(lines, draftId, lineNo, chargeLedger, chargeAmt);
     }
 
     // DR: Cost of Shares Sold (omit when cost = 0 — partial-data disposal)
