@@ -156,9 +156,9 @@ export class CostLotTracker {
     const securityId = sellEvent.security_id;
 
     if (method === 'FIFO') {
-      return this._disposeFifo(securityId, sellQtyRemaining, sellRate);
+      return this._disposeFifo(securityId, sellQtyRemaining, sellRate, sellEvent.event_date);
     } else {
-      return this._disposeWeightedAverage(securityId, sellQtyRemaining, sellRate);
+      return this._disposeWeightedAverage(securityId, sellQtyRemaining, sellRate, sellEvent.event_date);
     }
   }
 
@@ -306,6 +306,7 @@ export class CostLotTracker {
     securityId: string,
     sellQtyRemaining: Decimal,
     sellRate: Decimal,
+    sellDate: string,
   ): CostDisposal[] {
     const openLots = this.lots.get(securityId) ?? [];
     const disposals: CostDisposal[] = [];
@@ -343,11 +344,18 @@ export class CostLotTracker {
       openLots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0)),
     );
 
+    // If open lots were exhausted before the full sell qty was matched, record
+    // the uncovered remainder as a zero-cost disposal. The pipeline still
+    // generates a valid voucher and Tally can reconcile the discrepancy.
     if (remaining.greaterThan(0)) {
-      throw new Error(
-        `disposeLots (FIFO): sell quantity exceeds open lots for ${securityId}. ` +
-        `Excess: ${remaining.toFixed()}`,
-      );
+      disposals.push({
+        lot_id: 'uncovered',
+        acquisition_date: sellDate,
+        quantity_sold: remaining.toFixed(),
+        unit_cost: '0.000000',
+        total_cost: '0.00',
+        gain_or_loss: remaining.mul(sellRate).toFixed(2),
+      });
     }
 
     return disposals;
@@ -357,6 +365,7 @@ export class CostLotTracker {
     securityId: string,
     sellQty: Decimal,
     sellRate: Decimal,
+    sellDate: string,
   ): CostDisposal[] {
     const openLots = this.lots.get(securityId) ?? [];
 
@@ -371,19 +380,29 @@ export class CostLotTracker {
       );
     }
 
-    if (totalQty.isZero() || totalQty.lessThan(sellQty)) {
-      throw new Error(
-        `disposeLots (WEIGHTED_AVERAGE): sell quantity exceeds open lots for ${securityId}.`,
-      );
+    // If no open lots at all, the entire sell is uncovered — zero cost basis.
+    if (totalQty.isZero()) {
+      return [{
+        lot_id: 'uncovered',
+        acquisition_date: sellDate,
+        quantity_sold: sellQty.toFixed(),
+        unit_cost: '0.000000',
+        total_cost: '0.00',
+        gain_or_loss: sellQty.mul(sellRate).toFixed(2),
+      }];
     }
 
+    // Cap the covered portion at available lots; excess gets zero-cost disposal.
+    const coveredQty = totalQty.lessThan(sellQty) ? totalQty : sellQty;
+    const uncoveredQty = sellQty.sub(coveredQty);
+
     const weightedUnitCost = totalCostBasis.div(totalQty);
-    const costForSell = sellQty.mul(weightedUnitCost);
-    const proceeds = sellQty.mul(sellRate);
+    const costForSell = coveredQty.mul(weightedUnitCost);
+    const proceeds = coveredQty.mul(sellRate);
     const gainOrLoss = proceeds.sub(costForSell);
 
     // Reduce lots proportionally (FIFO order for lot accounting)
-    let remaining = sellQty;
+    let remaining = coveredQty;
     for (const lot of openLots) {
       if (remaining.isZero()) break;
       const lotOpen = new Decimal(lot.open_quantity);
@@ -398,16 +417,26 @@ export class CostLotTracker {
       openLots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0)),
     );
 
-    // Return a single aggregated disposal record
-    const disposal: CostDisposal = {
+    const disposals: CostDisposal[] = [{
       lot_id: 'WEIGHTED_AVERAGE',
       acquisition_date: openLots[0]?.acquisition_date ?? '',
-      quantity_sold: sellQty.toFixed(),
+      quantity_sold: coveredQty.toFixed(),
       unit_cost: weightedUnitCost.toFixed(6),
       total_cost: costForSell.toFixed(2),
       gain_or_loss: gainOrLoss.toFixed(2),
-    };
+    }];
 
-    return [disposal];
+    if (uncoveredQty.greaterThan(0)) {
+      disposals.push({
+        lot_id: 'uncovered',
+        acquisition_date: sellDate,
+        quantity_sold: uncoveredQty.toFixed(),
+        unit_cost: '0.000000',
+        total_cost: '0.00',
+        gain_or_loss: uncoveredQty.mul(sellRate).toFixed(2),
+      });
+    }
+
+    return disposals;
   }
 }
