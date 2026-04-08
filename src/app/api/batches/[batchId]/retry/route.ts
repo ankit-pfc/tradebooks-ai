@@ -80,10 +80,9 @@ export async function POST(
       }),
     );
 
-    // Pick up any corporate actions the user declared since the last run so
-    // retry after "declare CA → retry" loops resolves `disposeLots` errors
-    // on scrips that underwent a split/bonus/merger.
-    const corporateActions = await repo.getCorporateActions(batchId);
+    // TODO: corporate actions temporarily disabled — re-enable when unblocked
+    // const corporateActions = await repo.getCorporateActions(batchId);
+    const corporateActions: import('@/lib/parsers/zerodha/types').CorporateActionInput[] = [];
 
     let result;
     try {

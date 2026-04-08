@@ -114,11 +114,9 @@ export async function POST(
       }),
     );
 
-    // Load any user-declared corporate actions for this batch. These are
-    // persisted via /api/batches/[batchId]/corporate-actions and consumed on
-    // every (re-)processing run so the user can declare an action, reprocess,
-    // and watch the pipeline migrate cost lots accordingly.
-    const corporateActions = await repo.getCorporateActions(batchId);
+    // TODO: corporate actions temporarily disabled — re-enable when unblocked
+    // const corporateActions = await repo.getCorporateActions(batchId);
+    const corporateActions: import('@/lib/parsers/zerodha/types').CorporateActionInput[] = [];
 
     let result;
     try {
