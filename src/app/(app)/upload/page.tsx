@@ -1041,21 +1041,6 @@ function StepProcessing({
                 Retry as Trader — infer intraday from same-day netoff
               </Button>
             </div>
-          ) : isDisposeLotsError ? (
-            <>
-              <CorporateActionForm
-                batchId={batchId!}
-                initialSecurityId={disposeLotsSecurityId!}
-                onSubmitted={onRetry}
-              />
-              <Button
-                onClick={onRetry}
-                variant="outline"
-                className="w-full"
-              >
-                Retry without declaring
-              </Button>
-            </>
           ) : (
             <Button
               onClick={onRetry}
