@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sample Tally Prime voucher XML (canonical shape).
+  Import this SECOND via: Gateway → Import → Vouchers → pick this file.
+  01-masters.xml must be imported BEFORE this file.
+
+  Before importing: replace YOUR_COMPANY_NAME_HERE with the EXACT company name.
+
+  Vouchers included:
+    1. Purchase (delivery buy): 10 RELIANCE @ 2500, total 25000
+    2. Sales    (delivery sell): 10 RELIANCE @ 2600, total 26000
+    3. Journal  (intraday TCS loss 500)
+    4. Receipt  (dividend 1000 gross, 100 TDS, 900 net)
+
+  Shape differences vs what we currently emit from src/lib/export/tally-xml.ts:
+    - Envelope is IMPORTDATA / REQUESTDESC / REPORTNAME=Vouchers (same as masters).
+      We currently emit the HTTP-API-style DATA/DESC envelope — WRONG for file imports.
+    - Invoice-view vouchers emit ALLINVENTORYENTRIES.LIST as a SIBLING of
+      LEDGERENTRIES.LIST under VOUCHER, NOT nested inside a LEDGERENTRIES.LIST
+      as INVENTORYALLOCATIONS.LIST.
+    - ALLINVENTORYENTRIES.LIST contains nested ACCOUNTINGALLOCATIONS.LIST and
+      BATCHALLOCATIONS.LIST — without these Tally silently drops the stock line.
+    - Journal / Receipt / Payment vouchers use ALLLEDGERENTRIES.LIST, not
+      LEDGERENTRIES.LIST.
+-->
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>YOUR_COMPANY_NAME_HERE</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+
+        <!-- =============================================================
+             1. PURCHASE VOUCHER — delivery buy of 10 RELIANCE @ 2500
+             Invoice Voucher View, stock line uses ALLINVENTORYENTRIES.LIST
+             ============================================================= -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+            <DATE>20240615</DATE>
+            <EFFECTIVEDATE>20240615</EFFECTIVEDATE>
+            <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>CN-SAMPLE-001</VOUCHERNUMBER>
+            <REFERENCE>CN-SAMPLE-001</REFERENCE>
+            <NARRATION>Sample delivery buy: 10 RELIANCE @ 2500</NARRATION>
+            <PARTYLEDGERNAME>Zerodha Broking</PARTYLEDGERNAME>
+            <BASICBASEPARTYNAME>Zerodha Broking</BASICBASEPARTYNAME>
+            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+            <ISINVOICE>Yes</ISINVOICE>
+
+            <!-- Party leg (credit: broker is payable) -->
+            <LEDGERENTRIES.LIST>
+              <LEDGERNAME>Zerodha Broking</LEDGERNAME>
+              <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>25000.00</AMOUNT>
+            </LEDGERENTRIES.LIST>
+
+            <!-- Stock leg — SIBLING of LEDGERENTRIES.LIST, not nested -->
+            <ALLINVENTORYENTRIES.LIST>
+              <STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <RATE>2500.00/SH</RATE>
+              <AMOUNT>-25000.00</AMOUNT>
+              <ACTUALQTY>10 SH</ACTUALQTY>
+              <BILLEDQTY>10 SH</BILLEDQTY>
+
+              <!-- This is the nominal-account binding. Without it Tally drops the stock movement. -->
+              <ACCOUNTINGALLOCATIONS.LIST>
+                <LEDGERNAME>Equity Purchase</LEDGERNAME>
+                <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+                <LEDGERFROMITEM>No</LEDGERFROMITEM>
+                <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+                <AMOUNT>-25000.00</AMOUNT>
+              </ACCOUNTINGALLOCATIONS.LIST>
+
+              <!-- Mandatory godown/batch allocation -->
+              <BATCHALLOCATIONS.LIST>
+                <GODOWNNAME>Main Location</GODOWNNAME>
+                <BATCHNAME>Primary Batch</BATCHNAME>
+                <DESTINATIONGODOWNNAME>Main Location</DESTINATIONGODOWNNAME>
+                <AMOUNT>-25000.00</AMOUNT>
+                <ACTUALQTY>10 SH</ACTUALQTY>
+                <BILLEDQTY>10 SH</BILLEDQTY>
+              </BATCHALLOCATIONS.LIST>
+            </ALLINVENTORYENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+
+        <!-- =============================================================
+             2. SALES VOUCHER — delivery sell of 10 RELIANCE @ 2600
+             Invoice Voucher View, stock line uses ALLINVENTORYENTRIES.LIST
+             Gain/loss emerges from (Equity Sales - Equity Purchase) in P&L.
+             ============================================================= -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+            <DATE>20240820</DATE>
+            <EFFECTIVEDATE>20240820</EFFECTIVEDATE>
+            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>CN-SAMPLE-002</VOUCHERNUMBER>
+            <REFERENCE>CN-SAMPLE-002</REFERENCE>
+            <NARRATION>Sample delivery sell: 10 RELIANCE @ 2600</NARRATION>
+            <PARTYLEDGERNAME>Zerodha Broking</PARTYLEDGERNAME>
+            <BASICBASEPARTYNAME>Zerodha Broking</BASICBASEPARTYNAME>
+            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+            <ISINVOICE>Yes</ISINVOICE>
+
+            <!-- Party leg (debit: broker pays us) -->
+            <LEDGERENTRIES.LIST>
+              <LEDGERNAME>Zerodha Broking</LEDGERNAME>
+              <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>-26000.00</AMOUNT>
+            </LEDGERENTRIES.LIST>
+
+            <!-- Stock leg — SIBLING -->
+            <ALLINVENTORYENTRIES.LIST>
+              <STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <RATE>2600.00/SH</RATE>
+              <AMOUNT>26000.00</AMOUNT>
+              <ACTUALQTY>10 SH</ACTUALQTY>
+              <BILLEDQTY>10 SH</BILLEDQTY>
+
+              <ACCOUNTINGALLOCATIONS.LIST>
+                <LEDGERNAME>Equity Sales</LEDGERNAME>
+                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                <LEDGERFROMITEM>No</LEDGERFROMITEM>
+                <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+                <AMOUNT>26000.00</AMOUNT>
+              </ACCOUNTINGALLOCATIONS.LIST>
+
+              <BATCHALLOCATIONS.LIST>
+                <GODOWNNAME>Main Location</GODOWNNAME>
+                <BATCHNAME>Primary Batch</BATCHNAME>
+                <DESTINATIONGODOWNNAME>Main Location</DESTINATIONGODOWNNAME>
+                <AMOUNT>26000.00</AMOUNT>
+                <ACTUALQTY>10 SH</ACTUALQTY>
+                <BILLEDQTY>10 SH</BILLEDQTY>
+              </BATCHALLOCATIONS.LIST>
+            </ALLINVENTORYENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+
+        <!-- =============================================================
+             3. JOURNAL VOUCHER — intraday TCS loss of 500
+             Accounting Voucher View, NO stock, uses ALLLEDGERENTRIES.LIST
+             ============================================================= -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
+            <DATE>20240702</DATE>
+            <EFFECTIVEDATE>20240702</EFFECTIVEDATE>
+            <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>INT-SAMPLE-001</VOUCHERNUMBER>
+            <NARRATION>Sample intraday TCS — net loss 500</NARRATION>
+            <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+            <ISINVOICE>No</ISINVOICE>
+
+            <!-- Loss DR: income ledger reduced -->
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Intraday Gain on Shares</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>-500.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+
+            <!-- Broker CR: cash outflow -->
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Zerodha Broking</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>500.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+
+        <!-- =============================================================
+             4. RECEIPT VOUCHER — dividend 1000 gross (TDS 100, net 900)
+             Accounting Voucher View, NO stock, uses ALLLEDGERENTRIES.LIST
+             ============================================================= -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Receipt" ACTION="Create" OBJVIEW="Accounting Voucher View">
+            <DATE>20240910</DATE>
+            <EFFECTIVEDATE>20240910</EFFECTIVEDATE>
+            <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+            <VOUCHERNUMBER>DIV-SAMPLE-001</VOUCHERNUMBER>
+            <NARRATION>Sample dividend receipt: gross 1000, TDS 100, net 900</NARRATION>
+            <PARTYLEDGERNAME>Dividend Income</PARTYLEDGERNAME>
+            <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+            <ISINVOICE>No</ISINVOICE>
+
+            <!-- Income CR -->
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>Dividend Income</LEDGERNAME>
+              <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>1000.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+
+            <!-- Bank DR (net received) -->
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>HDFC Bank</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>-900.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+
+            <!-- TDS DR (receivable) -->
+            <ALLLEDGERENTRIES.LIST>
+              <LEDGERNAME>TDS on Dividend</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+              <LEDGERFROMITEM>No</LEDGERFROMITEM>
+              <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+              <AMOUNT>-100.00</AMOUNT>
+            </ALLLEDGERENTRIES.LIST>
+          </VOUCHER>
+        </TALLYMESSAGE>
+
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

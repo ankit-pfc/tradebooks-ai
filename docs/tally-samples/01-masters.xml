@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sample Tally Prime masters XML (canonical shape).
+  Import this FIRST via: Gateway → Import → Masters → pick this file.
+
+  Before importing:
+    1. Replace the literal text YOUR_COMPANY_NAME_HERE (below) with the EXACT
+       name of the company as it appears in Tally Prime.
+    2. In the target company, enable "Maintain Accounts with Inventory" and
+       "Maintain Stock Categories" = No. (F11 → Features → Inventory)
+    3. "Main Location" godown and "Primary Batch" are Tally defaults; no need
+       to create them manually.
+-->
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>YOUR_COMPANY_NAME_HERE</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+
+        <!-- =============================================================
+             UNIT MASTER — must exist before STOCKITEM that uses it.
+             ============================================================= -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <ISUPDATINGTARGETID>No</ISUPDATINGTARGETID>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <DECIMALPLACES> 0</DECIMALPLACES>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+
+        <!-- =============================================================
+             LEDGER MASTERS
+             ============================================================= -->
+
+        <!-- Broker control account (used as party on Purchase/Sales vouchers). -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Zerodha Broking" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Zerodha Broking</NAME>
+            </NAME.LIST>
+            <PARENT>Sundry Creditors</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Zerodha Broking</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- Bank account for dividend receipts. -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="HDFC Bank" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>HDFC Bank</NAME>
+            </NAME.LIST>
+            <PARENT>Bank Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>HDFC Bank</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- Nominal account used as ACCOUNTINGALLOCATIONS.LIST target on delivery BUYS. -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Equity Purchase" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Equity Purchase</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Equity Purchase</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- Nominal account used as ACCOUNTINGALLOCATIONS.LIST target on delivery SELLS. -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Equity Sales" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Equity Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Equity Sales</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- P&L ledger for intraday net gain / loss. -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Intraday Gain on Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Intraday Gain on Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Intraday Gain on Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- P&L ledger for dividend income. -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Dividend Income" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Dividend Income</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Dividend Income</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- TDS receivable on dividend income. -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS on Dividend" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS on Dividend</NAME>
+            </NAME.LIST>
+            <PARENT>Current Assets</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS on Dividend</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+
+        <!-- =============================================================
+             STOCK ITEM MASTERS
+             ============================================================= -->
+
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="RELIANCE-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>RELIANCE-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <COSTINGMETHOD>Avg. Cost</COSTINGMETHOD>
+            <VALUATIONMETHOD>Avg. Cost</VALUATIONMETHOD>
+            <ISBATCHWISEON>No</ISBATCHWISEON>
+            <ISPERISHABLEON>No</ISPERISHABLEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>RELIANCE-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="TCS-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TCS-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <COSTINGMETHOD>Avg. Cost</COSTINGMETHOD>
+            <VALUATIONMETHOD>Avg. Cost</VALUATIONMETHOD>
+            <ISBATCHWISEON>No</ISBATCHWISEON>
+            <ISPERISHABLEON>No</ISPERISHABLEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TCS-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>
