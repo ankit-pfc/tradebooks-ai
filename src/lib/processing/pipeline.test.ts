@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { runProcessingPipeline, type PipelineInput } from './pipeline';
+import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
+import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
 
 // ---------------------------------------------------------------------------
 // Mocks — storage and DB; engine/parser modules are real (integration-style)
@@ -62,6 +64,7 @@ const BASE_INPUT: PipelineInput = {
     accountingMode: 'investor',
     periodFrom: '2024-04-01',
     periodTo: '2025-03-31',
+    classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     files: [
         {
             fileId: 'file-001',
@@ -182,6 +185,21 @@ describe('runProcessingPipeline — validation errors', () => {
         await expect(
             runProcessingPipeline({ ...BASE_INPUT, files: [] }),
         ).rejects.toThrow('No tradebook');
+    });
+
+    it('throws typed validation error in STRICT_PRODUCT mode when product markers are missing', async () => {
+        try {
+            await runProcessingPipeline({
+                ...BASE_INPUT,
+                classificationStrategy: TradeClassificationStrategy.STRICT_PRODUCT,
+            });
+            throw new Error('Expected strict classification validation failure');
+        } catch (err) {
+            expect(isPipelineValidationError(err)).toBe(true);
+            if (isPipelineValidationError(err)) {
+                expect(err.code).toBe('E_CLASSIFICATION_AMBIGUOUS');
+            }
+        }
     });
 });
 

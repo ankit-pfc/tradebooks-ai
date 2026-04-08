@@ -12,6 +12,8 @@ import { rateLimit } from '@/lib/rate-limit';
 import { MAX_FILE_SIZE, ALLOWED_MIME_TYPES } from '@/lib/upload-constants';
 import { runProcessingPipeline, type PipelineFileInput } from '@/lib/processing/pipeline';
 import type { BatchFileType } from '@/lib/types/domain';
+import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
+import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
 
 // ---------------------------------------------------------------------------
 // Route handler — legacy one-shot upload + process
@@ -43,6 +45,20 @@ export async function POST(request: NextRequest) {
     const periodFrom = form.get('periodFrom') as string | null;
     const periodTo = form.get('periodTo') as string | null;
     const priorBatchId = form.get('priorBatchId') as string | null;
+    const classificationStrategyRaw = form.get('classificationStrategy') as string | null;
+
+    const validClassificationStrategies = new Set<string>(Object.values(TradeClassificationStrategy));
+    if (classificationStrategyRaw && !validClassificationStrategies.has(classificationStrategyRaw)) {
+      return NextResponse.json(
+        {
+          error: `Invalid classificationStrategy: ${classificationStrategyRaw}`,
+          code: 'E_INVALID_CLASSIFICATION_STRATEGY',
+        },
+        { status: 400 },
+      );
+    }
+    const classificationStrategy = (classificationStrategyRaw ??
+      TradeClassificationStrategy.STRICT_PRODUCT) as TradeClassificationStrategy;
 
     if (!companyName || !accountingMode) {
       return NextResponse.json(
@@ -196,11 +212,19 @@ export async function POST(request: NextRequest) {
         periodFrom: resolvedPeriodFrom,
         periodTo: resolvedPeriodTo,
         priorBatchId: priorBatchId ?? undefined,
+        classificationStrategy,
         files: pipelineFiles,
       });
     } catch (pipelineErr) {
-      const msg =
-        pipelineErr instanceof Error ? pipelineErr.message : 'Processing failed';
+      if (isPipelineValidationError(pipelineErr)) {
+        await repo.updateBatchStatus(batch.id, 'failed', pipelineErr.message);
+        return NextResponse.json(
+          { error: pipelineErr.message, code: pipelineErr.code, details: pipelineErr.details },
+          { status: 422 },
+        );
+      }
+
+      const msg = pipelineErr instanceof Error ? pipelineErr.message : 'Processing failed';
       await repo.updateBatchStatus(batch.id, 'failed', msg);
       return NextResponse.json({ error: msg }, { status: 500 });
     }

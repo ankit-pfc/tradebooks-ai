@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Div on Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Div on Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Div on Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Speculative Business Income" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Speculative Business Income</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Speculative Business Income</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="INVESTMENT IN SHARES-ZERODHA" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+            </NAME.LIST>
+            <PARENT>Investments</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="ZERODHA - KITE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>ZERODHA - KITE</NAME>
+            </NAME.LIST>
+            <PARENT>Sundry Creditors</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>ZERODHA - KITE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Bank Account" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Bank Account</NAME>
+            </NAME.LIST>
+            <PARENT>Bank Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Bank Account</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SANDUMA-B-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SANDUMA-B-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SANDUMA-B-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SHARE BROKERAGE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SHARE BROKERAGE</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SHARE BROKERAGE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stt" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stt</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stt</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Exchange and Other Charges" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Exchange and Other Charges</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Exchange and Other Charges</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="GST on Brokerage" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>GST on Brokerage</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>GST on Brokerage</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stamp Duty" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stamp Duty</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stamp Duty</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="DP Charges-Zerodha" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>DP Charges-Zerodha</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>DP Charges-Zerodha</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS ON DIVIDEND" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS ON DIVIDEND</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS ON DIVIDEND</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS on Securities" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS on Securities</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS on Securities</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="SANDUMA-B-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SANDUMA-B-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SANDUMA-B-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

@@ -10,7 +10,11 @@
 import Decimal from 'decimal.js';
 import { createHash } from 'crypto';
 import { EventType, type CanonicalEvent } from '../types/events';
-import { classifyTrade, TradeClassification } from './trade-classifier';
+import {
+  classifyTrade,
+  TradeClassification,
+  TradeClassificationStrategy,
+} from './trade-classifier';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -20,6 +24,7 @@ import type {
   CorporateActionInput,
 } from '../parsers/zerodha/types';
 import { allocateCharges } from './charge-allocator';
+import { PipelineValidationError } from '../errors/pipeline-validation';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -159,11 +164,17 @@ export function tradebookRowToEvents(
   batchId: string,
   fileId: string,
   isinSymbolMap?: ReadonlyMap<string, string>,
+  classificationStrategy: TradeClassificationStrategy = TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
 ): CanonicalEvent[] {
   const eventId = crypto.randomUUID();
   const eventType =
     row.trade_type === 'buy' ? EventType.BUY_TRADE : EventType.SELL_TRADE;
-  const tradeClassification = classifyTrade(row.product, row.segment, row.exchange);
+  const tradeClassification = classifyTrade(
+    row.product,
+    row.segment,
+    row.exchange,
+    { strategy: classificationStrategy },
+  );
 
   const qty = new Decimal(row.quantity);
   const price = new Decimal(row.price);
@@ -570,6 +581,7 @@ export function contractNoteToEvents(
   fileId: string,
   symbolByDescription?: ReadonlyMap<string, string>,
   isinSymbolMap?: ReadonlyMap<string, string>,
+  classificationStrategy: TradeClassificationStrategy = TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
 ): CanonicalEvent[] {
   if (trades.length === 0) return [];
 
@@ -593,7 +605,12 @@ export function contractNoteToEvents(
 
     const eventType = trade.buy_sell === 'B' ? EventType.BUY_TRADE : EventType.SELL_TRADE;
     const signedQty = eventType === EventType.BUY_TRADE ? qty : qty.negated();
-    const tradeClassification = classifyTrade(undefined, trade.segment, trade.exchange);
+    const tradeClassification = classifyTrade(
+      undefined,
+      trade.segment,
+      trade.exchange,
+      { strategy: classificationStrategy },
+    );
 
     const tradeHash = buildHash(
       trade.trade_no,
@@ -755,6 +772,54 @@ export function pairContractNoteData(
   return charges.map((c) => ({ charges: c, trades: [] }));
 }
 
+function applyAssumeAllEqInvestment(events: CanonicalEvent[]): CanonicalEvent[] {
+  return events.map((event) => {
+    if (event.trade_classification !== TradeClassification.PROFILE_DRIVEN) {
+      return event;
+    }
+
+    return {
+      ...event,
+      trade_classification: TradeClassification.INVESTMENT,
+    };
+  });
+}
+
+function ensureStrictClassification(events: CanonicalEvent[]): void {
+  const ambiguousTrades = events.filter(
+    (event) =>
+      (event.event_type === EventType.BUY_TRADE || event.event_type === EventType.SELL_TRADE) &&
+      event.trade_classification === TradeClassification.PROFILE_DRIVEN,
+  );
+
+  if (ambiguousTrades.length === 0) {
+    return;
+  }
+
+  const sampleRows = ambiguousTrades.slice(0, 5).map((event) => ({
+    source_row_id: event.source_row_ids[0] ?? null,
+    event_date: event.event_date,
+    security_id: event.security_id,
+    security_symbol: event.security_symbol ?? null,
+  }));
+
+  throw new PipelineValidationError(
+    'E_CLASSIFICATION_AMBIGUOUS',
+    'Trade classification is ambiguous because broker product markers are missing. Choose ASSUME_ALL_EQ_INVESTMENT or HEURISTIC_SAME_DAY_FLAT_INTRADAY to allow inference.',
+    {
+      ambiguous_trade_count: ambiguousTrades.length,
+      sample_rows: sampleRows,
+    },
+  );
+}
+
+function assignDeterministicEventIds(events: CanonicalEvent[]): CanonicalEvent[] {
+  return events.map((event, index) => ({
+    ...event,
+    event_id: `evt_${buildHash('EVENT_ID', event.event_hash, String(index)).slice(0, 24)}`,
+  }));
+}
+
 export interface BuildCanonicalEventsOpts {
   tradebookRows?: ZerodhaTradebookRow[];
   fundsRows?: ZerodhaFundsStatementRow[];
@@ -773,6 +838,8 @@ export interface BuildCanonicalEventsOpts {
     dividends?: string;
     corporateActions?: string;
   };
+  classificationStrategy?: TradeClassificationStrategy;
+  deterministicIds?: boolean;
 }
 
 /**
@@ -792,6 +859,8 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
     batchId,
     fileIds,
     contractNoteSymbolByDescription,
+    classificationStrategy = TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
+    deterministicIds = false,
   } = opts;
 
   const events: CanonicalEvent[] = [];
@@ -817,6 +886,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       fileIds.contractNote ?? '',
       contractNoteSymbolByDescription,
       isinSymbolMap,
+      classificationStrategy,
     );
     for (const e of cnEvents) {
       events.push(e);
@@ -832,7 +902,13 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
   // 2. Tradebook events — skip those whose trade_id matches a CN trade_no
   for (const row of tradebookRows) {
     if (cnTradeNos.has(row.trade_id)) continue;
-    const rowEvents = tradebookRowToEvents(row, batchId, fileIds.tradebook ?? '', isinSymbolMap);
+    const rowEvents = tradebookRowToEvents(
+      row,
+      batchId,
+      fileIds.tradebook ?? '',
+      isinSymbolMap,
+      classificationStrategy,
+    );
     events.push(...rowEvents);
   }
 
@@ -859,14 +935,24 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
     events.push(...actionEvents);
   }
 
-  // 6. Post-pass: detect intraday (same-day buy + sell of the same security
-  //    that fully nets off) and reclassify those trades as
-  //    SPECULATIVE_BUSINESS so the voucher builder routes them to a Journal
-  //    voucher with no inventory and the speculation P&L ledger.
-  //    CN-sourced events come in as PROFILE_DRIVEN (no product code in CNs),
-  //    so this pass is the ONLY place same-day netoff intraday gets detected
-  //    when the input is CN-only. See bug report items #14 and #13.
-  return reclassifyIntradayTrades(events);
+  // 6. Apply explicit trade-classification strategy.
+  let classifiedEvents = events;
+
+  if (classificationStrategy === TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY) {
+    classifiedEvents = reclassifyIntradayTrades(classifiedEvents);
+  } else if (classificationStrategy === TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT) {
+    classifiedEvents = applyAssumeAllEqInvestment(classifiedEvents);
+  } else {
+    ensureStrictClassification(classifiedEvents);
+  }
+
+  // 7. Optional deterministic event IDs for explain/debug snapshots and
+  // reproducible golden outputs.
+  if (deterministicIds) {
+    classifiedEvents = assignDeterministicEventIds(classifiedEvents);
+  }
+
+  return classifiedEvents;
 }
 
 /**

@@ -1,0 +1,76 @@
+{
+  "sample_name": "same-day-buy-sell",
+  "note_count": 1,
+  "note_reports": [
+    {
+      "contract_note_no": "CNT-24/25-103858427",
+      "gross_trade_total": "116626.00",
+      "allocated_brokerage": "0.01",
+      "allocated_exchange_charges": "24.51",
+      "allocated_gst": "4.44",
+      "allocated_sebi_charges": "0.16",
+      "allocated_stamp_duty": "3.00",
+      "allocated_stt": "155.00",
+      "final_derived_broker_payable_receivable": "116438.88",
+      "source_contract_note_payable_receivable": "116438.88",
+      "variance": "0.00"
+    }
+  ],
+  "voucher_summaries": [
+    {
+      "voucher_number": "CNT-24/25-103858427/VISHAL-X",
+      "voucher_type": "JOURNAL",
+      "total_debit": "19416.65",
+      "total_credit": "19416.65",
+      "stock_item": "VISHAL-X-SH",
+      "cost_basis": "19416.65",
+      "gain_loss": "0.00",
+      "narration": "Purchase of VISHAL-X-SH @ 38.83 × 500 units (3 fills)"
+    },
+    {
+      "voucher_number": "CNT-24/25-103858427/MARUTI-A",
+      "voucher_type": "JOURNAL",
+      "total_debit": "13603.60",
+      "total_credit": "13603.60",
+      "stock_item": "MARUTI-A-SH",
+      "cost_basis": "0.00",
+      "gain_loss": "13603.60",
+      "narration": "Sale of MARUTI-A @ 13603.6 × 1 units"
+    },
+    {
+      "voucher_number": "CNT-24/25-103858427/MARUTI-A",
+      "voucher_type": "JOURNAL",
+      "total_debit": "81621.60",
+      "total_credit": "81621.60",
+      "stock_item": "MARUTI-A-SH",
+      "cost_basis": "0.00",
+      "gain_loss": "81621.60",
+      "narration": "Sale of MARUTI-A @ 13603.6 × 6 units"
+    },
+    {
+      "voucher_number": "CNT-24/25-103858427/MARUTI-A",
+      "voucher_type": "JOURNAL",
+      "total_debit": "40810.80",
+      "total_credit": "40810.80",
+      "stock_item": "MARUTI-A-SH",
+      "cost_basis": "0.00",
+      "gain_loss": "40810.80",
+      "narration": "Sale of MARUTI-A @ 13603.6 × 3 units"
+    },
+    {
+      "voucher_number": null,
+      "voucher_type": "JOURNAL",
+      "total_debit": "155.00",
+      "total_credit": "155.00",
+      "stock_item": null,
+      "cost_basis": "0.00",
+      "gain_loss": "0.00",
+      "narration": "STT for period 2024-08-01 to 2024-08-01 — 6 trade(s)"
+    }
+  ],
+  "trade_match": {
+    "matched": 0,
+    "unmatched_tradebook": 0,
+    "unmatched_contract_note": 6
+  }
+}

@@ -492,7 +492,9 @@ export function checkContractNoteChargeReconciliation(
     // Combine exchange_charges + clearing_charges since CLEARING_CHARGE events
     // are normalised to EXCHANGE_CHARGE in the event stream.
     const exchangeTotal = new Decimal(cn.exchange_charges || '0')
-      .add(new Decimal(cn.clearing_charges || '0')).toFixed(2);
+      .add(new Decimal(cn.clearing_charges || '0'))
+      .abs()
+      .toFixed(2);
 
     const pairs: Array<[string, string]> = [
       ['STT', cn.stt],
@@ -502,10 +504,13 @@ export function checkContractNoteChargeReconciliation(
     ];
     for (const [type, val] of pairs) {
       const prev = aggregateByType.get(type) ?? new Decimal(0);
-      aggregateByType.set(type, prev.add(new Decimal(val || '0')));
+      aggregateByType.set(type, prev.add(new Decimal(val || '0').abs()));
     }
     // GST: sum all three components
-    const gst = new Decimal(cn.cgst || '0').add(new Decimal(cn.sgst || '0')).add(new Decimal(cn.igst || '0'));
+    const gst = new Decimal(cn.cgst || '0')
+      .abs()
+      .add(new Decimal(cn.sgst || '0').abs())
+      .add(new Decimal(cn.igst || '0').abs());
     const prevGst = aggregateByType.get('GST_ON_CHARGES') ?? new Decimal(0);
     aggregateByType.set('GST_ON_CHARGES', prevGst.add(gst));
   }

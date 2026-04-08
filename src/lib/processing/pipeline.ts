@@ -26,7 +26,7 @@ import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, disambiguateVoucherNumbers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
-import { TradeClassification } from '@/lib/engine/trade-classifier';
+import { TradeClassification, TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
 import type {
   ZerodhaTradebookRow,
@@ -58,6 +58,7 @@ export interface PipelineInput {
   periodTo: string;
   priorBatchId?: string;
   purchaseMergeMode?: PurchaseMergeMode;
+  classificationStrategy?: TradeClassificationStrategy;
   files: PipelineFileInput[];
 }
 
@@ -141,6 +142,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodTo,
     priorBatchId,
     purchaseMergeMode = 'same_rate',
+    classificationStrategy = TradeClassificationStrategy.STRICT_PRODUCT,
     files,
   } = input;
 
@@ -226,6 +228,8 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     contractNoteSymbolByDescription,
     batchId,
     fileIds,
+    classificationStrategy,
+    deterministicIds: true,
   });
 
   // Step 4: Trade matching (when both tradebook and contract notes are present)

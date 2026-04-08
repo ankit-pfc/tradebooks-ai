@@ -137,7 +137,7 @@ function runPipeline() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('XML contract note pipeline — investor mode delivery trades use Journal vouchers', () => {
+describe('XML contract note pipeline — investor mode delivery trades render as Purchase/Sales XML', () => {
   it('parses the XML and produces both BUY_TRADE and SELL_TRADE events', () => {
     const { events } = runPipeline();
     const trades = events.filter((e) =>
@@ -150,7 +150,7 @@ describe('XML contract note pipeline — investor mode delivery trades use Journ
     expect(sells).toHaveLength(1); // one sell trade
   });
 
-  it('produces Journal vouchers for delivery sells in investor mode', () => {
+  it('produces Journal draft vouchers for delivery sells in investor mode', () => {
     const { vouchers } = runPipeline();
     const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'));
     expect(sellVoucher).toBeDefined();
@@ -187,14 +187,12 @@ describe('XML contract note pipeline — investor mode delivery trades use Journ
     expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
   });
 
-  it('transactionsXml contains Journal voucher entries for delivery trades', () => {
+  it('transactionsXml contains Purchase/Sales voucher entries for delivery trades', () => {
     const { transactionsXml } = runPipeline();
-    // All trade vouchers are Journal vouchers; inventory flows through the
-    // ISINVENTORYAFFECTED flag on the investment ledger master.
+    expect(transactionsXml).toContain('VCHTYPE="Purchase"');
+    expect(transactionsXml).toContain('VCHTYPE="Sales"');
     expect(transactionsXml).toContain('VCHTYPE="Journal"');
-    expect(transactionsXml).not.toContain('VCHTYPE="Purchase"');
-    expect(transactionsXml).not.toContain('VCHTYPE="Sales"');
-    expect(transactionsXml).not.toContain('Invoice Voucher View');
+    expect(transactionsXml).toContain('Invoice Voucher View');
   });
 });
 
@@ -254,12 +252,14 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
     }
   });
 
-  it('transactionsXml has Journal voucher nodes for investor delivery trades', () => {
+  it('transactionsXml has Purchase/Sales voucher nodes for investor delivery trades', () => {
     const { transactionsXml } = runPipeline();
+    const purchaseMatches = transactionsXml.match(/VCHTYPE="Purchase"/gi) ?? [];
+    const salesMatches = transactionsXml.match(/VCHTYPE="Sales"/gi) ?? [];
     const journalMatches = transactionsXml.match(/VCHTYPE="Journal"/gi) ?? [];
-    expect(journalMatches.length).toBeGreaterThanOrEqual(2);
-    expect(transactionsXml).not.toContain('VCHTYPE="Purchase"');
-    expect(transactionsXml).not.toContain('VCHTYPE="Sales"');
+    expect(purchaseMatches.length).toBeGreaterThanOrEqual(1);
+    expect(salesMatches.length).toBeGreaterThanOrEqual(1);
+    expect(journalMatches.length).toBeGreaterThanOrEqual(1);
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AccountingMode } from '../../types/accounting';
 import {
     TradeClassification,
+    TradeClassificationStrategy,
     classifyTrade,
     classificationToAccountingMode,
 } from '../trade-classifier';
@@ -65,6 +66,14 @@ describe('classifyTrade', () => {
 
     it('falls back to PROFILE_DRIVEN for unknown product on equity segment', () => {
         expect(classifyTrade('XYZ', 'EQ', 'NSE')).toBe(TradeClassification.PROFILE_DRIVEN);
+    });
+
+    it('supports explicit ASSUME_ALL_EQ_INVESTMENT strategy for missing-product equity rows', () => {
+        expect(
+            classifyTrade(undefined, 'EQ', 'NSE', {
+                strategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+            }),
+        ).toBe(TradeClassification.INVESTMENT);
     });
 });
 

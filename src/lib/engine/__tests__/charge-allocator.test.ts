@@ -172,6 +172,31 @@ describe('allocateCharges', () => {
     expect(result[1].stt).toBe('10.00');
   });
 
+  it('allocates stamp duty only across buy-side turnover', () => {
+    // Buy trade value = 1000, sell trade value = 1000.
+    // Stamp duty must apply only to the buy side.
+    const trades = [
+      makeTrade({ trade_no: '2001', buy_sell: 'B', quantity: '10', gross_rate: '100.00' }),
+      makeTrade({ trade_no: '2002', buy_sell: 'S', quantity: '10', gross_rate: '100.00' }),
+    ];
+    const charges = makeCharges({ stamp_duty: '12.34' });
+    const result = allocateCharges(trades, charges);
+
+    expect(result[0].stamp_duty).toBe('12.34');
+    expect(result[1].stamp_duty).toBe('0.00');
+  });
+
+  it('raises a typed validation error when stamp duty exists without any buy-side turnover', () => {
+    const trades = [
+      makeTrade({ trade_no: '2001', buy_sell: 'S', quantity: '10', gross_rate: '100.00' }),
+    ];
+    const charges = makeCharges({ stamp_duty: '1.00' });
+
+    expect(() => allocateCharges(trades, charges)).toThrow(
+      'Contract note reports stamp duty but has no buy-side turnover',
+    );
+  });
+
   it('handles all-zero charges gracefully', () => {
     const trades = [makeTrade({ brokerage_per_unit: '0' })];
     const charges = makeCharges({
@@ -193,7 +218,7 @@ describe('allocateCharges', () => {
 
   it('populates trade metadata correctly', () => {
     const trades = [makeTrade({ trade_no: 'T99', order_no: 'O55', buy_sell: 'S' })];
-    const result = allocateCharges(trades, makeCharges());
+    const result = allocateCharges(trades, makeCharges({ stamp_duty: '0' }));
 
     expect(result[0].trade_no).toBe('T99');
     expect(result[0].order_no).toBe('O55');

@@ -14,6 +14,12 @@ export enum TradeClassification {
     PROFILE_DRIVEN = 'PROFILE_DRIVEN',
 }
 
+export enum TradeClassificationStrategy {
+    STRICT_PRODUCT = 'STRICT_PRODUCT',
+    ASSUME_ALL_EQ_INVESTMENT = 'ASSUME_ALL_EQ_INVESTMENT',
+    HEURISTIC_SAME_DAY_FLAT_INTRADAY = 'HEURISTIC_SAME_DAY_FLAT_INTRADAY',
+}
+
 const SPECULATIVE_PRODUCTS = new Set(['MIS', 'BO', 'CO']);
 const INVESTMENT_PRODUCTS = new Set(['CNC', 'MTF']);
 const NON_SPEC_PRODUCTS = new Set(['NRML']);
@@ -43,6 +49,16 @@ function isDerivativeLikeSegment(segment?: string): boolean {
     return DERIVATIVE_SEGMENT_MARKERS.some((marker) => normalized.includes(marker));
 }
 
+function isEquityLikeSegment(segment?: string): boolean {
+    const normalized = normalize(segment);
+    return (
+        normalized === 'EQ' ||
+        normalized === 'BE' ||
+        normalized === 'EQUITY' ||
+        normalized.endsWith('-EQ')
+    );
+}
+
 /**
  * Classify a trade using broker routing hints.
  *
@@ -56,7 +72,10 @@ export function classifyTrade(
     product?: string,
     segment?: string,
     exchange?: string,
+    options?: { strategy?: TradeClassificationStrategy },
 ): TradeClassification {
+    const strategy = options?.strategy ?? TradeClassificationStrategy.STRICT_PRODUCT;
+
     if (isMcxExchange(exchange)) {
         return TradeClassification.NON_SPECULATIVE_BUSINESS;
     }
@@ -80,7 +99,21 @@ export function classifyTrade(
             return TradeClassification.NON_SPECULATIVE_BUSINESS;
         }
 
+        if (
+            strategy === TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT &&
+            isEquityLikeSegment(segment)
+        ) {
+            return TradeClassification.INVESTMENT;
+        }
+
         return TradeClassification.PROFILE_DRIVEN;
+    }
+
+    if (
+        strategy === TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT &&
+        isEquityLikeSegment(segment)
+    ) {
+        return TradeClassification.INVESTMENT;
     }
 
     return TradeClassification.PROFILE_DRIVEN;

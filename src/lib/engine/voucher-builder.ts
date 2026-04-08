@@ -402,10 +402,9 @@ export function buildSellVoucher(
     (sum, d) => sum.add(new Decimal(d.total_cost)),
     new Decimal(0),
   );
-  const totalGainLoss = costDisposals.reduce(
-    (sum, d) => sum.add(new Decimal(d.gain_or_loss)),
-    new Decimal(0),
-  );
+  // Use the exact residual against the rounded cost basis so the voucher
+  // stays balanced even when per-lot rounded disposals introduce a 0.01 drift.
+  const totalGainLoss = grossAmount.sub(totalCostBasis);
   const skipInventory = isSpeculativeTrade(event);
   const lines: VoucherLine[] = [];
   let lineNo = 1;

@@ -36,10 +36,9 @@ describe('tradebook pipeline e2e', () => {
         const xml = generateVouchersXml(vouchers, 'Demo Company');
         expect(xml).toContain('<ENVELOPE>');
         expect(xml).toContain('<VOUCHER');
-        // All trade vouchers are Journal; inventory via ledger master flag.
-        expect(xml).toContain('VCHTYPE="Journal"');
-        expect(xml).not.toContain('VCHTYPE="Purchase"');
-        expect(xml).not.toContain('VCHTYPE="Sales"');
+        expect(xml).toContain('VCHTYPE="Purchase"');
+        expect(xml).toContain('VCHTYPE="Sales"');
+        expect(xml).toContain('Invoice Voucher View');
         expect(xml).toContain('INFY');
     });
 });

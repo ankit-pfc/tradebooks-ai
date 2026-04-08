@@ -1,0 +1,2621 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Tally handoff pack > generates exact XML snapshots for the three samples > partial-fifo-sell masters xml 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Div on Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Div on Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Div on Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Speculative Business Income" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Speculative Business Income</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Speculative Business Income</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="INVESTMENT IN SHARES-ZERODHA" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+            </NAME.LIST>
+            <PARENT>Investments</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="ZERODHA - KITE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>ZERODHA - KITE</NAME>
+            </NAME.LIST>
+            <PARENT>Sundry Creditors</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>ZERODHA - KITE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Bank Account" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Bank Account</NAME>
+            </NAME.LIST>
+            <PARENT>Bank Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Bank Account</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SHAKTIPUMP-BE-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SHAKTIPUMP-BE-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SHAKTIPUMP-BE-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="WEBELSOLAR-BE-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>WEBELSOLAR-BE-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>WEBELSOLAR-BE-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SANDUMA-EQ-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SANDUMA-EQ-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SANDUMA-EQ-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="STCG ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG ON SHAKTIPUMP-BE</NAME>
+            </NAME.LIST>
+            <PARENT>STCG</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG ON SHAKTIPUMP-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="LTCG ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG ON SHAKTIPUMP-BE</NAME>
+            </NAME.LIST>
+            <PARENT>LTCG</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG ON SHAKTIPUMP-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="STCL ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL ON SHAKTIPUMP-BE</NAME>
+            </NAME.LIST>
+            <PARENT>STCL</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL ON SHAKTIPUMP-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="LTCL ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL ON SHAKTIPUMP-BE</NAME>
+            </NAME.LIST>
+            <PARENT>LTCL</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL ON SHAKTIPUMP-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Intraday Gain on Sale of Shares - ZERODHA" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Intraday Gain on Sale of Shares - ZERODHA</NAME>
+            </NAME.LIST>
+            <PARENT>Speculative Business Income</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Intraday Gain on Sale of Shares - ZERODHA</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="STCG ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG ON WEBELSOLAR-BE</NAME>
+            </NAME.LIST>
+            <PARENT>STCG</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG ON WEBELSOLAR-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="LTCG ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG ON WEBELSOLAR-BE</NAME>
+            </NAME.LIST>
+            <PARENT>LTCG</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG ON WEBELSOLAR-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="STCL ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL ON WEBELSOLAR-BE</NAME>
+            </NAME.LIST>
+            <PARENT>STCL</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL ON WEBELSOLAR-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="LTCL ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL ON WEBELSOLAR-BE</NAME>
+            </NAME.LIST>
+            <PARENT>LTCL</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL ON WEBELSOLAR-BE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SHARE BROKERAGE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SHARE BROKERAGE</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SHARE BROKERAGE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stt" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stt</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stt</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Exchange and Other Charges" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Exchange and Other Charges</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Exchange and Other Charges</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="GST on Brokerage" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>GST on Brokerage</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>GST on Brokerage</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stamp Duty" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stamp Duty</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stamp Duty</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="DP Charges-Zerodha" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>DP Charges-Zerodha</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>DP Charges-Zerodha</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS ON DIVIDEND" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS ON DIVIDEND</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS ON DIVIDEND</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS on Securities" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS on Securities</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS on Securities</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="SANDUMA-EQ-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SANDUMA-EQ-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SANDUMA-EQ-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="SHAKTIPUMP-BE-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SHAKTIPUMP-BE-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SHAKTIPUMP-BE-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="WEBELSOLAR-BE-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>WEBELSOLAR-BE-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>WEBELSOLAR-BE-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>"
+`;
+
+exports[`Tally handoff pack > generates exact XML snapshots for the three samples > partial-fifo-sell transactions xml 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <VERSION>1</VERSION>
+    <TALLYREQUEST>Import</TALLYREQUEST>
+    <TYPE>Data</TYPE>
+    <ID>Vouchers</ID>
+  </HEADER>
+  <BODY>
+    <DESC>
+      <STATICVARIABLES>
+        <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+      </STATICVARIABLES>
+    </DESC>
+    <DATA>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240410</DATE>
+          <EFFECTIVEDATE>20240410</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Purchase of WEBELSOLAR-BE-SH @ 544.60 × 15 units (2 fills)</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-8443358/WEBELSOLAR-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>WEBELSOLAR-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-8169.03</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>WEBELSOLAR-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>15 SH</ACTUALQTY>
+              <BILLEDQTY>15 SH</BILLEDQTY>
+              <RATE>544.60/SH</RATE>
+              <AMOUNT>-8169.03</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>8169.03</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240410</DATE>
+          <EFFECTIVEDATE>20240410</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Purchase of WEBELSOLAR-BE @ 544 × 10 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-8443358/WEBELSOLAR-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>WEBELSOLAR-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-5441.02</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>WEBELSOLAR-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>10 SH</ACTUALQTY>
+              <BILLEDQTY>10 SH</BILLEDQTY>
+              <RATE>544.10/SH</RATE>
+              <AMOUNT>-5441.02</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>5441.02</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240410</DATE>
+          <EFFECTIVEDATE>20240410</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of SHAKTIPUMP-BE @ 1476.95 × 27 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-8443358/SHAKTIPUMP-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-39876.04</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-1.33</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.04</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.24</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SHAKTIPUMP-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>0.00</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>SHAKTIPUMP-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>-27 SH</ACTUALQTY>
+              <BILLEDQTY>-27 SH</BILLEDQTY>
+              <RATE>0.00/SH</RATE>
+              <AMOUNT>0.00</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON SHAKTIPUMP-BE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>39877.65</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240410</DATE>
+          <EFFECTIVEDATE>20240410</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of SHAKTIPUMP-BE @ 1476.95 × 36 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-8443358/SHAKTIPUMP-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-53168.05</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-1.77</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.05</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.33</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SHAKTIPUMP-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>0.00</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>SHAKTIPUMP-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>-36 SH</ACTUALQTY>
+              <BILLEDQTY>-36 SH</BILLEDQTY>
+              <RATE>0.00/SH</RATE>
+              <AMOUNT>0.00</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON SHAKTIPUMP-BE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>53170.20</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240410</DATE>
+          <EFFECTIVEDATE>20240410</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of SHAKTIPUMP-BE @ 1476.95 × 37 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-8443358/SHAKTIPUMP-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-54644.94</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-1.82</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.05</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.34</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SHAKTIPUMP-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>0.00</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>SHAKTIPUMP-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>-37 SH</ACTUALQTY>
+              <BILLEDQTY>-37 SH</BILLEDQTY>
+              <RATE>0.00/SH</RATE>
+              <AMOUNT>0.00</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON SHAKTIPUMP-BE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>54647.15</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240415</DATE>
+          <EFFECTIVEDATE>20240415</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Purchase of SANDUMA-EQ-SH @ 463.09 × 300 units (2 fills)</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-10756898/SANDUMA-EQ</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SANDUMA-EQ-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-138926.17</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>SANDUMA-EQ-SH</STOCKITEMNAME>
+              <ACTUALQTY>300 SH</ACTUALQTY>
+              <BILLEDQTY>300 SH</BILLEDQTY>
+              <RATE>463.09/SH</RATE>
+              <AMOUNT>-138926.17</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>138926.17</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240415</DATE>
+          <EFFECTIVEDATE>20240415</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Purchase of SANDUMA-EQ @ 461.95 × 20 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-10756898/SANDUMA-EQ</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SANDUMA-EQ-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-9240.74</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>SANDUMA-EQ-SH</STOCKITEMNAME>
+              <ACTUALQTY>20 SH</ACTUALQTY>
+              <BILLEDQTY>20 SH</BILLEDQTY>
+              <RATE>462.04/SH</RATE>
+              <AMOUNT>-9240.74</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>9240.74</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240415</DATE>
+          <EFFECTIVEDATE>20240415</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of WEBELSOLAR-BE @ 581 × 18 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-10756898/WEBELSOLAR-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-10457.59</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.34</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.01</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.06</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>WEBELSOLAR-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>9801.34</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>WEBELSOLAR-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>-18 SH</ACTUALQTY>
+              <BILLEDQTY>-18 SH</BILLEDQTY>
+              <RATE>544.52/SH</RATE>
+              <AMOUNT>9801.34</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON WEBELSOLAR-BE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>656.66</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240415</DATE>
+          <EFFECTIVEDATE>20240415</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of WEBELSOLAR-BE @ 580 × 7 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-10756898/WEBELSOLAR-BE</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-4059.84</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.14</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.02</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>WEBELSOLAR-BE-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>3808.71</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>WEBELSOLAR-BE-SH</STOCKITEMNAME>
+              <ACTUALQTY>-7 SH</ACTUALQTY>
+              <BILLEDQTY>-7 SH</BILLEDQTY>
+              <RATE>544.10/SH</RATE>
+              <AMOUNT>3808.71</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON WEBELSOLAR-BE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>251.29</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
+          <DATE>20240415</DATE>
+          <EFFECTIVEDATE>20240415</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+          <NARRATION>STT for period 2024-04-10 to 2024-04-15 — 11 trade(s)</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>Stt</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Stt</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-324.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>324.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+    </DATA>
+  </BODY>
+</ENVELOPE>"
+`;
+
+exports[`Tally handoff pack > generates exact XML snapshots for the three samples > same-day-buy-sell masters xml 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Div on Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Div on Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Div on Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Speculative Business Income" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Speculative Business Income</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Speculative Business Income</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="INVESTMENT IN SHARES-ZERODHA" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+            </NAME.LIST>
+            <PARENT>Investments</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="ZERODHA - KITE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>ZERODHA - KITE</NAME>
+            </NAME.LIST>
+            <PARENT>Sundry Creditors</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>ZERODHA - KITE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Bank Account" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Bank Account</NAME>
+            </NAME.LIST>
+            <PARENT>Bank Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Bank Account</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="MARUTI-A-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>MARUTI-A-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>MARUTI-A-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="VISHAL-X-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>VISHAL-X-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>VISHAL-X-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="STCG ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG ON MARUTI-A</NAME>
+            </NAME.LIST>
+            <PARENT>STCG</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG ON MARUTI-A</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="LTCG ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG ON MARUTI-A</NAME>
+            </NAME.LIST>
+            <PARENT>LTCG</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG ON MARUTI-A</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="STCL ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL ON MARUTI-A</NAME>
+            </NAME.LIST>
+            <PARENT>STCL</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL ON MARUTI-A</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="LTCL ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL ON MARUTI-A</NAME>
+            </NAME.LIST>
+            <PARENT>LTCL</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL ON MARUTI-A</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Intraday Gain on Sale of Shares - ZERODHA" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Intraday Gain on Sale of Shares - ZERODHA</NAME>
+            </NAME.LIST>
+            <PARENT>Speculative Business Income</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Intraday Gain on Sale of Shares - ZERODHA</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SHARE BROKERAGE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SHARE BROKERAGE</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SHARE BROKERAGE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stt" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stt</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stt</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Exchange and Other Charges" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Exchange and Other Charges</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Exchange and Other Charges</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="GST on Brokerage" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>GST on Brokerage</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>GST on Brokerage</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stamp Duty" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stamp Duty</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stamp Duty</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="DP Charges-Zerodha" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>DP Charges-Zerodha</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>DP Charges-Zerodha</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS ON DIVIDEND" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS ON DIVIDEND</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS ON DIVIDEND</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS on Securities" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS on Securities</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS on Securities</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="MARUTI-A-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>MARUTI-A-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>MARUTI-A-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="VISHAL-X-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>VISHAL-X-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>VISHAL-X-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>"
+`;
+
+exports[`Tally handoff pack > generates exact XML snapshots for the three samples > same-day-buy-sell transactions xml 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <VERSION>1</VERSION>
+    <TALLYREQUEST>Import</TALLYREQUEST>
+    <TYPE>Data</TYPE>
+    <ID>Vouchers</ID>
+  </HEADER>
+  <BODY>
+    <DESC>
+      <STATICVARIABLES>
+        <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+      </STATICVARIABLES>
+    </DESC>
+    <DATA>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240801</DATE>
+          <EFFECTIVEDATE>20240801</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Purchase of VISHAL-X-SH @ 38.83 × 500 units (3 fills)</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-103858427/VISHAL-X</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>VISHAL-X-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-19416.65</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>VISHAL-X-SH</STOCKITEMNAME>
+              <ACTUALQTY>500 SH</ACTUALQTY>
+              <BILLEDQTY>500 SH</BILLEDQTY>
+              <RATE>38.83/SH</RATE>
+              <AMOUNT>-19416.65</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>19416.65</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240801</DATE>
+          <EFFECTIVEDATE>20240801</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of MARUTI-A @ 13603.6 × 1 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-103858427/MARUTI-A</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-13601.06</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-2.14</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.01</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.39</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>MARUTI-A-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>0.00</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>MARUTI-A-SH</STOCKITEMNAME>
+              <ACTUALQTY>-1 SH</ACTUALQTY>
+              <BILLEDQTY>-1 SH</BILLEDQTY>
+              <RATE>0.00/SH</RATE>
+              <AMOUNT>0.00</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON MARUTI-A</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>13603.60</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240801</DATE>
+          <EFFECTIVEDATE>20240801</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of MARUTI-A @ 13603.6 × 6 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-103858427/MARUTI-A</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-81606.31</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SHARE BROKERAGE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.01</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-12.87</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.08</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-2.33</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>MARUTI-A-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>0.00</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>MARUTI-A-SH</STOCKITEMNAME>
+              <ACTUALQTY>-6 SH</ACTUALQTY>
+              <BILLEDQTY>-6 SH</BILLEDQTY>
+              <RATE>0.00/SH</RATE>
+              <AMOUNT>0.00</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON MARUTI-A</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>81621.60</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240801</DATE>
+          <EFFECTIVEDATE>20240801</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Sale of MARUTI-A @ 13603.6 × 3 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-103858427/MARUTI-A</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-40803.16</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-6.43</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-0.04</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-1.17</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>MARUTI-A-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>0.00</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>MARUTI-A-SH</STOCKITEMNAME>
+              <ACTUALQTY>-3 SH</ACTUALQTY>
+              <BILLEDQTY>-3 SH</BILLEDQTY>
+              <RATE>0.00/SH</RATE>
+              <AMOUNT>0.00</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>STCG ON MARUTI-A</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>40810.80</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
+          <DATE>20240801</DATE>
+          <EFFECTIVEDATE>20240801</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+          <NARRATION>STT for period 2024-08-01 to 2024-08-01 — 6 trade(s)</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>Stt</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Stt</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-155.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>155.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+    </DATA>
+  </BODY>
+</ENVELOPE>"
+`;
+
+exports[`Tally handoff pack > generates exact XML snapshots for the three samples > simple-buy masters xml 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCG" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCG</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCG</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="STCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>STCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>STCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="LTCL" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>LTCL</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>LTCL</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Div on Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Div on Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Div on Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="Speculative Business Income" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Speculative Business Income</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Speculative Business Income</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <GROUP NAME="INVESTMENT IN SHARES-ZERODHA" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+            </NAME.LIST>
+            <PARENT>Investments</PARENT>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </GROUP>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="ZERODHA - KITE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>ZERODHA - KITE</NAME>
+            </NAME.LIST>
+            <PARENT>Sundry Creditors</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>ZERODHA - KITE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Bank Account" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Bank Account</NAME>
+            </NAME.LIST>
+            <PARENT>Bank Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Bank Account</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SANDUMA-B-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SANDUMA-B-SH</NAME>
+            </NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SANDUMA-B-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="SHARE BROKERAGE" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SHARE BROKERAGE</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SHARE BROKERAGE</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stt" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stt</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stt</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Exchange and Other Charges" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Exchange and Other Charges</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Exchange and Other Charges</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="GST on Brokerage" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>GST on Brokerage</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>GST on Brokerage</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Stamp Duty" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Stamp Duty</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Stamp Duty</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="DP Charges-Zerodha" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>DP Charges-Zerodha</NAME>
+            </NAME.LIST>
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>DP Charges-Zerodha</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS ON DIVIDEND" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS ON DIVIDEND</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS ON DIVIDEND</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="TDS on Securities" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>TDS on Securities</NAME>
+            </NAME.LIST>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>TDS on Securities</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Short Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Incomes</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Gain on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+            </NAME.LIST>
+            <PARENT>Indirect Expenses</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Long Term Capital Loss on Sale of Shares</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <STOCKITEM NAME="SANDUMA-B-SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SANDUMA-B-SH</NAME>
+            </NAME.LIST>
+            <BASEUNITS>SH</BASEUNITS>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SANDUMA-B-SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>"
+`;
+
+exports[`Tally handoff pack > generates exact XML snapshots for the three samples > simple-buy transactions xml 1`] = `
+"<?xml version="1.0" encoding="UTF-8"?>
+<ENVELOPE>
+  <HEADER>
+    <VERSION>1</VERSION>
+    <TALLYREQUEST>Import</TALLYREQUEST>
+    <TYPE>Data</TYPE>
+    <ID>Vouchers</ID>
+  </HEADER>
+  <BODY>
+    <DESC>
+      <STATICVARIABLES>
+        <SVCURRENTCOMPANY>VERIFY CO</SVCURRENTCOMPANY>
+      </STATICVARIABLES>
+    </DESC>
+    <DATA>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+          <DATE>20240626</DATE>
+          <EFFECTIVEDATE>20240626</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+          <ISINVOICE>Yes</ISINVOICE>
+          <NARRATION>Purchase of SANDUMA-B @ 583 × 200 units</NARRATION>
+          <VOUCHERNUMBER>CNT-24/25-70955034/SANDUMA-B</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>SANDUMA-B-SH</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-116622.31</AMOUNT>
+            <INVENTORYALLOCATIONS.LIST>
+              <STOCKITEMNAME>SANDUMA-B-SH</STOCKITEMNAME>
+              <ACTUALQTY>200 SH</ACTUALQTY>
+              <BILLEDQTY>200 SH</BILLEDQTY>
+              <RATE>583.11/SH</RATE>
+              <AMOUNT>-116622.31</AMOUNT>
+            </INVENTORYALLOCATIONS.LIST>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>116622.31</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
+          <DATE>20240626</DATE>
+          <EFFECTIVEDATE>20240626</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+          <NARRATION>STT for period 2024-06-26 to 2024-06-26 — 1 trade(s)</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>Stt</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Stt</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-117.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>117.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+    </DATA>
+  </BODY>
+</ENVELOPE>"
+`;

@@ -1,0 +1,46 @@
+{
+  "sample_name": "simple-buy",
+  "note_count": 1,
+  "note_reports": [
+    {
+      "contract_note_no": "CNT-24/25-70955034",
+      "gross_trade_total": "-116600.00",
+      "allocated_brokerage": "0.01",
+      "allocated_exchange_charges": "4.37",
+      "allocated_gst": "0.81",
+      "allocated_sebi_charges": "0.12",
+      "allocated_stamp_duty": "17.00",
+      "allocated_stt": "117.00",
+      "final_derived_broker_payable_receivable": "-116739.31",
+      "source_contract_note_payable_receivable": "-116739.31",
+      "variance": "0.00"
+    }
+  ],
+  "voucher_summaries": [
+    {
+      "voucher_number": "CNT-24/25-70955034/SANDUMA-B",
+      "voucher_type": "JOURNAL",
+      "total_debit": "116622.31",
+      "total_credit": "116622.31",
+      "stock_item": "SANDUMA-B-SH",
+      "cost_basis": "116622.31",
+      "gain_loss": "0.00",
+      "narration": "Purchase of SANDUMA-B @ 583 × 200 units"
+    },
+    {
+      "voucher_number": null,
+      "voucher_type": "JOURNAL",
+      "total_debit": "117.00",
+      "total_credit": "117.00",
+      "stock_item": null,
+      "cost_basis": "0.00",
+      "gain_loss": "0.00",
+      "narration": "STT for period 2024-06-26 to 2024-06-26 — 1 trade(s)"
+    }
+  ],
+  "trade_match": {
+    "matched": 0,
+    "unmatched_tradebook": 0,
+    "unmatched_contract_note": 1
+  }
+}

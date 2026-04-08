@@ -8,7 +8,8 @@ import {
   pairContractNoteData,
 } from '../canonical-events';
 import { EventType } from '../../types/events';
-import { TradeClassification } from '../trade-classifier';
+import { TradeClassification, TradeClassificationStrategy } from '../trade-classifier';
+import { isPipelineValidationError } from '../../errors/pipeline-validation';
 import {
   makeTradebookRow,
   makeFundsRow,
@@ -395,6 +396,38 @@ describe('buildCanonicalEvents', () => {
     expect(chargeEvents.length).toBeGreaterThan(0);
     for (const chargeEvent of chargeEvents) {
       expect(chargeEvent.trade_classification).toBe(TradeClassification.NON_SPECULATIVE_BUSINESS);
+    }
+  });
+
+  it('assigns deterministic event IDs when deterministicIds is enabled', () => {
+    const opts = {
+      tradebookRows: [makeTradebookRow({ trade_id: 'T100', order_id: 'O100' })],
+      batchId: 'b',
+      fileIds: { tradebook: 'f1' },
+      deterministicIds: true,
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    };
+    const first = buildCanonicalEvents(opts);
+    const second = buildCanonicalEvents(opts);
+
+    expect(first[0].event_id).toBe(second[0].event_id);
+    expect(first[0].event_id.startsWith('evt_')).toBe(true);
+  });
+
+  it('throws typed validation error for ambiguous STRICT_PRODUCT trades', () => {
+    try {
+      buildCanonicalEvents({
+        tradebookRows: [makeTradebookRow({ product: '', segment: 'EQ', exchange: 'NSE' })],
+        batchId: 'b',
+        fileIds: { tradebook: 'f1' },
+        classificationStrategy: TradeClassificationStrategy.STRICT_PRODUCT,
+      });
+      throw new Error('Expected strict classification validation error');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_CLASSIFICATION_AMBIGUOUS');
+      }
     }
   });
 });

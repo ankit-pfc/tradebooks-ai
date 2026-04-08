@@ -169,7 +169,7 @@ describe('contractNoteToEvents', () => {
   it('produces sell trade events correctly', () => {
     const events = contractNoteToEvents(
       [makeCnTrade({ buy_sell: 'S' })],
-      makeCnCharges(),
+      makeCnCharges({ stamp_duty: '0' }),
       'batch-1',
       'file-cn-1',
     );
@@ -429,7 +429,7 @@ describe('buildCanonicalEvents', () => {
 
     const events = buildCanonicalEvents({
       tradebookRows: [tbBuy],
-      contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnSell] }],
+      contractNoteSheets: [{ charges: makeCnCharges({ stamp_duty: '0' }), trades: [cnSell] }],
       contractNoteSymbolByDescription: new Map([
         ['ADSL - EQ / INE674K01013', 'ADSL'],
       ]),
@@ -468,7 +468,7 @@ describe('buildCanonicalEvents', () => {
     };
     // BSE CN trade for the same company under a different exchange ticker
     const bseCnSheet = {
-      charges: makeCnCharges({ trade_date: '16-01-2024' }),
+      charges: makeCnCharges({ trade_date: '16-01-2024', stamp_duty: '0' }),
       trades: [
         makeCnTrade({
           trade_no: 'BSE-1',

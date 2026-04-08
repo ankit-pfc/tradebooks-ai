@@ -6,6 +6,8 @@ import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { rateLimit } from '@/lib/rate-limit';
 import { runProcessingPipeline } from '@/lib/processing/pipeline';
 import type { PurchaseMergeMode } from '@/lib/engine/voucher-merger';
+import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
+import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
 
 export async function POST(
   request: Request,
@@ -13,6 +15,25 @@ export async function POST(
 ) {
   try {
     const purchaseMergeMode: PurchaseMergeMode = 'same_rate';
+    let classificationStrategy: TradeClassificationStrategy = TradeClassificationStrategy.STRICT_PRODUCT;
+
+    try {
+      const body = await request.json();
+      const raw = body?.classificationStrategy;
+      if (typeof raw === 'string' && Object.values(TradeClassificationStrategy).includes(raw as TradeClassificationStrategy)) {
+        classificationStrategy = raw as TradeClassificationStrategy;
+      } else if (raw !== undefined) {
+        return NextResponse.json(
+          {
+            error: `Invalid classificationStrategy: ${String(raw)}`,
+            code: 'E_INVALID_CLASSIFICATION_STRATEGY',
+          },
+          { status: 400 },
+        );
+      }
+    } catch {
+      // Empty body is allowed; default strategy remains STRICT_PRODUCT.
+    }
 
     const userId = await getAuthenticatedUserId();
     if (!userId) {
@@ -99,9 +120,18 @@ export async function POST(
         periodTo: batch.period_to,
         priorBatchId: batch.prior_batch_id ?? undefined,
         purchaseMergeMode,
+        classificationStrategy,
         files: pipelineFiles,
       });
     } catch (pipelineErr) {
+      if (isPipelineValidationError(pipelineErr)) {
+        await repo.updateBatchStatus(batchId, 'failed', pipelineErr.message);
+        return NextResponse.json(
+          { error: pipelineErr.message, code: pipelineErr.code, details: pipelineErr.details },
+          { status: 422 },
+        );
+      }
+
       const msg = pipelineErr instanceof Error ? pipelineErr.message : 'Processing failed';
       await repo.updateBatchStatus(batchId, 'failed', msg);
       return NextResponse.json({ error: msg }, { status: 500 });

@@ -65,6 +65,14 @@ const VOUCHER_TYPE_MAP: Record<VoucherType, string> = {
   [VoucherType.CONTRA]: 'Contra',
 };
 
+export interface VoucherXmlRenderConfig {
+  tallyVoucherType: string;
+  objView: 'Accounting Voucher View' | 'Invoice Voucher View';
+  persistedView: 'Accounting Voucher View' | 'Invoice Voucher View';
+  isInvoice: boolean;
+  partyLedgerName: string;
+}
+
 /**
  * Converts an ISO-8601 date string ("YYYY-MM-DD") to Tally's date format
  * ("YYYYMMDD").
@@ -117,6 +125,62 @@ function tallyRate(rate: string, unit = 'SH'): string {
   const n = parseFloat(rate);
   if (isNaN(n)) return `0/${unit}`;
   return `${Math.abs(n).toFixed(2)}/${unit}`;
+}
+
+function isTradeNarrative(narrative: string | null | undefined): boolean {
+  if (!narrative) return false;
+  return narrative.startsWith('Purchase of ') || narrative.startsWith('Sale of ');
+}
+
+function isLikelyPartyLedger(line: VoucherLine): boolean {
+  if (line.quantity !== null || line.rate !== null) return false;
+  return !/^(STCG|LTCG|STCL|LTCL|Speculative|Share Brokerage|GST|Stt|STT|Exchange and Other Charges|SEBI|Stamp|Cost of Shares Sold|Trading Sales)$/i.test(
+    line.ledger_name,
+  );
+}
+
+export function resolveVoucherXmlRenderConfig(
+  voucher: VoucherDraftWithLines,
+): VoucherXmlRenderConfig {
+  const hasInventoryLines = voucher.lines.some(
+    (line) => line.quantity !== null && line.rate !== null,
+  );
+  const narrative = voucher.narrative ?? '';
+  const tradeNarrative = isTradeNarrative(voucher.narrative);
+  const purchaseIntent =
+    voucher.voucher_type === VoucherType.PURCHASE ||
+    (voucher.voucher_type === VoucherType.JOURNAL && narrative.startsWith('Purchase of '));
+  const salesIntent =
+    voucher.voucher_type === VoucherType.SALES ||
+    (voucher.voucher_type === VoucherType.JOURNAL && narrative.startsWith('Sale of '));
+
+  const tallyVoucherType = hasInventoryLines && (purchaseIntent || salesIntent)
+    ? salesIntent
+      ? 'Sales'
+      : 'Purchase'
+    : VOUCHER_TYPE_MAP[voucher.voucher_type] ?? 'Journal';
+
+  const isInvoice = hasInventoryLines && (purchaseIntent || salesIntent || tradeNarrative);
+  const objView: VoucherXmlRenderConfig['objView'] = isInvoice
+    ? 'Invoice Voucher View'
+    : 'Accounting Voucher View';
+  const persistedView = objView;
+
+  const sortedLines = [...voucher.lines].sort((a, b) => a.line_no - b.line_no);
+  const partyLedgerName = isInvoice
+    ? sortedLines.find(isLikelyPartyLedger)?.ledger_name ??
+      sortedLines.find((line) => line.quantity === null && line.rate === null)?.ledger_name ??
+      sortedLines[0]?.ledger_name ??
+      ''
+    : sortedLines[0]?.ledger_name ?? '';
+
+  return {
+    tallyVoucherType,
+    objView,
+    persistedView,
+    isInvoice,
+    partyLedgerName,
+  };
 }
 
 type EnvelopeKind = 'masters' | 'vouchers';
@@ -276,10 +340,32 @@ export function generateMastersXml(
         .ele('NAME')
         .txt(item.name);
 
-      itemEle.ele('BASEUNIT').txt(item.baseUnit ?? 'Nos');
+      itemEle.ele('BASEUNITS').txt(item.baseUnit ?? 'Nos');
 
       const langList = itemEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(item.name);
+      langList.ele('LANGUAGEID').txt(' 1033');
+    }
+
+    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'Nos'))].sort();
+    for (const unitName of unitNames) {
+      const msg = requestData.ele('TALLYMESSAGE', {
+        'xmlns:UDF': 'TallyUDF',
+      });
+
+      const unitEle = msg.ele('UNIT', {
+        NAME: unitName,
+        RESERVEDNAME: '',
+        ACTION: 'Create',
+      });
+
+      unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
+      unitEle.ele('ISSIMPLEUNIT').txt('Yes');
+      unitEle.ele('ORIGINALNAME').txt(unitName);
+      unitEle.ele('DECIMALPLACES').txt('0');
+
+      const langList = unitEle.ele('LANGUAGENAME.LIST');
+      langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);
       langList.ele('LANGUAGEID').txt(' 1033');
     }
   }
@@ -308,28 +394,27 @@ export function generateVouchersXml(
   const { root, requestData } = buildEnvelope('Vouchers', companyName, 'vouchers');
 
   for (const voucher of vouchers) {
-    const tallyVchType =
-      VOUCHER_TYPE_MAP[voucher.voucher_type] ?? 'Journal';
+    const renderConfig = resolveVoucherXmlRenderConfig(voucher);
+    const tallyVchType = renderConfig.tallyVoucherType;
+    const sortedLines = [...voucher.lines].sort((a, b) => a.line_no - b.line_no);
 
     const msg = requestData.ele('TALLYMESSAGE', {
       'xmlns:UDF': 'TallyUDF',
     });
 
-    // All vouchers use Accounting Voucher View. Inventory movements on
-    // journal vouchers are enabled by the ISINVENTORYAFFECTED flag on the
-    // ledger master, not by switching to Invoice Voucher View.
-    const objView = 'Accounting Voucher View';
-
     const voucherEle = msg.ele('VOUCHER', {
       VCHTYPE: tallyVchType,
       ACTION: 'Create',
-      OBJVIEW: objView,
+      OBJVIEW: renderConfig.objView,
     });
 
     const tallyDate = toTallyDate(voucher.voucher_date);
     voucherEle.ele('DATE').txt(tallyDate);
     voucherEle.ele('EFFECTIVEDATE').txt(tallyDate);
-    voucherEle.ele('PERSISTEDVIEW').txt(objView);
+    voucherEle.ele('PERSISTEDVIEW').txt(renderConfig.persistedView);
+    if (renderConfig.isInvoice) {
+      voucherEle.ele('ISINVOICE').txt('Yes');
+    }
 
     if (voucher.narrative) {
       voucherEle.ele('NARRATION').txt(voucher.narrative);
@@ -341,14 +426,8 @@ export function generateVouchersXml(
 
     voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
 
-    // Sort lines by line_no to preserve intended ordering.
-    const sortedLines = [...voucher.lines].sort(
-      (a, b) => a.line_no - b.line_no,
-    );
-    // The first line is the party ledger (broker/bank account).
-    const partyLedgerName = sortedLines[0]?.ledger_name ?? '';
-    if (partyLedgerName) {
-      voucherEle.ele('PARTYLEDGERNAME').txt(partyLedgerName);
+    if (renderConfig.partyLedgerName) {
+      voucherEle.ele('PARTYLEDGERNAME').txt(renderConfig.partyLedgerName);
     }
 
     for (const line of sortedLines) {
@@ -358,7 +437,7 @@ export function generateVouchersXml(
       entry.ele('ISDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
       entry.ele('ISLASTDEEMEDPOSITIVE').txt(isDeemedPositive(line.dr_cr));
       entry.ele('ISPARTYLEDGER').txt(
-        line.ledger_name === partyLedgerName ? 'Yes' : 'No',
+        line.ledger_name === renderConfig.partyLedgerName ? 'Yes' : 'No',
       );
       entry.ele('LEDGERFROMITEM').txt('No');
       entry.ele('REMOVEZEROENTRIES').txt('No');

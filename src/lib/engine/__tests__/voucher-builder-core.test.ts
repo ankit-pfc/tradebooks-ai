@@ -14,6 +14,7 @@ import { EventType } from '../../types/events';
 import { VoucherType } from '../../types/vouchers';
 import { CostLotTracker } from '../cost-lots';
 import { TradeClassification } from '../trade-classifier';
+import type { CostDisposal } from '../cost-lots';
 import { makeBuyEvent, makeSellEvent, makeChargeEvent, makeEvent } from '../../../tests/helpers/factories';
 
 function findLine(lines: { ledger_name: string; dr_cr: string }[], partial: string, drCr: 'DR' | 'CR') {
@@ -764,6 +765,41 @@ describe('buildVouchers — excludes STT from all accounting entries', () => {
     const sttVoucher = vouchers[2];
     expect(sttVoucher.voucher_type).toBe('JOURNAL');
     expect(sttVoucher.total_debit).toBe(sttVoucher.total_credit);
+  });
+
+  it('sell vouchers stay balanced when rounded lot-level gains would drift by one cent', () => {
+    const sellEvent = makeSellEvent({
+      event_date: '2024-06-15',
+      external_ref: 'T005-S',
+      contract_note_ref: 'CN007',
+      quantity: '-2',
+      rate: '4699.505',
+      gross_amount: '9399.01',
+    });
+    const costDisposals: CostDisposal[] = [
+      {
+        lot_id: 'lot-1',
+        acquisition_date: '2024-06-14',
+        quantity_sold: '1',
+        unit_cost: '5000.000000',
+        total_cost: '5000.00',
+        gain_or_loss: '0.01',
+      },
+      {
+        lot_id: 'lot-2',
+        acquisition_date: '2024-06-14',
+        quantity_sold: '1',
+        unit_cost: '4399.000000',
+        total_cost: '4399.00',
+        gain_or_loss: '0.01',
+      },
+    ];
+
+    const voucher = buildSellVoucher(sellEvent, INVESTOR_DEFAULT, [], costDisposals, 1);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('9399.01');
+    expect(findLine(voucher.lines, 'Short Term Capital Gain', 'CR')?.amount).toBe('0.01');
   });
 });
 

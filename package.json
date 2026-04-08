@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:run": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "debug:explain": "vitest run src/lib/processing/explain-mode.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

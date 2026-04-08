@@ -142,10 +142,16 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
     expect(voucherMsgs.length).toBeGreaterThan(0);
     for (const msg of voucherMsgs) {
       const v = msg.VOUCHER as Record<string, unknown>;
+      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
+      const hasInventory = entries.some((entry) => entry['INVENTORYALLOCATIONS.LIST']);
       expect(v['@_VCHTYPE']).toBeTruthy();
       expect(v['@_ACTION']).toBe('Create');
-      // Vouchers with inventory lines use "Invoice Voucher View", others use "Accounting Voucher View"
-      expect(['Accounting Voucher View', 'Invoice Voucher View']).toContain(v['@_OBJVIEW']);
+      expect(hasInventory ? 'Invoice Voucher View' : 'Accounting Voucher View').toBe(v['@_OBJVIEW']);
+      if (hasInventory) {
+        expect(v.ISINVOICE).toBe('Yes');
+      } else {
+        expect(v.ISINVOICE).toBeUndefined();
+      }
       expect(v.PERSISTEDVIEW).toBe(v['@_OBJVIEW']);
       expect(v.DATE).toBeTruthy();
       expect(v.EFFECTIVEDATE).toBeTruthy();
