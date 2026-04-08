@@ -4,8 +4,11 @@
  *
  * Detection strategy (in priority order):
  *  1. Filename pattern matching — Zerodha uses predictable filename conventions.
- *  2. Column-header fingerprinting — scan the first ~20 rows for header labels
- *     that are unique to each report type.
+ *  2. Content fingerprinting — scan the first ~20 rows of up to 3 sheets for
+ *     tokens (header cells, sheet names, title rows) that uniquely identify
+ *     each file type. Each fingerprint is a predicate over the candidate set
+ *     so it can combine exact matches, prefix matches, and substring matches
+ *     as appropriate for that format.
  *  3. Return 'unknown' when neither strategy can reach a confident conclusion.
  *
  * The function never throws; it always returns one of the union members so
@@ -25,47 +28,123 @@ export type ZerodhaFileType =
   | 'holdings'
   | 'contract_note'
   | 'taxpnl'
+  | 'pnl'
   | 'agts'
   | 'ledger'
   | 'dividends'
   | 'unknown';
 
 // ---------------------------------------------------------------------------
-// Header fingerprints
-// Each entry lists headers that, when ALL present together, uniquely identify
-// the file type.  The arrays are deliberately minimal to remain robust against
-// Zerodha silently adding/removing columns in future exports.
+// Candidate-set helpers
+// Each helper returns true when the given token is present in the candidate
+// set using a specific matching semantic.
 // ---------------------------------------------------------------------------
 
-const FINGERPRINTS: Array<{ type: ZerodhaFileType; headers: string[] }> = [
+/** Exact lowercase match, after trimming. */
+function hasExact(candidates: Set<string>, token: string): boolean {
+  return candidates.has(token);
+}
+
+/**
+ * True when any candidate either equals `token` or starts with `token`
+ * (e.g. `'trade no'` matches `'trade no.'`, `'trade no. (nse)'`).
+ */
+function hasPrefix(candidates: Set<string>, token: string): boolean {
+  if (candidates.has(token)) return true;
+  for (const c of candidates) {
+    if (c.startsWith(token)) return true;
+  }
+  return false;
+}
+
+/** True when any candidate contains `token` as a substring. */
+function hasSubstring(candidates: Set<string>, token: string): boolean {
+  for (const c of candidates) {
+    if (c.includes(token)) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Fingerprints
+// Each entry is a predicate function over the candidate set. The first entry
+// whose predicate returns true wins, so order matters:
+//   * Stricter fingerprints MUST appear before more permissive ones.
+//   * taxpnl appears before pnl because taxpnl is a specific case of pnl.
+// ---------------------------------------------------------------------------
+
+const FINGERPRINTS: Array<{
+  type: ZerodhaFileType;
+  match: (candidates: Set<string>) => boolean;
+}> = [
   {
     type: 'tradebook',
-    headers: ['trade date', 'trade type', 'trade id', 'order id', 'order execution time'],
+    match: (c) =>
+      ['trade date', 'trade type', 'trade id', 'order id', 'order execution time'].every(
+        (h) => hasExact(c, h),
+      ),
   },
   {
     type: 'funds_statement',
-    headers: ['posting date', 'running balance', 'debit', 'credit'],
+    match: (c) =>
+      ['posting date', 'running balance', 'debit', 'credit'].every((h) =>
+        hasExact(c, h),
+      ),
   },
   {
     type: 'holdings',
-    // Actual XLSX format uses these columns
-    headers: ['quantity available', 'average price', 'previous closing price'],
+    match: (c) =>
+      ['quantity available', 'average price', 'previous closing price'].every((h) =>
+        hasExact(c, h),
+      ),
   },
   {
     type: 'contract_note',
-    // Contract notes typically include these columns; the set is conservative
-    // because the format varies between equity and F&O notes.
-    headers: ['trade no', 'order no', 'brokerage'],
+    // Zerodha contract notes have two independent signatures; either one is
+    // sufficient:
+    //
+    //   A. Title row: every CN sheet starts with the merged title cell
+    //      "CONTRACT NOTE CUM TAX INVOICE (Tax Invoice under Section 31 of
+    //      GST Act)". This is unique to CN files across the entire Zerodha
+    //      export catalogue.
+    //
+    //   B. Trade-table header row: contains columns whose headers start with
+    //      "Trade No.", "Order No.", and "Brokerage per Unit". The FY 21-22
+    //      format in particular uses trailing periods and qualifiers (e.g.
+    //      "Brokerage per Unit (Rs)") which the previous exact-match
+    //      fingerprint silently rejected — hence the prefix semantics.
+    match: (c) => {
+      if (hasSubstring(c, 'contract note cum tax invoice')) return true;
+      const hasTradeNo = hasPrefix(c, 'trade no');
+      const hasOrderNo = hasPrefix(c, 'order no');
+      const hasBrokerage = hasPrefix(c, 'brokerage per unit') || hasExact(c, 'brokerage');
+      return hasTradeNo && hasOrderNo && hasBrokerage;
+    },
   },
   {
     type: 'taxpnl',
-    // "taxable profit" and "period of holding" are unique to the Tax P&L report
-    headers: ['taxable profit', 'period of holding'],
+    // "taxable profit" and "period of holding" are unique to the Tax P&L report.
+    // MUST be checked before `pnl` below because Tax P&L XLSX files also
+    // contain "p&l statement" in their title row.
+    match: (c) => ['taxable profit', 'period of holding'].every((h) => hasExact(c, h)),
+  },
+  {
+    type: 'pnl',
+    // Generic Zerodha P&L statement — not the Tax P&L report. Signatures:
+    //   * Sheet named "Other Debits and Credits" (unique to the pnl format).
+    //   * OR title row containing "p&l statement for" (the Zerodha P&L export
+    //     title, e.g. "P&L Statement for Equity from 2021-04-01 to …").
+    // This file is informational only — the pipeline skips it because every
+    // value it carries is already derivable from the tradebook + tax P&L.
+    match: (c) => hasExact(c, 'other debits and credits') || hasSubstring(c, 'p&l statement for'),
   },
   {
     type: 'agts',
-    // The combination of buy/sell quantity + value columns is unique to AGTS
-    headers: ['buy quantity', 'buy value', 'sell quantity', 'sell value'],
+    // The combination of buy/sell quantity + value columns is unique to AGTS.
+    match: (c) =>
+      ['buy quantity', 'buy value', 'sell quantity', 'sell value'].every((h) =>
+        hasExact(c, h),
+      ),
   },
 ];
 
@@ -73,12 +152,16 @@ const FINGERPRINTS: Array<{ type: ZerodhaFileType; headers: string[] }> = [
 // Filename pattern matching
 // ---------------------------------------------------------------------------
 
+// Order matters — more specific patterns come first so e.g. `taxpnl` wins
+// over a bare `pnl` match. The `pnl` pattern is anchored to the start of the
+// filename so `taxpnl-FC9134.xlsx` can never hit it.
 const FILENAME_PATTERNS: Array<{ type: ZerodhaFileType; pattern: RegExp }> = [
   { type: 'tradebook', pattern: /tradebook/i },
   { type: 'funds_statement', pattern: /fund[s_\s-]*statement/i },
   { type: 'holdings', pattern: /holding/i },
   { type: 'contract_note', pattern: /contract[_\s-]*note/i },
   { type: 'taxpnl', pattern: /tax[_\s-]*p[&]?n[&]?l/i },
+  { type: 'pnl', pattern: /^pnl[-_]/i },
   { type: 'agts', pattern: /agts/i },
   { type: 'ledger', pattern: /ledger/i },
   { type: 'dividends', pattern: /dividend/i },
@@ -112,7 +195,8 @@ function isXlsxBuffer(buffer: Buffer): boolean {
 // ---------------------------------------------------------------------------
 // Header extraction
 // Reads at most MAX_SCAN_ROWS rows and returns a flat, deduplicated set of
-// lowercase header-like cell values found across all of them.
+// lowercase tokens (header cells, title cells, sheet names) found across all
+// scanned rows and sheets.
 // ---------------------------------------------------------------------------
 
 const MAX_SCAN_ROWS = 20;
@@ -129,13 +213,15 @@ function extractHeaderCandidates(buffer: Buffer, isXlsx: boolean): Set<string> {
         sheetRows: MAX_SCAN_ROWS,
       });
 
-      // Scan up to 3 sheets to catch multi-sheet files like taxpnl
+      // Scan up to 3 sheets to catch multi-sheet files like taxpnl and the
+      // FY 21-22 consolidated CN export (which has one sheet per trade date).
       const sheetsToScan = workbook.SheetNames.slice(0, 3);
       for (const sheetName of sheetsToScan) {
         const sheet = workbook.Sheets[sheetName];
         if (!sheet) continue;
 
-        // Also add sheet names as candidates (useful for taxpnl detection)
+        // Sheet names are useful candidates for taxpnl and the generic pnl
+        // file (which has a distinctive "Other Debits and Credits" sheet).
         candidates.add(sheetName.trim().toLowerCase());
 
         const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, {
@@ -182,8 +268,8 @@ function extractHeaderCandidates(buffer: Buffer, isXlsx: boolean): Set<string> {
 // ---------------------------------------------------------------------------
 
 function detectFromHeaders(candidates: Set<string>): ZerodhaFileType | null {
-  for (const { type, headers } of FINGERPRINTS) {
-    if (headers.every((h) => candidates.has(h))) return type;
+  for (const { type, match } of FINGERPRINTS) {
+    if (match(candidates)) return type;
   }
   return null;
 }
@@ -196,8 +282,8 @@ function detectFromHeaders(candidates: Set<string>): ZerodhaFileType | null {
  * Detect which type of Zerodha file was uploaded.
  *
  * The function first checks the filename for known patterns, then falls back
- * to scanning column headers inside the file content.  Returns `'unknown'`
- * when neither approach is conclusive.
+ * to scanning column headers, title rows, and sheet names inside the file
+ * content. Returns `'unknown'` when neither approach is conclusive.
  *
  * @param fileBuffer - Raw file bytes.
  * @param fileName   - Original filename as supplied by the uploader.

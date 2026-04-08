@@ -142,9 +142,27 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodTo,
     priorBatchId,
     purchaseMergeMode = 'same_rate',
-    classificationStrategy = TradeClassificationStrategy.STRICT_PRODUCT,
     files,
   } = input;
+
+  // Default classification strategy is derived from accountingMode so that
+  // the common path (Zerodha tradebook with no product column) succeeds
+  // without forcing the user to pick a strategy:
+  //
+  //   * investor → ASSUME_ALL_EQ_INVESTMENT — investor-mode users treat
+  //     equity holdings as investment by design, which matches Tally's
+  //     INVESTOR accounting profile. Missing-product rows become INVESTMENT.
+  //
+  //   * trader → HEURISTIC_SAME_DAY_FLAT_INTRADAY — trader-mode users care
+  //     about the intraday/delivery split, so we fall back to the heuristic
+  //     that reclassifies same-day net-flat groups as speculative.
+  //
+  // Callers can still pass an explicit strategy to override this default.
+  const classificationStrategy =
+    input.classificationStrategy ??
+    (accountingMode === 'trader'
+      ? TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY
+      : TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT);
 
   const repo = getBatchRepository();
 
@@ -203,6 +221,13 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
         const parsed = parseDividends(f.buffer, f.fileName);
         parsedFileSet.dividends = { rows: parsed.rows, metadata: parsed.metadata };
         fileIds.dividends = f.fileId;
+        break;
+      }
+      case 'pnl': {
+        // Generic Zerodha P&L statement — informational only. The pipeline
+        // derives P&L from tradebook + tax P&L, so there is nothing to parse
+        // here. We still record the detected type so the upload UI can show
+        // "not needed — safe to skip" instead of "unknown".
         break;
       }
       default:

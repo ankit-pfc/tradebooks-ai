@@ -605,8 +605,13 @@ export function contractNoteToEvents(
 
     const eventType = trade.buy_sell === 'B' ? EventType.BUY_TRADE : EventType.SELL_TRADE;
     const signedQty = eventType === EventType.BUY_TRADE ? qty : qty.negated();
+    // Standard Zerodha equity CNs do not carry a product column, so
+    // `trade.product` is usually undefined here and classification falls back
+    // to the segment/exchange + strategy heuristic. When a CN variant DOES
+    // populate the optional product field (F&O/CDS, future exports), honor
+    // it so strict classification can succeed without strategy help.
     const tradeClassification = classifyTrade(
-      undefined,
+      trade.product,
       trade.segment,
       trade.exchange,
       { strategy: classificationStrategy },

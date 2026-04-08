@@ -10,6 +10,7 @@ export const BATCH_FILE_TYPE_LABELS: Record<BatchFileType, string> = {
   holdings: 'Holdings',
   contract_note: 'Contract Note',
   taxpnl: 'Tax P&L',
+  pnl: 'P&L (not needed)',
   agts: 'AGTS',
   dividends: 'Dividends',
   unknown: 'Unknown',
@@ -21,6 +22,9 @@ export const FILE_TYPE_BADGE: Record<BatchFileType, string> = {
   holdings: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   contract_note: 'bg-violet-100 text-violet-700 border-violet-200',
   taxpnl: 'bg-orange-100 text-orange-700 border-orange-200',
+  // Detected but informational only — every value in this file is already
+  // derived from the tradebook + Tax P&L, so the pipeline safely skips it.
+  pnl: 'bg-slate-100 text-slate-600 border-slate-200',
   agts: 'bg-pink-100 text-pink-700 border-pink-200',
   dividends: 'bg-teal-100 text-teal-700 border-teal-200',
   unknown: 'bg-gray-100 text-gray-600 border-gray-200',

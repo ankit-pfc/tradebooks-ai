@@ -271,6 +271,14 @@ export interface ZerodhaContractNoteTradeRow {
   net_rate: string;
   net_total: string;
   segment: string;
+  /**
+   * Product code (e.g. "CNC", "MIS", "NRML") when the contract note variant
+   * exposes it as a column. Standard Zerodha equity CNs do NOT include a
+   * product column, but some F&O / CDS variants and future exports might;
+   * the field is plumbed through so trade classification can respect it
+   * whenever it's available.
+   */
+  product?: string;
 }
 
 export interface ZerodhaContractNoteCharges {

@@ -58,6 +58,21 @@ describe('FileUploadStatus', () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
+  it('renders the pnl-not-needed badge for the generic P&L file type', () => {
+    render(
+      <FileUploadStatus
+        {...makeProps({
+          fileName: 'pnl-FC9134.xlsx',
+          status: 'uploaded',
+          detectedType: 'pnl',
+        })}
+      />,
+    );
+    // The label communicates that this file is recognised but optional —
+    // distinct from the alarming "Unknown" badge.
+    expect(screen.getByText('P&L (not needed)')).toBeInTheDocument();
+  });
+
   it('calls onRemove when Remove button is clicked', () => {
     const onRemove = vi.fn();
     render(

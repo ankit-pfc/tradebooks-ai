@@ -271,6 +271,28 @@ describe('contractNoteToEvents', () => {
     expect(gstEvents[0].charge_amount).toBe('-1.80');
   });
 
+  it('honors trade.product when populated by a CN variant', () => {
+    // Standard Zerodha equity CNs do not carry a product column, but some
+    // variants/parsers may populate it. When present it should beat the
+    // strategy-based fallback so STRICT_PRODUCT classification can succeed.
+    const events = contractNoteToEvents(
+      [makeCnTrade({ product: 'CNC' })],
+      makeCnCharges(),
+      'batch-1',
+      'file-cn-1',
+      undefined,
+      undefined,
+      TradeClassificationStrategy.STRICT_PRODUCT,
+    );
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(1);
+    // CNC + EQ → INVESTMENT under strict classification
+    expect(tradeEvents[0].trade_classification).toBe(TradeClassification.INVESTMENT);
+  });
+
   it('skips zero-amount charge events', () => {
     const events = contractNoteToEvents(
       [makeCnTrade({ brokerage_per_unit: '0' })],

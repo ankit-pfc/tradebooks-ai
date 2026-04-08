@@ -735,12 +735,18 @@ function StepUpload({
 function StepProcessing({
   batchStatus,
   errorMessage,
+  errorCode,
   onRetry,
+  onRetryWithStrategy,
 }: {
   batchStatus: 'running' | 'failed';
   errorMessage: string | null;
+  errorCode: string | null;
   onRetry: () => void;
+  onRetryWithStrategy: (strategy: 'ASSUME_ALL_EQ_INVESTMENT' | 'HEURISTIC_SAME_DAY_FLAT_INTRADAY') => void;
 }) {
+  const isClassificationAmbiguous = errorCode === 'E_CLASSIFICATION_AMBIGUOUS';
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
@@ -780,12 +786,41 @@ function StepProcessing({
             </svg>
             <p className="text-sm text-red-700">{errorMessage ?? 'Processing failed. Please try again.'}</p>
           </div>
-          <Button
-            onClick={onRetry}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            Try Again
-          </Button>
+
+          {isClassificationAmbiguous ? (
+            <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-4">
+              <div>
+                <p className="text-sm font-semibold text-indigo-900">
+                  Choose how to classify these trades
+                </p>
+                <p className="text-xs text-indigo-800 mt-1">
+                  Your tradebook doesn’t carry the Zerodha product column
+                  (CNC/MIS/NRML), so we need a hint to decide whether each trade
+                  is an investment or a business trade.
+                </p>
+              </div>
+              <Button
+                onClick={() => onRetryWithStrategy('ASSUME_ALL_EQ_INVESTMENT')}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                Retry as Investor — treat equity as investment
+              </Button>
+              <Button
+                onClick={() => onRetryWithStrategy('HEURISTIC_SAME_DAY_FLAT_INTRADAY')}
+                variant="outline"
+                className="w-full"
+              >
+                Retry as Trader — infer intraday from same-day netoff
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={onRetry}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Try Again
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -1081,6 +1116,16 @@ export default function UploadPage() {
     }
   }, [hook]);
 
+  const handleRetryWithStrategy = useCallback(async (
+    strategy: 'ASSUME_ALL_EQ_INVESTMENT' | 'HEURISTIC_SAME_DAY_FLAT_INTRADAY',
+  ) => {
+    const result = await hook.startProcessing({ classificationStrategy: strategy });
+    if (result) {
+      setProcessingResult(result);
+      setStep(4);
+    }
+  }, [hook]);
+
   const handleReset = () => {
     hook.reset();
     setStep(1);
@@ -1137,7 +1182,9 @@ export default function UploadPage() {
             <StepProcessing
               batchStatus={hook.state.batchStatus === 'running' ? 'running' : 'failed'}
               errorMessage={hook.state.error}
+              errorCode={hook.state.errorCode}
               onRetry={handleRetryProcessing}
+              onRetryWithStrategy={handleRetryWithStrategy}
             />
           )}
           {step === 4 && processingResult && (

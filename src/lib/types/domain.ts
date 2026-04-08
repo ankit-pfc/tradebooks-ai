@@ -20,6 +20,7 @@ export type BatchFileType =
     | 'holdings'
     | 'contract_note'
     | 'taxpnl'
+    | 'pnl'
     | 'agts'
     | 'dividends'
     | 'unknown';

@@ -19,6 +19,12 @@ export interface BatchUploadState {
   batchStatus: 'idle' | 'uploading' | 'running' | 'succeeded' | 'failed';
   files: Map<string, FileUploadState>; // key: `${file.name}-${file.size}`
   error: string | null;
+  /**
+   * Structured pipeline error code from the last failed /process response,
+   * e.g. 'E_CLASSIFICATION_AMBIGUOUS'. Consumed by the upload UI to render
+   * targeted recovery actions (retry with explicit classification strategy).
+   */
+  errorCode: string | null;
 }
 
 export interface ProcessingResult {
@@ -54,7 +60,7 @@ type BatchAction =
   | { type: 'FILE_REMOVED'; key: string }
   | { type: 'PROCESSING_STARTED' }
   | { type: 'PROCESSING_SUCCEEDED' }
-  | { type: 'PROCESSING_FAILED'; errorMessage: string }
+  | { type: 'PROCESSING_FAILED'; errorMessage: string; errorCode?: string | null }
   | { type: 'BATCH_ERROR'; errorMessage: string }
   | { type: 'RESET' };
 
@@ -63,12 +69,13 @@ const initialState: BatchUploadState = {
   batchStatus: 'idle',
   files: new Map(),
   error: null,
+  errorCode: null,
 };
 
 function reducer(state: BatchUploadState, action: BatchAction): BatchUploadState {
   switch (action.type) {
     case 'BATCH_CREATED':
-      return { ...state, batchId: action.batchId, batchStatus: 'uploading', error: null };
+      return { ...state, batchId: action.batchId, batchStatus: 'uploading', error: null, errorCode: null };
 
     case 'FILE_ADDED': {
       // Skip if key already exists (duplicate drop)
@@ -123,13 +130,18 @@ function reducer(state: BatchUploadState, action: BatchAction): BatchUploadState
     }
 
     case 'PROCESSING_STARTED':
-      return { ...state, batchStatus: 'running', error: null };
+      return { ...state, batchStatus: 'running', error: null, errorCode: null };
 
     case 'PROCESSING_SUCCEEDED':
       return { ...state, batchStatus: 'succeeded' };
 
     case 'PROCESSING_FAILED':
-      return { ...state, batchStatus: 'failed', error: action.errorMessage };
+      return {
+        ...state,
+        batchStatus: 'failed',
+        error: action.errorMessage,
+        errorCode: action.errorCode ?? null,
+      };
 
     case 'BATCH_ERROR':
       return { ...state, error: action.errorMessage };
@@ -328,17 +340,28 @@ export function useBatchUpload() {
     }
   }, []);
 
-  const startProcessing = useCallback(async (): Promise<ProcessingResult | null> => {
+  const startProcessing = useCallback(async (
+    options?: { classificationStrategy?: string },
+  ): Promise<ProcessingResult | null> => {
     const { batchId, batchStatus } = stateRef.current;
-    if (!batchId || batchStatus !== 'uploading') return null;
+    // Allow launching from 'uploading' (first attempt) and 'failed' (retry
+    // after a processing error, including retry-with-strategy for the
+    // E_CLASSIFICATION_AMBIGUOUS recovery flow).
+    if (!batchId || (batchStatus !== 'uploading' && batchStatus !== 'failed')) {
+      return null;
+    }
 
     dispatch({ type: 'PROCESSING_STARTED' });
 
     try {
+      const body: Record<string, unknown> = { purchaseMergeMode: 'same_rate' };
+      if (options?.classificationStrategy) {
+        body.classificationStrategy = options.classificationStrategy;
+      }
       const res = await fetch(`/api/batches/${batchId}/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseMergeMode: 'same_rate' }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
 
@@ -346,6 +369,7 @@ export function useBatchUpload() {
         dispatch({
           type: 'PROCESSING_FAILED',
           errorMessage: data.error ?? 'Processing failed',
+          errorCode: typeof data.code === 'string' ? data.code : null,
         });
         return null;
       }

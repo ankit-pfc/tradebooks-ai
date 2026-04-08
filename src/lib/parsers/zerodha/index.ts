@@ -176,6 +176,16 @@ export function parseZerodhaFile(
           `File "${fileName}" was detected as a standalone dividends file.`
       );
 
+    case 'pnl':
+      // Generic Zerodha P&L statement — informational only. The pipeline
+      // skips it because every value it carries is already derived from the
+      // tradebook + Tax P&L. We surface a clear message rather than parsing.
+      throw new Error(
+        `Generic P&L statement detected for "${fileName}". This file is not ` +
+          `needed by the pipeline — every value it contains is already derived ` +
+          `from the tradebook and Tax P&L. Upload the Tax P&L instead.`
+      );
+
     case 'unknown':
       throw new Error(
         `Unable to determine the file type for "${fileName}". ` +
