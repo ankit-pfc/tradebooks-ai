@@ -730,22 +730,248 @@ function StepUpload({
   );
 }
 
+// ─── Corporate Action declaration ─────────────────────────────────────────────
+
+/**
+ * Parse a `disposeLots (FIFO): sell quantity exceeds open lots for <id>` error
+ * message into its security_id. Returns null when the error is not of the
+ * expected shape (e.g. a different pipeline error).
+ */
+function extractSecurityIdFromDisposeError(message: string | null): string | null {
+  if (!message) return null;
+  const match = message.match(/exceeds open lots for ([^.\s]+)/i);
+  return match ? match[1].trim() : null;
+}
+
+type CorporateActionType = 'BONUS' | 'STOCK_SPLIT' | 'RIGHTS_ISSUE' | 'MERGER_DEMERGER';
+
+function CorporateActionForm({
+  batchId,
+  initialSecurityId,
+  onSubmitted,
+}: {
+  batchId: string;
+  initialSecurityId: string;
+  onSubmitted: () => void;
+}) {
+  const [actionType, setActionType] = useState<CorporateActionType>('STOCK_SPLIT');
+  const [securityId, setSecurityId] = useState(initialSecurityId);
+  const [newSecurityId, setNewSecurityId] = useState('');
+  const [actionDate, setActionDate] = useState('');
+  const [ratioNum, setRatioNum] = useState('');
+  const [ratioDen, setRatioDen] = useState('1');
+  const [costPerShare, setCostPerShare] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Ratio guide per action type — shown inline to orient the user.
+  const RATIO_HINTS: Record<CorporateActionType, string> = {
+    BONUS: 'e.g. 1:1 bonus → numerator 2, denominator 1 (total qty doubles)',
+    STOCK_SPLIT: 'e.g. 1:5 face-value split → numerator 5, denominator 1 (qty × 5)',
+    RIGHTS_ISSUE: 'e.g. 1 right for every 5 held → numerator 1, denominator 5',
+    MERGER_DEMERGER: 'ratio of new shares received per old share held',
+  };
+
+  const requiresNewIsin = actionType === 'MERGER_DEMERGER' || actionType === 'STOCK_SPLIT';
+  const requiresCost = actionType === 'RIGHTS_ISSUE';
+
+  const handleSubmit = async () => {
+    setFormError(null);
+
+    if (!securityId.trim() || !actionDate || !ratioNum || !ratioDen) {
+      setFormError('Fill in security ID, date, and ratio.');
+      return;
+    }
+    if (requiresCost && !costPerShare) {
+      setFormError('Rights issue requires cost per share.');
+      return;
+    }
+    if (actionType === 'MERGER_DEMERGER' && !newSecurityId.trim()) {
+      setFormError('Merger requires a new security ID.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Fetch existing actions first so we append rather than overwrite.
+      // The API contract is "POST replaces the full list" — keep older
+      // declarations intact when the user adds another one.
+      const existingRes = await fetch(`/api/batches/${batchId}/corporate-actions`);
+      const existing = existingRes.ok
+        ? (await existingRes.json()).corporate_actions ?? []
+        : [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newAction: Record<string, any> = {
+        action_type: actionType,
+        security_id: securityId.trim(),
+        action_date: actionDate,
+        ratio_numerator: ratioNum,
+        ratio_denominator: ratioDen,
+      };
+      if (newSecurityId.trim()) newAction.new_security_id = newSecurityId.trim();
+      if (costPerShare) newAction.cost_per_share = costPerShare;
+      if (notes.trim()) newAction.notes = notes.trim();
+
+      const res = await fetch(`/api/batches/${batchId}/corporate-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ corporate_actions: [...existing, newAction] }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Save failed (${res.status})`);
+      }
+      onSubmitted();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to save corporate action');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-4">
+      <div>
+        <p className="text-sm font-semibold text-indigo-900">
+          Declare a corporate action
+        </p>
+        <p className="text-xs text-indigo-800 mt-1">
+          This scrip likely had a bonus, split, rights issue, or merger that
+          changed the quantity or ISIN. Declare it and retry so the pipeline
+          can migrate cost lots.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs text-indigo-900">Action type</Label>
+        <select
+          value={actionType}
+          onChange={(e) => setActionType(e.target.value as CorporateActionType)}
+          className="w-full rounded border border-indigo-200 bg-white px-2 py-1.5 text-sm"
+        >
+          <option value="STOCK_SPLIT">Stock split (face value change)</option>
+          <option value="BONUS">Bonus issue</option>
+          <option value="RIGHTS_ISSUE">Rights issue</option>
+          <option value="MERGER_DEMERGER">Merger / demerger</option>
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-xs text-indigo-900">Security ID (old)</Label>
+        <Input
+          value={securityId}
+          onChange={(e) => setSecurityId(e.target.value)}
+          placeholder="ISIN:INE123A01036"
+          className="text-sm"
+        />
+      </div>
+
+      {requiresNewIsin && (
+        <div className="space-y-2">
+          <Label className="text-xs text-indigo-900">
+            New security ID {actionType === 'STOCK_SPLIT' ? '(only if ISIN changed)' : ''}
+          </Label>
+          <Input
+            value={newSecurityId}
+            onChange={(e) => setNewSecurityId(e.target.value)}
+            placeholder="ISIN:INE123A01028"
+            className="text-sm"
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label className="text-xs text-indigo-900">Action date</Label>
+        <Input
+          type="date"
+          value={actionDate}
+          onChange={(e) => setActionDate(e.target.value)}
+          className="text-sm"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
+          <Label className="text-xs text-indigo-900">Ratio numerator</Label>
+          <Input
+            value={ratioNum}
+            onChange={(e) => setRatioNum(e.target.value)}
+            placeholder="5"
+            className="text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-indigo-900">Ratio denominator</Label>
+          <Input
+            value={ratioDen}
+            onChange={(e) => setRatioDen(e.target.value)}
+            placeholder="1"
+            className="text-sm"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-indigo-700">{RATIO_HINTS[actionType]}</p>
+
+      {requiresCost && (
+        <div className="space-y-2">
+          <Label className="text-xs text-indigo-900">Cost per share</Label>
+          <Input
+            value={costPerShare}
+            onChange={(e) => setCostPerShare(e.target.value)}
+            placeholder="100"
+            className="text-sm"
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label className="text-xs text-indigo-900">Notes (optional)</Label>
+        <Input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. IRCTC 1:5 face value split"
+          className="text-sm"
+        />
+      </div>
+
+      {formError && (
+        <p className="text-xs text-red-700">{formError}</p>
+      )}
+
+      <Button
+        onClick={handleSubmit}
+        disabled={submitting}
+        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+      >
+        {submitting ? 'Saving…' : 'Save and retry processing'}
+      </Button>
+    </div>
+  );
+}
+
 // ─── Step 3: Processing ───────────────────────────────────────────────────────
 
 function StepProcessing({
   batchStatus,
   errorMessage,
   errorCode,
+  batchId,
   onRetry,
   onRetryWithStrategy,
 }: {
   batchStatus: 'running' | 'failed';
   errorMessage: string | null;
   errorCode: string | null;
+  batchId: string | null;
   onRetry: () => void;
   onRetryWithStrategy: (strategy: 'ASSUME_ALL_EQ_INVESTMENT' | 'HEURISTIC_SAME_DAY_FLAT_INTRADAY') => void;
 }) {
   const isClassificationAmbiguous = errorCode === 'E_CLASSIFICATION_AMBIGUOUS';
+  const disposeLotsSecurityId = extractSecurityIdFromDisposeError(errorMessage);
+  const isDisposeLotsError = disposeLotsSecurityId !== null && batchId !== null;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -813,6 +1039,21 @@ function StepProcessing({
                 Retry as Trader — infer intraday from same-day netoff
               </Button>
             </div>
+          ) : isDisposeLotsError ? (
+            <>
+              <CorporateActionForm
+                batchId={batchId!}
+                initialSecurityId={disposeLotsSecurityId!}
+                onSubmitted={onRetry}
+              />
+              <Button
+                onClick={onRetry}
+                variant="outline"
+                className="w-full"
+              >
+                Retry without declaring
+              </Button>
+            </>
           ) : (
             <Button
               onClick={onRetry}
@@ -1183,6 +1424,7 @@ export default function UploadPage() {
               batchStatus={hook.state.batchStatus === 'running' ? 'running' : 'failed'}
               errorMessage={hook.state.error}
               errorCode={hook.state.errorCode}
+              batchId={hook.state.batchId}
               onRetry={handleRetryProcessing}
               onRetryWithStrategy={handleRetryWithStrategy}
             />

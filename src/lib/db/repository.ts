@@ -10,6 +10,7 @@ import type {
     UploadBatchRequest,
 } from '@/lib/types';
 import type { CostLot } from '@/lib/types/events';
+import type { CorporateActionInput } from '@/lib/parsers/zerodha/types';
 
 /**
  * Input used to create a new batch record.
@@ -68,6 +69,14 @@ export interface BatchRepository {
     saveClosingLots(batchId: string, snapshot: Record<string, CostLot[]>): Promise<void>;
     getClosingLots(batchId: string): Promise<Record<string, CostLot[]> | null>;
     listPriorBatches(userId: string, companyName: string): Promise<BatchRecord[]>;
+
+    // Corporate actions (user-declared bonus/split/rights/merger)
+    //
+    // Overwrites the entire list on each save — callers should pass the full
+    // set. Read back as-is for pipeline consumption. Returns empty array when
+    // none are declared.
+    saveCorporateActions(batchId: string, actions: CorporateActionInput[]): Promise<void>;
+    getCorporateActions(batchId: string): Promise<CorporateActionInput[]>;
 
     // Per-file lifecycle management (Sprint 1 — robust uploads)
     updateFileStatus(

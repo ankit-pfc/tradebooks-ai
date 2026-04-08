@@ -34,6 +34,7 @@ import type {
   ZerodhaContractNoteCharges,
   ZerodhaDividendRow,
   ParseMetadata,
+  CorporateActionInput,
 } from '@/lib/parsers/zerodha/types';
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,17 @@ export interface PipelineInput {
   priorBatchId?: string;
   purchaseMergeMode?: PurchaseMergeMode;
   classificationStrategy?: TradeClassificationStrategy;
+  /**
+   * Manually-declared corporate actions (bonus, split, rights, merger/demerger).
+   *
+   * These are not parsed from Zerodha exports — users declare them via the
+   * /api/batches/[batchId]/corporate-actions route when the processing
+   * pipeline throws a `disposeLots` error on a scrip that underwent a
+   * ratio change (e.g. face-value split with ISIN change). The processing
+   * route re-reads persisted CAs from the batch record before invoking
+   * the pipeline, so reprocessing a batch picks them up automatically.
+   */
+  corporateActions?: CorporateActionInput[];
   files: PipelineFileInput[];
 }
 
@@ -142,6 +154,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodTo,
     priorBatchId,
     purchaseMergeMode = 'same_rate',
+    corporateActions = [],
     files,
   } = input;
 
@@ -173,6 +186,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     fundsStatement?: string;
     contractNote?: string;
     dividends?: string;
+    corporateActions?: string;
   } = {};
 
   for (const f of files) {
@@ -250,9 +264,15 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     fundsRows: parsedFileSet.fundsStatement?.rows,
     contractNoteSheets: parsedFileSet.contractNote?.sheets,
     dividendRows: parsedFileSet.dividends?.rows,
+    corporateActions,
     contractNoteSymbolByDescription,
     batchId,
-    fileIds,
+    fileIds: {
+      ...fileIds,
+      // Corporate actions are user-declared, not file-derived — use a stable
+      // sentinel so source_file_id is non-null on the resulting events.
+      corporateActions: 'manual:corporate_actions',
+    },
     classificationStrategy,
     deterministicIds: true,
   });

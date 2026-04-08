@@ -1,0 +1,27 @@
+-- Corporate actions: user-declared bonus/split/rights/merger inputs per batch.
+--
+-- These are not parsed from Zerodha exports — the user declares them when
+-- reprocessing fails with a `disposeLots (FIFO): sell quantity exceeds open
+-- lots` error on a scrip that underwent a quantity ratio change (e.g. face
+-- value split with ISIN change).
+--
+-- Stored as JSONB on the batch for the same reason closing_lots_snapshot is:
+-- the data is strictly scoped to its parent batch, is read as a unit by the
+-- processing pipeline, and has no normalized queries outside that flow.
+--
+-- Shape (array of objects matching CorporateActionInput in src/lib/parsers/zerodha/types.ts):
+--   [
+--     {
+--       "action_type": "STOCK_SPLIT",
+--       "security_id": "ISIN:INE335Y01012",
+--       "new_security_id": "ISIN:INE335Y01020",
+--       "action_date": "2021-10-28",
+--       "ratio_numerator": "5",
+--       "ratio_denominator": "1",
+--       "cost_per_share": null,
+--       "notes": "IRCTC face value split 10 → 2"
+--     },
+--     ...
+--   ]
+ALTER TABLE public.batches
+  ADD COLUMN IF NOT EXISTS corporate_actions jsonb NOT NULL DEFAULT '[]'::jsonb;

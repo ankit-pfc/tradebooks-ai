@@ -10,10 +10,12 @@ import type {
     BatchRecord,
 } from '@/lib/types';
 import type { CostLot } from '@/lib/types/events';
+import type { CorporateActionInput } from '@/lib/parsers/zerodha/types';
 
 type PersistedBatch = BatchDetail & {
     uploaded_file_paths: Record<string, string>;
     closing_lots_snapshot?: Record<string, CostLot[]> | null;
+    corporate_actions?: CorporateActionInput[];
 };
 
 interface AppState {
@@ -76,6 +78,7 @@ export async function createBatch(input: {
         processing_result: null,
         uploaded_file_paths: {},
         closing_lots_snapshot: null,
+        corporate_actions: [],
     };
     state.batches.unshift(batch);
     await writeState(state);
@@ -95,7 +98,7 @@ export async function getBatch(batchId: string): Promise<PersistedBatch | null> 
 }
 
 export function toPublicBatchDetail(batch: PersistedBatch): BatchDetail {
-    const { uploaded_file_paths: _u, ...rest } = batch;
+    const { uploaded_file_paths: _u, corporate_actions: _ca, closing_lots_snapshot: _c, ...rest } = batch;
     return rest;
 }
 
@@ -267,5 +270,31 @@ export async function listPriorBatches(
                 b.status === 'succeeded',
         )
         .sort((a, b) => b.period_to.localeCompare(a.period_to))
-        .map(({ uploaded_file_paths: _u, closing_lots_snapshot: _c, ...rest }) => rest);
+        .map(({
+            uploaded_file_paths: _u,
+            closing_lots_snapshot: _c,
+            corporate_actions: _ca,
+            ...rest
+        }) => rest);
+}
+
+export async function saveCorporateActions(
+    batchId: string,
+    actions: CorporateActionInput[],
+): Promise<void> {
+    const state = await readState();
+    const batch = state.batches.find((b) => b.id === batchId);
+    if (!batch) return;
+    batch.corporate_actions = actions;
+    batch.updated_at = new Date().toISOString();
+    await writeState(state);
+}
+
+export async function getCorporateActions(
+    batchId: string,
+): Promise<CorporateActionInput[]> {
+    const state = await readState();
+    const batch = state.batches.find((b) => b.id === batchId);
+    if (!batch) return [];
+    return batch.corporate_actions ?? [];
 }

@@ -1268,12 +1268,25 @@ export function buildVouchers(
         // Lot adjustment only — no journal entry.
         // Both bonus and split preserve total cost: qty multiplied, unit cost divided
         // by the same factor. costDivisor defaults to quantityMultiplier.
+        //
+        // When the corporate action changes the ISIN (e.g. IRCTC's 1:5 split
+        // migrated INE335Y01012 → INE335Y01020 on face-value change), the
+        // CorporateActionInput stores the new security_id in `external_ref`.
+        // We forward it as `newSecurityId` so lots are migrated to the new
+        // key and post-split sells find their matching opening position.
+        // When external_ref is absent (typical split with no ISIN change),
+        // adjustLots leaves lots on the existing security_id.
         const ratio = new Decimal(event.rate);
         if (event.security_id) {
+          const newSecurityId =
+            event.external_ref && event.external_ref !== event.security_id
+              ? event.external_ref
+              : undefined;
           costTracker.adjustLots({
             securityId: event.security_id,
             quantityMultiplier: ratio,
             // costDivisor defaults to ratio → total cost preserved
+            newSecurityId,
             preserveAcquisitionDate: true,
           });
         }

@@ -22,6 +22,8 @@ const mockRepo = {
     saveClosingLots: vi.fn().mockResolvedValue(undefined),
     getClosingLots: vi.fn().mockResolvedValue(null),
     listPriorBatches: vi.fn(),
+    saveCorporateActions: vi.fn().mockResolvedValue(undefined),
+    getCorporateActions: vi.fn().mockResolvedValue([]),
     updateFileStatus: vi.fn(),
     getFilesByBatch: vi.fn(),
     deleteFile: vi.fn(),
@@ -316,5 +318,72 @@ describe('runProcessingPipeline — matchResult present with real fixture', () =
         expect(result.matchResult).toBeUndefined();
         // Tradebook file shows up in filesSummary
         expect(result.filesSummary[0].detectedType).toBe('tradebook');
+    });
+});
+
+describe('runProcessingPipeline — corporate actions', () => {
+    // A tradebook where the buy uses the pre-split ISIN and the sell uses the
+    // post-split ISIN after a 1:5 face-value split. Without a declared
+    // STOCK_SPLIT corporate action, the sell would throw
+    // "sell quantity exceeds open lots" because cost lots stay keyed to the
+    // old ISIN. With the corporate action, lots migrate to the new ISIN and
+    // the sell resolves cleanly.
+    const splitScenarioTradebook = Buffer.from([
+        'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+        '2024-05-12,NSE,EQ,SPLITCO,INE111A01012,BUY,10,4200.00,CNC,T200,ORD200,09:15:00',
+        '2024-11-12,NSE,EQ,SPLITCO,INE111A01020,SELL,50,857.15,CNC,T201,ORD201,09:15:00',
+    ].join('\n'));
+
+    it('throws without corporate action when ISIN changes across a split', async () => {
+        let caught: unknown;
+        try {
+            await runProcessingPipeline({
+                ...BASE_INPUT,
+                batchId: 'batch-split-fail',
+                files: [
+                    {
+                        fileId: 'file-split-001',
+                        fileName: 'tradebook-split.csv',
+                        buffer: splitScenarioTradebook,
+                        mimeType: 'text/csv',
+                    },
+                ],
+            });
+        } catch (err) {
+            caught = err;
+        }
+        expect(caught).toBeInstanceOf(Error);
+        expect((caught as Error).message).toMatch(/exceeds open lots/);
+        expect((caught as Error).message).toMatch(/INE111A01020/);
+    });
+
+    it('migrates lots and balances when STOCK_SPLIT corporate action is declared', async () => {
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-split-ok',
+            corporateActions: [
+                {
+                    action_type: 'STOCK_SPLIT',
+                    security_id: 'ISIN:INE111A01012',
+                    new_security_id: 'ISIN:INE111A01020',
+                    action_date: '2024-10-28',
+                    ratio_numerator: '5',
+                    ratio_denominator: '1',
+                    notes: 'Face value split 10 → 2',
+                },
+            ],
+            files: [
+                {
+                    fileId: 'file-split-002',
+                    fileName: 'tradebook-split.csv',
+                    buffer: splitScenarioTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.voucherCount).toBeGreaterThan(0);
+        // 2 trade events + 1 corporate action event (at minimum)
+        expect(result.eventCount).toBeGreaterThanOrEqual(3);
     });
 });

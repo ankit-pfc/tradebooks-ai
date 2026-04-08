@@ -15,6 +15,7 @@ import type {
     BatchRecord,
 } from '@/lib/types';
 import type { CostLot } from '@/lib/types/events';
+import type { CorporateActionInput } from '@/lib/parsers/zerodha/types';
 
 const SIGNED_URL_EXPIRY_SECONDS = 3600; // 1 hour
 const DASHBOARD_RECENT_LIMIT = 10;
@@ -302,6 +303,39 @@ export const supabaseBatchRepository: BatchRepository = {
 
         if (error) throw new Error(`listPriorBatches failed: ${error.message}`);
         return (data ?? []).map(rowToBatchRecord);
+    },
+
+    async saveCorporateActions(batchId: string, actions: CorporateActionInput[]) {
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('batches')
+            .update({
+                corporate_actions: actions,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', batchId);
+
+        if (error) throw new Error(`saveCorporateActions failed: ${error.message}`);
+    },
+
+    async getCorporateActions(batchId: string): Promise<CorporateActionInput[]> {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('batches')
+            .select('corporate_actions')
+            .eq('id', batchId)
+            .single();
+
+        if (error) {
+            // PGRST116 = "row not found"; any other error (notably PGRST204
+            // "column missing") likely means the `corporate_actions` migration
+            // has not been applied. Surface that rather than silently dropping
+            // declared actions on the floor during reprocessing.
+            if (error.code === 'PGRST116') return [];
+            throw new Error(`getCorporateActions failed: ${error.message}`);
+        }
+        if (!data) return [];
+        return (data.corporate_actions as CorporateActionInput[]) ?? [];
     },
 
     async updateFileStatus(fileId, status, errorMessage) {

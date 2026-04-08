@@ -6,12 +6,14 @@ import {
     findDuplicateFile as localFindDuplicateFile,
     getBatch,
     getClosingLots as localGetClosingLots,
+    getCorporateActions as localGetCorporateActions,
     getFilesByBatch as localGetFilesByBatch,
     getUploadedFilePath,
     listBatches,
     listExceptions,
     listPriorBatches as localListPriorBatches,
     saveClosingLots as localSaveClosingLots,
+    saveCorporateActions as localSaveCorporateActions,
     saveProcessingOutcome,
     setBatchStatus,
     toPublicBatchDetail,
@@ -80,6 +82,14 @@ const localBatchRepository: BatchRepository = {
 
     async listPriorBatches(userId, companyName) {
         return localListPriorBatches(userId, companyName);
+    },
+
+    async saveCorporateActions(batchId, actions) {
+        await localSaveCorporateActions(batchId, actions);
+    },
+
+    async getCorporateActions(batchId) {
+        return localGetCorporateActions(batchId);
     },
 
     async updateFileStatus(fileId, status, errorMessage) {

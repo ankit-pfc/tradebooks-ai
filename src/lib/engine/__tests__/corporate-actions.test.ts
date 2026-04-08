@@ -321,6 +321,86 @@ describe('buildVouchers corporate action integration', () => {
     }
   });
 
+  it('buy (old ISIN) + split with ISIN change + sell (new ISIN): lots migrate', () => {
+    // Real-world case: IRCTC did a 1:5 face-value split in Oct 2021,
+    // changing the ISIN from INE335Y01012 → INE335Y01020. Users who held
+    // the old ISIN and sold after the split under the new ISIN would hit
+    // disposeLots("sell exceeds open lots") because lots stayed keyed to
+    // the old ISIN. external_ref on the split event carries the new
+    // security_id so the voucher builder can migrate lots.
+    const buyEvent = makeEvent({
+      event_type: EventType.BUY_TRADE,
+      event_date: '2021-05-12',
+      security_id: 'ISIN:INE335Y01012',
+      quantity: '10',
+      rate: '4200',
+      gross_amount: '42000.00',
+    });
+
+    const splitEvent = makeEvent({
+      event_type: EventType.STOCK_SPLIT,
+      event_date: '2021-10-28',
+      security_id: 'ISIN:INE335Y01012',
+      // external_ref holds the new security_id (as set by corporateActionToEvents
+      // when CorporateActionInput.new_security_id is provided).
+      external_ref: 'ISIN:INE335Y01020',
+      quantity: '0',
+      rate: '5', // quantityMultiplier = 5 (1:5 split)
+      gross_amount: '0',
+    });
+
+    const sellEvent = makeEvent({
+      event_type: EventType.SELL_TRADE,
+      event_date: '2021-11-12',
+      security_id: 'ISIN:INE335Y01020',
+      quantity: '-50', // 10 old × 5 = 50 new
+      rate: '857.15',
+      gross_amount: '42857.50',
+    });
+
+    const tracker = new CostLotTracker();
+    const vouchers = buildVouchers(
+      [buyEvent, splitEvent, sellEvent],
+      DEFAULT_PROFILE,
+      tracker,
+    );
+
+    // buy + sell vouchers; split produces no voucher
+    expect(vouchers).toHaveLength(2);
+    for (const v of vouchers) {
+      expect(v.total_debit).toBe(v.total_credit);
+    }
+    // Old ISIN is empty; new ISIN is empty (sold all 50)
+    expect(tracker.getOpenLots('ISIN:INE335Y01012')).toHaveLength(0);
+    expect(tracker.getOpenLots('ISIN:INE335Y01020')).toHaveLength(0);
+  });
+
+  it('split without ISIN change does not migrate lots (external_ref same as security_id)', () => {
+    const buyEvent = makeEvent({
+      event_type: EventType.BUY_TRADE,
+      event_date: '2025-01-01',
+      security_id: 'ISIN:INE001A01036',
+      quantity: '100',
+      rate: '500',
+    });
+
+    // Same security_id on both sides — adjustLots should not try to transfer
+    const splitEvent = makeEvent({
+      event_type: EventType.STOCK_SPLIT,
+      event_date: '2025-06-01',
+      security_id: 'ISIN:INE001A01036',
+      external_ref: 'ISIN:INE001A01036',
+      rate: '2',
+    });
+
+    const tracker = new CostLotTracker();
+    buildVouchers([buyEvent, splitEvent], DEFAULT_PROFILE, tracker);
+
+    const lots = tracker.getOpenLots('ISIN:INE001A01036');
+    expect(lots).toHaveLength(1);
+    expect(lots[0].open_quantity).toBe('200');
+  });
+
   it('buy + split + sell: cost basis reflects split adjustment', () => {
     // Buy 100 shares at Rs.500 each
     const buyEvent = makeEvent({

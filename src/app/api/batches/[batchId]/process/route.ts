@@ -114,6 +114,12 @@ export async function POST(
       }),
     );
 
+    // Load any user-declared corporate actions for this batch. These are
+    // persisted via /api/batches/[batchId]/corporate-actions and consumed on
+    // every (re-)processing run so the user can declare an action, reprocess,
+    // and watch the pipeline migrate cost lots accordingly.
+    const corporateActions = await repo.getCorporateActions(batchId);
+
     let result;
     try {
       result = await runProcessingPipeline({
@@ -126,6 +132,7 @@ export async function POST(
         priorBatchId: batch.prior_batch_id ?? undefined,
         purchaseMergeMode,
         classificationStrategy,
+        corporateActions,
         files: pipelineFiles,
       });
     } catch (pipelineErr) {
