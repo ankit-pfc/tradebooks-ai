@@ -89,13 +89,19 @@ describe('buildSecurityIdFromDescription', () => {
       .toBe('BSE:INFY');
   });
 
-  it('correctly handles XML instrument_id descriptions (exchange prefix already stripped)', () => {
+  it('extracts ISIN from description even without an explicit segment', () => {
     // XML contract notes use "NSE:BOSCHLTD - EQ / ISIN..." as instrument_id.
-    // The XML parser strips the "NSE:" prefix before passing to security_description,
-    // so this function receives "BOSCHLTD - EQ / ISIN..." and must return "NSE:BOSCHLTD".
-    // Without the strip, the raw instrument_id would yield "NSE:NSE:BOSCHLTD".
+    // The XML parser strips the "NSE:" prefix before passing to
+    // security_description, so this function receives "BOSCHLTD - EQ / ISIN…".
+    //
+    // ISIN extraction is now unconditional — historically it was gated on an
+    // equity segment, but that gate caused FY21-22 XLSX CN rows (which use
+    // exchange-qualified segment markers like "NSE-EQ - Z" that the old
+    // SEGMENT_MARKERS set did not recognise) to fall through to a broken
+    // EXCHANGE:SYMBOL path. Preferring any embedded Indian ISIN regardless of
+    // segment makes the resolver robust to segment-marker drift.
     expect(buildSecurityIdFromDescription('NSE', 'BOSCHLTD - EQ / INE323A01026'))
-      .toBe('NSE:BOSCHLTD');
+      .toBe('ISIN:INE323A01026');
   });
 
   it('uses ISIN from description for equity segment when ISIN is present', () => {
@@ -122,6 +128,35 @@ describe('buildSecurityIdFromDescription', () => {
     // US ISINs should not be extracted — we only handle Indian securities
     expect(buildSecurityIdFromDescription('NSE', 'APPLE - EQ / US0378331005', 'EQ'))
       .toBe('EQ:APPLE');
+  });
+
+  // -------------------------------------------------------------------------
+  // FY21-22 XLSX CN layout — explicit ISIN column (the regression fix)
+  // -------------------------------------------------------------------------
+
+  it('prefers explicit ISIN parameter over exchange:symbol (FY21-22 layout)', () => {
+    // FY21-22 XLSX CN has no "Exchange" column and the security description
+    // is just the symbol ("HEG") with no ISIN embedded. The explicit ISIN
+    // column value must win so buys and sells across different gross rates
+    // collapse to the same FIFO bucket.
+    expect(buildSecurityIdFromDescription('', 'HEG', 'Equity', undefined, 'INE545A01016'))
+      .toBe('ISIN:INE545A01016');
+  });
+
+  it('ignores malformed explicit ISIN and falls back correctly', () => {
+    // A stray non-ISIN value in the explicit field should not corrupt the
+    // security_id — we only trust values matching /^IN[A-Z0-9]{10}$/i.
+    expect(buildSecurityIdFromDescription('NSE', 'HEG', 'Equity', undefined, 'not-an-isin'))
+      .toBe('EQ:HEG');
+  });
+
+  it('different gross rates for same scrip still share one security_id when explicit ISIN is passed', () => {
+    // This is the exact regression the FY21-22 fix targets: HEG bought at
+    // ₹1580 and later sold at ₹1612 must converge on the same lot queue.
+    const buyId = buildSecurityIdFromDescription('', 'HEG', 'Equity', undefined, 'INE545A01016');
+    const sellId = buildSecurityIdFromDescription('', 'HEG', 'Equity', undefined, 'INE545A01016');
+    expect(buyId).toBe(sellId);
+    expect(buyId).toBe('ISIN:INE545A01016');
   });
 });
 

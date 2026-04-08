@@ -493,39 +493,57 @@ export function extractCleanSymbolFromCnDescription(description: string): string
   return firstToken;
 }
 
+/** True when `value` looks like a valid Indian ISIN (country code IN + 10 alnum). */
+function isValidIsinLike(value: string): boolean {
+  return /^IN[A-Z0-9]{10}$/i.test(value);
+}
+
 /**
  * Build a security_id from a contract-note security description.
  * Contract notes use full names like "RELIANCE INDUSTRIES LTD" while
  * tradebooks use symbols like "RELIANCE".
  *
- * For equity segments, prefers ISIN (extracted from description or passed
- * explicitly) to ensure cross-exchange fungibility with tradebook events.
- * Falls back to EQ:SYMBOL when ISIN is unavailable.
+ * Resolution order (most-to-least preferred):
+ *   1. `explicitIsin` — the FY21-22 XLSX CN layout exposes ISIN as its own
+ *      column; use it verbatim so segment-marker detection bugs cannot
+ *      corrupt the security_id. Trusted because it is structured data.
+ *   2. ISIN extracted from the description — the newer PDF/XML CN layout
+ *      embeds the ISIN inside the security description ("SYMBOL - EQ / INE…").
+ *   3. EXCHANGE:SYMBOL fallback — only reached when no ISIN is available.
  *
- * Non-equity segments keep EXCHANGE:SYMBOL.
+ * Historically the ISIN lookup was gated on `isEquitySegment(segment)`, but
+ * the FY21-22 XLSX layout uses exchange-qualified segment markers that the
+ * previous `SEGMENT_MARKERS` check did not recognise. Combined with the
+ * layout's missing Exchange column, that bug produced malformed security
+ * IDs like "1612.0:HEG" (price value read as exchange). Preferring the
+ * explicit-ISIN column unconditionally eliminates that entire failure mode.
  */
 export function buildSecurityIdFromDescription(
   exchange: string,
   description: string,
   segment?: string,
   symbolByDescription?: ReadonlyMap<string, string>,
+  explicitIsin?: string | null,
 ): string {
   const cleaned = description.trim().toUpperCase();
-  const isEquity = segment ? isEquitySegment(segment) : false;
 
-  // For equity, try ISIN first — it's the most reliable cross-exchange key.
-  if (isEquity) {
-    const isin = extractIsinFromDescription(cleaned);
-    if (isin) {
-      return `ISIN:${isin}`;
-    }
+  // 1. Explicit ISIN column (FY21-22 XLSX CN layout).
+  const trimmedExplicit = explicitIsin?.trim().toUpperCase() ?? '';
+  if (trimmedExplicit && isValidIsinLike(trimmedExplicit)) {
+    return `ISIN:${trimmedExplicit}`;
   }
 
+  // 2. ISIN embedded in the description (PDF/XML CN layout).
+  const isinFromDesc = extractIsinFromDescription(cleaned);
+  if (isinFromDesc) {
+    return `ISIN:${isinFromDesc}`;
+  }
+
+  // 3. Fall back to the legacy EXCHANGE:SYMBOL (or EQ:SYMBOL) form.
   const mappedSymbol = symbolByDescription?.get(cleaned);
   if (mappedSymbol) {
     return buildSecurityId(exchange, mappedSymbol, segment);
   }
-  // Use the first word as the symbol approximation
   const firstWord = cleaned.split(/\s+/)[0] || cleaned;
   return buildSecurityId(exchange, firstWord, segment);
 }
@@ -550,7 +568,13 @@ export function buildIsinSymbolMap(opts: {
   const map = new Map<string, string>();
   for (const sheet of opts.contractNoteSheets ?? []) {
     for (const trade of sheet.trades) {
-      const isin = extractIsinFromDescription(trade.security_description);
+      // Prefer the explicit ISIN column (FY21-22 layout) when present, else
+      // fall back to extracting it from the security description (newer layouts).
+      const explicit = trade.isin?.trim().toUpperCase();
+      const isin =
+        explicit && /^IN[A-Z0-9]{10}$/i.test(explicit)
+          ? explicit
+          : extractIsinFromDescription(trade.security_description);
       if (!isin || map.has(isin)) continue;
       const symbol = extractCleanSymbolFromCnDescription(trade.security_description);
       if (symbol) map.set(isin, symbol);
@@ -597,6 +621,7 @@ export function contractNoteToEvents(
       trade.security_description,
       trade.segment,
       symbolByDescription,
+      trade.isin,
     );
 
     const qty = new Decimal(trade.quantity);

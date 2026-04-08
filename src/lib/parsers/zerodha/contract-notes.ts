@@ -89,10 +89,37 @@ function extractCellValue(
   return (rows[rowIdx][colIdx] ?? '').trim();
 }
 
-// Known segment markers in the trade section
+// Known segment markers in the trade section.
+// Newer (FY22-23+) Zerodha CNs use plain labels like "Equity" / "F&O".
+// Older (FY21-22) CNs use exchange-qualified labels like "NSE-EQ - Z",
+// "BSE-EQ - Z", "NSE-F&O" on the row that precedes the trades for that
+// exchange+segment combo. `normaliseSegmentMarker` normalises both forms to
+// a canonical label ("Equity", "F&O", …) so the downstream security-id
+// builder can tell that the trades are equity (and therefore prefer ISIN).
 const SEGMENT_MARKERS = new Set([
   'equity', 'f&o', 'currency', 'commodity', 'mutual funds',
 ]);
+
+function normaliseSegmentMarker(rawFirstCell: string): string | null {
+  const lower = rawFirstCell.trim().toLowerCase();
+  if (!lower) return null;
+
+  if (SEGMENT_MARKERS.has(lower)) {
+    // "equity" → "Equity", preserve others as-is (lower-cased downstream use)
+    return lower === 'equity' ? 'Equity' : rawFirstCell.trim();
+  }
+
+  // FY21-22 style: "NSE-EQ - Z", "BSE-EQ - Z", "NSE-EQ", "BSE-EQ"
+  if (/^(?:nse|bse)[-\s]?eq\b/.test(lower)) return 'Equity';
+  // F&O: "NSE-F&O", "BSE-F&O"
+  if (/^(?:nse|bse)[-\s]?f&o\b/.test(lower)) return 'F&O';
+  // Currency derivatives: "NSE-CDS", "BSE-CDS"
+  if (/^(?:nse|bse)[-\s]?cds\b/.test(lower)) return 'Currency';
+  // Commodity: "MCX-COM", "MCX"
+  if (/^mcx\b/.test(lower)) return 'Commodity';
+
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Dynamic column mapping from header row
@@ -112,6 +139,8 @@ interface TradeColumnMap {
   brokerage_per_unit: number;
   net_rate: number;
   net_total: number;
+  /** ISIN column — only present in the FY21-22 layout. -1 = absent. */
+  isin: number;
 }
 
 /** Patterns to match header cells → canonical column name. */
@@ -128,9 +157,26 @@ const HEADER_PATTERNS: Array<{ key: keyof TradeColumnMap; patterns: string[] }> 
   { key: 'brokerage_per_unit',    patterns: ['brokerage per unit', 'brokerage', 'brokerage per unit (rs)'] },
   { key: 'net_rate',              patterns: ['net rate', 'net rate per unit', 'net rate per unit (rs)'] },
   { key: 'net_total',             patterns: ['net total', 'net total (before levies)'] },
+  { key: 'isin',                  patterns: ['isin'] },
 ];
 
-/** Default column positions matching known Zerodha XLSX layout (fallback). */
+/**
+ * Default column positions used as a fallback when header detection fails.
+ *
+ * Historically `exchange` defaulted to position 7 on the assumption that
+ * every Zerodha CN exposes an Exchange column at that index. The FY21-22
+ * equity CN layout violates that assumption: it has no Exchange column at
+ * all, and position 7 is actually "Gross Rate". Falling back to 7 caused
+ * the parser to read "1580.0" / "1612.0" etc as the exchange string, which
+ * then propagated into a malformed security_id like "1612.0:HEG" and broke
+ * FIFO matching across trade days.
+ *
+ * The fix: every column whose header may legitimately be absent from a
+ * given CN layout (`exchange`, `isin`) defaults to `-1` (sentinel). The
+ * trade-row assembly code checks for `>= 0` before reading the cell and
+ * substitutes an empty string otherwise, so a missing column can no longer
+ * silently alias onto a populated numeric column.
+ */
 const DEFAULT_COLUMN_MAP: TradeColumnMap = {
   order_no: 0,
   order_time: 1,
@@ -139,16 +185,12 @@ const DEFAULT_COLUMN_MAP: TradeColumnMap = {
   security_description: 4,
   buy_sell: 5,
   quantity: 6,
-  // Position 7 is the documented Zerodha XLSX layout for the exchange column.
-  // Kept as a positional fallback so a header-text drift (e.g. "Exchg",
-  // "Exch.") does not silently blank the exchange — losing it would degrade
-  // non-equity security IDs to ":SYMBOL" and misroute MCX trades through
-  // classification.
-  exchange: 7,
-  gross_rate: 8,
-  brokerage_per_unit: 9,
-  net_rate: 10,
-  net_total: 12,
+  exchange: -1,
+  gross_rate: 7,
+  brokerage_per_unit: 8,
+  net_rate: 9,
+  net_total: 11,
+  isin: -1,
 };
 
 /**
@@ -224,20 +266,50 @@ function parseSheet(rows: string[][]): SheetParseResult {
     // Detect column positions from header row
     const cols = buildColumnMap(rows[tradeHeaderIdx]);
 
+    // Content-based fallback for the Exchange column: when the header row
+    // does not name it, sniff the first real trade row (one whose order_no
+    // starts with a digit) at the documented Zerodha position 7. If that
+    // cell holds an exchange-like token (2-4 uppercase letters, e.g. NSE,
+    // BSE, MCX) we trust it; otherwise we leave the column unset.
+    //
+    // This is the split that avoids the FY21-22 regression: that layout has
+    // NO Exchange column and position 7 is the numeric Gross Rate value
+    // (e.g. "1580.0"). The previous unconditional positional fallback read
+    // that number as the exchange string and produced corrupt security IDs
+    // like "1580.0:HEG".
+    if (cols.exchange < 0) {
+      for (let k = tradeHeaderIdx + 1; k < rows.length; k++) {
+        const sample = rows[k];
+        const firstCell = (sample[cols.order_no] ?? '').trim();
+        if (!/^\d/.test(firstCell)) continue;
+        const candidate = (sample[7] ?? '').trim().toUpperCase();
+        if (/^[A-Z]{2,4}$/.test(candidate)) {
+          cols.exchange = 7;
+        }
+        break;
+      }
+    }
+
     // Parse trade rows after the header
     for (let i = tradeHeaderIdx + 1; i < rows.length; i++) {
       const row = rows[i];
       const firstCell = (row[cols.order_no] ?? '').trim();
       const firstCellLower = firstCell.toLowerCase();
 
-      // Check if this is a segment marker
-      if (SEGMENT_MARKERS.has(firstCellLower)) {
-        currentSegment = firstCell;
+      // Check if this is a segment marker. Handles both the newer plain
+      // labels ("Equity", "F&O") and the FY21-22 exchange-qualified labels
+      // ("NSE-EQ - Z", "BSE-EQ - Z", "NSE-F&O", …).
+      const normalisedSegment = normaliseSegmentMarker(firstCell);
+      if (normalisedSegment) {
+        currentSegment = normalisedSegment;
         continue;
       }
 
-      // Stop at the charges section boundary
-      if (firstCellLower.startsWith('pay in/pay out')) break;
+      // Stop at the charges section boundary. Use normalizeLabel so the
+      // "PAY IN / PAY OUT OBLIGATION" variant (FY21-22 layout, spaces around
+      // the slash) matches the same prefix as the newer "pay in/pay out".
+      const firstCellNormalised = normalizeLabel(firstCell);
+      if (firstCellNormalised.startsWith('pay in/pay out')) break;
       if (firstCellLower.startsWith('ncl-')) break;
 
       // Handle empty rows and "net total" boundaries
@@ -271,6 +343,16 @@ function parseSheet(rows: string[][]): SheetParseResult {
       const buySell = buySellRaw.charAt(0);
       if (buySell !== 'B' && buySell !== 'S') continue;
 
+      // Sentinel-guarded cell reads: `-1` means "header not found in this
+      // layout" (e.g. FY21-22 CN has no Exchange column, newer CNs have no
+      // ISIN column). Returning an empty string keeps the downstream
+      // security-id builder honest instead of silently aliasing onto an
+      // unrelated populated column.
+      const exchangeCell =
+        cols.exchange >= 0 ? (row[cols.exchange] ?? '').trim() : '';
+      const isinCell =
+        cols.isin >= 0 ? (row[cols.isin] ?? '').trim() : '';
+
       trades.push({
         order_no: orderNo,
         order_time: (row[cols.order_time] ?? '').trim(),
@@ -279,12 +361,13 @@ function parseSheet(rows: string[][]): SheetParseResult {
         security_description: (row[cols.security_description] ?? '').trim(),
         buy_sell: buySell as 'B' | 'S',
         quantity: num((row[cols.quantity] ?? '').trim()),
-        exchange: (row[cols.exchange] ?? '').trim(),
+        exchange: exchangeCell,
         gross_rate: num((row[cols.gross_rate] ?? '').trim()),
         brokerage_per_unit: num((row[cols.brokerage_per_unit] ?? '').trim()),
         net_rate: num((row[cols.net_rate] ?? '').trim()),
         net_total: num((row[cols.net_total] ?? '').trim()),
         segment: currentSegment,
+        isin: isinCell || undefined,
       });
     }
 

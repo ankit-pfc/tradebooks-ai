@@ -126,10 +126,11 @@ describe('buildColumnMap', () => {
     expect(cols.quantity).toBe(7);
   });
 
-  it('falls back to positional default 7 for exchange when header text drifts', () => {
-    // "Exchg" / "Exch." don't match the "exchange" pattern — the parser must
-    // still pick up the column from the documented default position so that
-    // non-equity security IDs and MCX classification keep working.
+  it('leaves exchange unset at header-detection time when header text drifts', () => {
+    // "Exchg" / "Exch." don't match the "exchange" pattern. Header-level
+    // detection returns the sentinel -1; the data-level content sniff in
+    // parseSheet is responsible for recovering the column position (see
+    // the "exchange fallback" integration test below).
     const driftedHeader = [
       'Order No.', 'Order Time.', 'Trade No.', 'Trade Time.',
       'Security / Contract Description', 'Buy(B)/ Sell(S)',
@@ -138,12 +139,34 @@ describe('buildColumnMap', () => {
       '', 'Net Total (Before Levies)',
     ];
     const cols = buildColumnMap(driftedHeader);
-    expect(cols.exchange).toBe(7);
+    expect(cols.exchange).toBe(-1);
+  });
+
+  it('leaves isin unset when no ISIN column is present', () => {
+    const cols = buildColumnMap(STANDARD_HEADER);
+    expect(cols.isin).toBe(-1);
+  });
+
+  it('detects ISIN column when present (FY21-22 layout)', () => {
+    // FY21-22 Zerodha equity CN layout — has ISIN at col 13 and no Exchange.
+    const fy2122Header = [
+      'Order No.', 'Order Time.', 'Trade No.', 'Trade Time',
+      'Security/Contract Description', 'Buy(B) / Sell(S)',
+      'Quantity', 'Gross Rate / Trade Price Per Unit (Rs)',
+      'Brokerage per Unit (Rs)', 'Net Rate per Unit (Rs)',
+      'Closing Rate per Unit (Only for Derivatives) (Rs)',
+      'Net Total (Before Levies) (Rs)', 'Remarks', 'ISIN',
+    ];
+    const cols = buildColumnMap(fy2122Header);
+    expect(cols.isin).toBe(13);
+    expect(cols.exchange).toBe(-1);      // no Exchange column in this layout
+    expect(cols.gross_rate).toBe(7);     // Gross Rate at col 7
+    expect(cols.brokerage_per_unit).toBe(8);
   });
 });
 
 describe('parseContractNotes — exchange fallback', () => {
-  it('still extracts exchange when header text does not match "Exchange"', () => {
+  it('recovers exchange via content sniff when header text drifts but data at col 7 looks exchange-like', () => {
     const driftedHeader = [
       'Order No.', 'Order Time.', 'Trade No.', 'Trade Time.',
       'Security / Contract Description', 'Buy(B)/ Sell(S)',
@@ -161,8 +184,9 @@ describe('parseContractNotes — exchange fallback', () => {
     const result = parseContractNotes(buf, 'test.xlsx');
 
     expect(result.trades).toHaveLength(1);
-    // Exchange must NOT be blank — fallback to positional default 7 keeps
-    // non-equity security IDs and MCX routing intact.
+    // Content sniff sees "NSE" at col 7 of the first trade row and promotes
+    // that column to `exchange`, so non-equity security IDs and MCX routing
+    // keep working for header-text drift in real equity-with-exchange layouts.
     expect(result.trades[0].exchange).toBe('NSE');
   });
 });
@@ -231,6 +255,83 @@ describe('parseContractNotes', () => {
     expect(result.charges).toHaveLength(1);
     expect(result.diagnostics).toBeDefined();
     expect(result.diagnostics![0]).toContain('no trade rows were extracted');
+  });
+
+  it('parses FY21-22 layout (no Exchange column, ISIN column at 13, "NSE-EQ - Z" segment row)', () => {
+    // Reproduces the real FY21-22 Zerodha equity CN XLSX layout.
+    // Key differences from the newer layout:
+    //   - No "Exchange" column — Gross Rate is at col 7
+    //   - Segment marker row is "NSE-EQ - Z" (not "Equity")
+    //   - Security description is just the symbol ("HEG") with no ISIN suffix
+    //   - ISIN lives in its own column (col 13)
+    //
+    // This layout used to produce malformed security IDs like "1580.0:HEG"
+    // because the parser's positional default fell back to col 7 for
+    // exchange, reading the Gross Rate value as the exchange string.
+    const fy2122Header = [
+      'Order No.', 'Order Time.', 'Trade No.', 'Trade Time',
+      'Security/Contract Description', 'Buy(B) / Sell(S)',
+      'Quantity', 'Gross Rate / Trade Price Per Unit (Rs)',
+      'Brokerage per Unit (Rs)', 'Net Rate per Unit (Rs)',
+      'Closing Rate per Unit (Only for Derivatives) (Rs)',
+      'Net Total (Before Levies) (Rs)', 'Remarks', 'ISIN',
+    ];
+
+    const sheet: string[][] = [
+      ['CONTRACT NOTE CUM TAX INVOICE'],
+      [], [], [], [],
+      ['CONTRACT NOTE NO: ', '', '', 'CNT-21/22-1337294'],
+      ['Trade Date:', '', '', '05-04-2021', '', '', '', 'Settlement No.', '', '2021063'],
+      [], [], [], [], [], [], [], [], [], [], [], [],
+      fy2122Header,
+      // Segment marker in the exchange-qualified format
+      ['NSE-EQ - Z'],
+      // Trade rows
+      ['1100000001967212', '09:31:58', '25628940', '09:32:09', 'HEG', 'buy',
+        '10', '1580.0', '', '1580.0', '0', '-15800', '', 'INE545A01016'],
+      ['1100000002044930', '09:32:54', '25669692', '09:34:04', 'HEG', 'buy',
+        '10', '1576.0', '', '1576.0', '0', '-15760', '', 'INE545A01016'],
+      [],
+      // Charges section (only the labels matter for this test)
+      ['PAY IN / PAY OUT OBLIGATION', '', '', '', '', '', '', '', '', '', '', '', '-31560'],
+      ['Taxable Value of Supply', '', '', '', '', '', '', '', '', '', '', '', '-0.01'],
+      ['Securities Transaction Tax', '', '', '', '', '', '', '', '', '', '', '', '-32'],
+      ['Exchange Transaction Charges', '', '', '', '', '', '', '', '', '', '', '', '-1'],
+      ['Clearing Charges', '', '', '', '', '', '', '', '', '', '', '', '0'],
+      ['Central GST', '', '', '', '', '', '', '', '', '', '', '', '0'],
+      ['State GST', '', '', '', '', '', '', '', '', '', '', '', '0'],
+      ['Integrated GST', '', '', '', '', '', '', '', '', '', '', '', '-0.18'],
+      ['SEBI Turnover Fees', '', '', '', '', '', '', '', '', '', '', '', '-0.02'],
+      ['Stamp Duty', '', '', '', '', '', '', '', '', '', '', '', '-5'],
+      ['Net amount receivable/(payable by client)', '', '', '', '', '', '', '', '', '', '', '', '-31598.21'],
+    ];
+
+    const buf = buildTestXlsx({ '05-04-2021': sheet });
+    const result = parseContractNotes(buf, 'fy2122.xlsx');
+
+    expect(result.trades).toHaveLength(2);
+    const [t1, t2] = result.trades;
+
+    // Both rows carry the ISIN column value
+    expect(t1.isin).toBe('INE545A01016');
+    expect(t2.isin).toBe('INE545A01016');
+
+    // The exchange column is absent from this layout — parser must not
+    // silently alias it onto the numeric Gross Rate column.
+    expect(t1.exchange).toBe('');
+    expect(t2.exchange).toBe('');
+
+    // Segment marker was normalised from "NSE-EQ - Z" → "Equity"
+    expect(t1.segment).toBe('Equity');
+    expect(t2.segment).toBe('Equity');
+
+    // Gross rate must still be the real price — proves we didn't fall back
+    // to column 7 as the exchange.
+    expect(t1.gross_rate).toBe('1580.0');
+    expect(t2.gross_rate).toBe('1576.0');
+
+    expect(t1.buy_sell).toBe('B');
+    expect(t2.buy_sell).toBe('B');
   });
 
   it('handles alternate header names gracefully', () => {

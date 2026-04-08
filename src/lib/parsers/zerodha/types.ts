@@ -279,6 +279,16 @@ export interface ZerodhaContractNoteTradeRow {
    * whenever it's available.
    */
   product?: string;
+  /**
+   * ISIN when the contract note exposes it as a dedicated column.
+   *
+   * The FY21-22 Zerodha equity CN layout has an ISIN column (col 13) with no
+   * Exchange column, while newer (FY22-23+) layouts embed the ISIN inside the
+   * security description and include an Exchange column instead. The parser
+   * reads whichever is present so downstream consumers can build a stable
+   * ISIN-keyed security_id regardless of which layout produced the row.
+   */
+  isin?: string;
 }
 
 export interface ZerodhaContractNoteCharges {
