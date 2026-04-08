@@ -15,7 +15,12 @@ export async function POST(
 ) {
   try {
     const purchaseMergeMode: PurchaseMergeMode = 'same_rate';
-    let classificationStrategy: TradeClassificationStrategy = TradeClassificationStrategy.STRICT_PRODUCT;
+    // Leave classificationStrategy undefined when the client does not pass one
+    // so the pipeline can derive the right default from accountingMode
+    // (investor → ASSUME_ALL_EQ_INVESTMENT, trader → HEURISTIC_SAME_DAY_FLAT_INTRADAY).
+    // The previous default of STRICT_PRODUCT bypassed that logic and tripped
+    // E_CLASSIFICATION_AMBIGUOUS for any tradebook/CN row without a product code.
+    let classificationStrategy: TradeClassificationStrategy | undefined;
 
     try {
       const body = await request.json();
@@ -32,7 +37,7 @@ export async function POST(
         );
       }
     } catch {
-      // Empty body is allowed; default strategy remains STRICT_PRODUCT.
+      // Empty body is allowed; pipeline picks the default from accountingMode.
     }
 
     const userId = await getAuthenticatedUserId();

@@ -57,8 +57,15 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    const classificationStrategy = (classificationStrategyRaw ??
-      TradeClassificationStrategy.STRICT_PRODUCT) as TradeClassificationStrategy;
+    // When the form omits classificationStrategy, leave it undefined so the
+    // pipeline derives the right default from accountingMode
+    // (investor → ASSUME_ALL_EQ_INVESTMENT, trader → HEURISTIC_SAME_DAY_FLAT_INTRADAY).
+    // The previous default of STRICT_PRODUCT bypassed that derivation and
+    // tripped E_CLASSIFICATION_AMBIGUOUS for any tradebook/CN row whose broker
+    // export omitted the product code (e.g. FY 21-22 contract notes).
+    const classificationStrategy = classificationStrategyRaw
+      ? (classificationStrategyRaw as TradeClassificationStrategy)
+      : undefined;
 
     if (!companyName || !accountingMode) {
       return NextResponse.json(

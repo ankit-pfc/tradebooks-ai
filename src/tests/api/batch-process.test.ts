@@ -248,4 +248,52 @@ describe('POST /api/batches/[batchId]/process', () => {
     const res = await POST(request, { params });
     expect(res.status).toBe(500);
   });
+
+  // ---------------------------------------------------------------------------
+  // Regression: classificationStrategy default
+  // ---------------------------------------------------------------------------
+  // Bug: the route used to default classificationStrategy to STRICT_PRODUCT,
+  // which then forced runProcessingPipeline to skip its accountingMode-derived
+  // default and trip E_CLASSIFICATION_AMBIGUOUS for any tradebook/CN row whose
+  // broker export omitted the product code (e.g. FY 21-22 contract notes).
+  // The route must instead leave classificationStrategy undefined when the
+  // client does not pass one, so the pipeline picks the right default
+  // (investor → ASSUME_ALL_EQ_INVESTMENT, trader → HEURISTIC_SAME_DAY_FLAT_INTRADAY).
+  // ---------------------------------------------------------------------------
+  it('forwards classificationStrategy as undefined when the body is empty', async () => {
+    const { request, params } = makeRequest();
+    await POST(request, { params });
+
+    const callArgs = mockRunProcessingPipeline.mock.calls[0][0];
+    expect(callArgs.classificationStrategy).toBeUndefined();
+  });
+
+  it('forwards classificationStrategy as undefined when body omits the field', async () => {
+    const { request, params } = makeRequest('batch-1', { somethingElse: true });
+    await POST(request, { params });
+
+    const callArgs = mockRunProcessingPipeline.mock.calls[0][0];
+    expect(callArgs.classificationStrategy).toBeUndefined();
+  });
+
+  it('forwards an explicit classificationStrategy from the request body', async () => {
+    const { request, params } = makeRequest('batch-1', {
+      classificationStrategy: 'ASSUME_ALL_EQ_INVESTMENT',
+    });
+    await POST(request, { params });
+
+    const callArgs = mockRunProcessingPipeline.mock.calls[0][0];
+    expect(callArgs.classificationStrategy).toBe('ASSUME_ALL_EQ_INVESTMENT');
+  });
+
+  it('rejects an invalid classificationStrategy with 400', async () => {
+    const { request, params } = makeRequest('batch-1', {
+      classificationStrategy: 'NOT_A_REAL_STRATEGY',
+    });
+    const res = await POST(request, { params });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe('E_INVALID_CLASSIFICATION_STRATEGY');
+  });
 });
