@@ -8,6 +8,7 @@ import { buildCanonicalEvents } from '../../lib/engine/canonical-events';
 import { CostLotTracker } from '../../lib/engine/cost-lots';
 import { buildVouchers } from '../../lib/engine/voucher-builder';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../../lib/engine/accounting-policy';
+import { TradeClassificationStrategy } from '../../lib/engine/trade-classifier';
 import { collectRequiredLedgers } from '../../lib/export/ledger-masters';
 import { generateFullExport } from '../../lib/export/tally-xml';
 
@@ -38,7 +39,12 @@ describe('process pipeline (tradebook-only)', () => {
 
         const batchId = 'test-batch-001';
         const fileId = 'test-file-001';
-        const events = buildCanonicalEvents({ tradebookRows: parsed.rows, batchId, fileIds: { tradebook: fileId } });
+        const events = buildCanonicalEvents({
+            tradebookRows: parsed.rows,
+            batchId,
+            fileIds: { tradebook: fileId },
+            classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+        });
         expect(events.length).toBeGreaterThan(0);
 
         const tracker = new CostLotTracker();
@@ -63,7 +69,12 @@ describe('process pipeline (tradebook-only)', () => {
 
     it('runs the full pipeline in trader mode', () => {
         const parsed = parseTradebook(fileBuffer, fileName);
-        const events = buildCanonicalEvents({ tradebookRows: parsed.rows, batchId: 'batch-t', fileIds: { tradebook: 'file-t' } });
+        const events = buildCanonicalEvents({
+            tradebookRows: parsed.rows,
+            batchId: 'batch-t',
+            fileIds: { tradebook: 'file-t' },
+            classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+        });
         const tracker = new CostLotTracker();
         const vouchers = buildVouchers(events, TRADER_DEFAULT, tracker);
 
@@ -81,7 +92,12 @@ describe('process pipeline (tradebook-only)', () => {
 
     it('generates correct voucher types for buy and sell trades', () => {
         const parsed = parseTradebook(fileBuffer, fileName);
-        const events = buildCanonicalEvents({ tradebookRows: parsed.rows, batchId: 'batch-v', fileIds: { tradebook: 'file-v' } });
+        const events = buildCanonicalEvents({
+            tradebookRows: parsed.rows,
+            batchId: 'batch-v',
+            fileIds: { tradebook: 'file-v' },
+            classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+        });
         const tracker = new CostLotTracker();
         const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
 
@@ -95,7 +111,12 @@ describe('process pipeline (tradebook-only)', () => {
 
     it('produces reconciliation-ready check data', () => {
         const parsed = parseTradebook(fileBuffer, fileName);
-        const events = buildCanonicalEvents({ tradebookRows: parsed.rows, batchId: 'batch-c', fileIds: { tradebook: 'file-c' } });
+        const events = buildCanonicalEvents({
+            tradebookRows: parsed.rows,
+            batchId: 'batch-c',
+            fileIds: { tradebook: 'file-c' },
+            classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+        });
         const tracker = new CostLotTracker();
         const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
         const ledgers = collectRequiredLedgers(events, INVESTOR_DEFAULT);

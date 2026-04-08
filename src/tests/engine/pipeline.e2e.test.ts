@@ -8,6 +8,7 @@ import { CostLotTracker } from '../../lib/engine/cost-lots';
 import { buildVouchers } from '../../lib/engine/voucher-builder';
 import { generateVouchersXml } from '../../lib/export/tally-xml';
 import { parseTradebook } from '../../lib/parsers/zerodha/tradebook';
+import { TradeClassificationStrategy } from '../../lib/engine/trade-classifier';
 
 describe('tradebook pipeline e2e', () => {
     it('converts tradebook fixture into canonical events, vouchers, and tally XML', () => {
@@ -22,6 +23,7 @@ describe('tradebook pipeline e2e', () => {
             tradebookRows: parsed.rows,
             batchId: 'batch-001',
             fileIds: { tradebook: 'file-tradebook-001' },
+            classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
         });
 
         expect(events).toHaveLength(2);

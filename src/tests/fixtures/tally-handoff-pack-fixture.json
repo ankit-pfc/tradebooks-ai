@@ -1,0 +1,187 @@
+{
+  "tradebookRows": [
+    {
+      "trade_date": "2024-04-01",
+      "exchange": "NSE",
+      "segment": "EQ",
+      "symbol": "INFY",
+      "isin": "INE009A01021",
+      "trade_type": "buy",
+      "quantity": "10",
+      "price": "100.00",
+      "trade_id": "TB-1",
+      "order_id": "ORD-1",
+      "order_execution_time": "09:30:00"
+    },
+    {
+      "trade_date": "2024-04-02",
+      "exchange": "NSE",
+      "segment": "EQ",
+      "symbol": "INFY",
+      "isin": "INE009A01021",
+      "trade_type": "sell",
+      "quantity": "8",
+      "price": "120.00",
+      "trade_id": "TB-2",
+      "order_id": "ORD-2",
+      "order_execution_time": "10:15:00"
+    },
+    {
+      "trade_date": "2024-04-03",
+      "exchange": "NSE",
+      "segment": "EQ",
+      "symbol": "INFY",
+      "isin": "INE009A01021",
+      "trade_type": "buy",
+      "quantity": "5",
+      "price": "90.00",
+      "trade_id": "TB-3",
+      "order_id": "ORD-3",
+      "order_execution_time": "09:20:00"
+    },
+    {
+      "trade_date": "2024-04-03",
+      "exchange": "NSE",
+      "segment": "EQ",
+      "symbol": "INFY",
+      "isin": "INE009A01021",
+      "trade_type": "sell",
+      "quantity": "5",
+      "price": "95.00",
+      "trade_id": "TB-4",
+      "order_id": "ORD-4",
+      "order_execution_time": "14:45:00"
+    }
+  ],
+  "notes": [
+    {
+      "noteNo": "CN-SIMPLE-BUY",
+      "tradeDate": "2024-04-01",
+      "settlementNo": "2024041",
+      "trades": [
+        {
+          "order_no": "1",
+          "order_time": "09:30:00",
+          "trade_no": "CN-1",
+          "trade_time": "09:30:05",
+          "security_description": "INFY",
+          "buy_sell": "B",
+          "quantity": "10",
+          "exchange": "NSE",
+          "gross_rate": "100.00",
+          "brokerage_per_unit": "0.02",
+          "net_rate": "100.02",
+          "net_total": "1000.20",
+          "segment": "EQ"
+        }
+      ],
+      "charges": {
+        "contract_note_no": "CN-SIMPLE-BUY",
+        "trade_date": "2024-04-01",
+        "settlement_no": "2024041",
+        "pay_in_pay_out": "-1002.69",
+        "brokerage": "0.20",
+        "exchange_charges": "0.59",
+        "clearing_charges": "0.00",
+        "cgst": "0.04",
+        "sgst": "0.04",
+        "igst": "0.00",
+        "stt": "1.20",
+        "sebi_fees": "0.01",
+        "stamp_duty": "0.61",
+        "net_amount": "-1002.69"
+      }
+    },
+    {
+      "noteNo": "CN-PARTIAL-FIFO",
+      "tradeDate": "2024-04-02",
+      "settlementNo": "2024042",
+      "trades": [
+        {
+          "order_no": "1",
+          "order_time": "10:15:00",
+          "trade_no": "CN-2",
+          "trade_time": "10:15:05",
+          "security_description": "INFY",
+          "buy_sell": "S",
+          "quantity": "8",
+          "exchange": "NSE",
+          "gross_rate": "120.00",
+          "brokerage_per_unit": "0.02",
+          "net_rate": "119.98",
+          "net_total": "959.84",
+          "segment": "EQ"
+        }
+      ],
+      "charges": {
+        "contract_note_no": "CN-PARTIAL-FIFO",
+        "trade_date": "2024-04-02",
+        "settlement_no": "2024042",
+        "pay_in_pay_out": "957.59",
+        "brokerage": "0.16",
+        "exchange_charges": "0.59",
+        "clearing_charges": "0.00",
+        "cgst": "0.04",
+        "sgst": "0.04",
+        "igst": "0.00",
+        "stt": "0.96",
+        "sebi_fees": "0.01",
+        "stamp_duty": "0.00",
+        "net_amount": "958.20"
+      }
+    },
+    {
+      "noteNo": "CN-SAME-DAY",
+      "tradeDate": "2024-04-03",
+      "settlementNo": "2024043",
+      "trades": [
+        {
+          "order_no": "1",
+          "order_time": "09:20:00",
+          "trade_no": "CN-3",
+          "trade_time": "09:20:05",
+          "security_description": "INFY",
+          "buy_sell": "B",
+          "quantity": "5",
+          "exchange": "NSE",
+          "gross_rate": "90.00",
+          "brokerage_per_unit": "0.02",
+          "net_rate": "90.02",
+          "net_total": "450.10",
+          "segment": "EQ"
+        },
+        {
+          "order_no": "2",
+          "order_time": "14:45:00",
+          "trade_no": "CN-4",
+          "trade_time": "14:45:05",
+          "security_description": "INFY",
+          "buy_sell": "S",
+          "quantity": "5",
+          "exchange": "NSE",
+          "gross_rate": "95.00",
+          "brokerage_per_unit": "0.02",
+          "net_rate": "94.98",
+          "net_total": "474.90",
+          "segment": "EQ"
+        }
+      ],
+      "charges": {
+        "contract_note_no": "CN-SAME-DAY",
+        "trade_date": "2024-04-03",
+        "settlement_no": "2024043",
+        "pay_in_pay_out": "23.06",
+        "brokerage": "0.20",
+        "exchange_charges": "0.59",
+        "clearing_charges": "0.00",
+        "cgst": "0.04",
+        "sgst": "0.04",
+        "igst": "0.00",
+        "stt": "0.45",
+        "sebi_fees": "0.01",
+        "stamp_duty": "0.61",
+        "net_amount": "23.06"
+      }
+    }
+  ]
+}

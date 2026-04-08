@@ -1,0 +1,52 @@
+{
+  "tradebookRows": [
+    {
+      "trade_date": "2024-04-02",
+      "exchange": "NSE",
+      "segment": "EQ",
+      "symbol": "INFY",
+      "isin": "INE009A01021",
+      "trade_type": "buy",
+      "quantity": "1",
+      "price": "100.00",
+      "trade_id": "TB-NEG-1",
+      "order_id": "ORD-NEG-1",
+      "order_execution_time": "09:30:00"
+    }
+  ],
+  "contractNote": {
+    "trades": [
+      {
+        "order_no": "1",
+        "order_time": "09:30:00",
+        "trade_no": "CN-NEG-1",
+        "trade_time": "09:30:01",
+        "security_description": "INFY",
+        "buy_sell": "B",
+        "quantity": "1",
+        "exchange": "NSE",
+        "gross_rate": "100.00",
+        "brokerage_per_unit": "0.00",
+        "net_rate": "100.00",
+        "net_total": "100.00",
+        "segment": "EQ"
+      }
+    ],
+    "charges": {
+      "contract_note_no": "CN-NEG-0001",
+      "trade_date": "2024-04-02",
+      "settlement_no": "2024042",
+      "pay_in_pay_out": "99.41",
+      "brokerage": "0.00",
+      "exchange_charges": "-0.59",
+      "clearing_charges": "0.00",
+      "cgst": "0.00",
+      "sgst": "0.00",
+      "igst": "0.00",
+      "stt": "0.00",
+      "sebi_fees": "0.00",
+      "stamp_duty": "0.00",
+      "net_amount": "99.41"
+    }
+  }
+}

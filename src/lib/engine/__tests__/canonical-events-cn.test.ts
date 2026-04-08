@@ -7,7 +7,7 @@ import {
   reclassifyIntradayTrades,
 } from '../canonical-events';
 import { EventType } from '../../types/events';
-import { TradeClassification } from '../trade-classifier';
+import { TradeClassification, TradeClassificationStrategy } from '../trade-classifier';
 import type {
   ZerodhaContractNoteTradeRow,
   ZerodhaContractNoteCharges,
@@ -227,16 +227,7 @@ describe('contractNoteToEvents', () => {
     expect(contractNoteToEvents([], makeCnCharges(), 'b', 'f')).toHaveLength(0);
   });
 
-  // Zerodha contract notes encode every monetary aggregate from the client's
-  // cash-flow perspective: charges are always negative (money out) regardless
-  // of whether the underlying trade is a buy or sell. The canonical event
-  // model expresses charges as positive expense amounts (the convention used
-  // by every downstream consumer: voucher builder, ledger postings, Tally
-  // export). contractNoteToEvents normalises by taking the absolute value of
-  // the allocated aggregate. A prior review misread this convention and
-  // claimed negative aggregates were "rebates" — they are not; they are the
-  // standard sign convention applied to every Zerodha CN ever issued.
-  it('normalises negative charge aggregates (Zerodha cash-flow convention) into positive expenses', () => {
+  it('preserves negative charge aggregates for downstream validation', () => {
     const events = contractNoteToEvents(
       [makeCnTrade()],
       makeCnCharges({
@@ -252,22 +243,22 @@ describe('contractNoteToEvents', () => {
 
     const stt = events.find((e) => e.charge_type === 'STT');
     expect(stt).toBeDefined();
-    expect(stt!.charge_amount).toBe('25.00');
+    expect(stt!.charge_amount).toBe('-25.00');
 
     const exch = events.find((e) => e.charge_type === 'EXCHANGE_CHARGE');
     expect(exch).toBeDefined();
-    expect(exch!.charge_amount).toBe('5.00');
+    expect(exch!.charge_amount).toBe('-5.00');
 
     const sebi = events.find((e) => e.charge_type === 'SEBI_CHARGE');
     expect(sebi).toBeDefined();
-    expect(sebi!.charge_amount).toBe('0.25');
+    expect(sebi!.charge_amount).toBe('-0.25');
 
     const stamp = events.find((e) => e.charge_type === 'STAMP_DUTY');
     expect(stamp).toBeDefined();
-    expect(stamp!.charge_amount).toBe('3.75');
+    expect(stamp!.charge_amount).toBe('-3.75');
   });
 
-  it('normalises negative GST consolidated total (Zerodha cash-flow convention) into positive expense', () => {
+  it('preserves negative GST consolidated totals', () => {
     const events = contractNoteToEvents(
       [makeCnTrade()],
       makeCnCharges({ cgst: '-0.90', sgst: '-0.90', igst: '0' }),
@@ -277,7 +268,7 @@ describe('contractNoteToEvents', () => {
 
     const gstEvents = events.filter((e) => e.event_type === EventType.GST_ON_CHARGES);
     expect(gstEvents).toHaveLength(1);
-    expect(gstEvents[0].charge_amount).toBe('1.80');
+    expect(gstEvents[0].charge_amount).toBe('-1.80');
   });
 
   it('skips zero-amount charge events', () => {
@@ -342,6 +333,7 @@ describe('buildCanonicalEvents', () => {
       tradebookRows: [makeTradebookRow()],
       batchId: 'batch-1',
       fileIds: { tradebook: 'file-tb' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     expect(events).toHaveLength(1);
@@ -354,6 +346,7 @@ describe('buildCanonicalEvents', () => {
       contractNoteSheets: sheets,
       batchId: 'batch-1',
       fileIds: { contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     const tradeEvents = events.filter(
@@ -377,6 +370,7 @@ describe('buildCanonicalEvents', () => {
       contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnTrade] }],
       batchId: 'batch-1',
       fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     // Should have CN trade + CN charges, but NOT a duplicate tradebook trade
@@ -398,6 +392,7 @@ describe('buildCanonicalEvents', () => {
       contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnTrade] }],
       batchId: 'batch-1',
       fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     const tradeEvents = events.filter(
@@ -483,6 +478,7 @@ describe('buildCanonicalEvents', () => {
       contractNoteSheets: [nseCnSheet, bseCnSheet],
       batchId: 'batch-1',
       fileIds: { contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     const tradeEvents = events.filter(
@@ -560,6 +556,7 @@ describe('reclassifyIntradayTrades', () => {
       ],
       batchId: 'b',
       fileIds: { contractNote: 'f' },
+      classificationStrategy: TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
     });
 
     const tradeEvents = events.filter(
@@ -598,6 +595,7 @@ describe('reclassifyIntradayTrades', () => {
       ],
       batchId: 'b',
       fileIds: { contractNote: 'f' },
+      classificationStrategy: TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
     });
 
     const stt = events.find((e) => e.charge_type === 'STT');
@@ -608,29 +606,28 @@ describe('reclassifyIntradayTrades', () => {
   it('does NOT reclassify partial-netoff days (out of scope)', () => {
     // 30 buy + 25 sell same day → 25 intraday + 5 carry-forward delivery.
     // Partial splitting is deferred; the whole group is left untouched.
-    const events = buildCanonicalEvents({
-      contractNoteSheets: [
-        {
-          charges: makeCnCharges({ trade_date: '20-04-2021' }),
-          trades: [
-            makeCnTrade({
-              trade_no: 'BUY-1',
-              buy_sell: 'B',
-              quantity: '30',
-              security_description: 'HDFC/INE001A01036',
-            }),
-            makeCnTrade({
-              trade_no: 'SELL-1',
-              buy_sell: 'S',
-              quantity: '25',
-              security_description: 'HDFC/INE001A01036',
-            }),
-          ],
-        },
+    const events = contractNoteToEvents(
+      [
+        makeCnTrade({
+          trade_no: 'BUY-1',
+          buy_sell: 'B',
+          quantity: '30',
+          security_description: 'HDFC/INE001A01036',
+        }),
+        makeCnTrade({
+          trade_no: 'SELL-1',
+          buy_sell: 'S',
+          quantity: '25',
+          security_description: 'HDFC/INE001A01036',
+        }),
       ],
-      batchId: 'b',
-      fileIds: { contractNote: 'f' },
-    });
+      makeCnCharges({ trade_date: '20-04-2021' }),
+      'b',
+      'f',
+      undefined,
+      undefined,
+      TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
+    );
 
     const tradeEvents = events.filter(
       (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,

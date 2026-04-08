@@ -23,6 +23,7 @@ import { generateFullExport } from '../../export/tally-xml';
 import { INVESTOR_DEFAULT, getDefaultTallyProfile } from '../../engine/accounting-policy';
 import { AccountingMode } from '../../types/accounting';
 import { VoucherType } from '../../types/vouchers';
+import { TradeClassificationStrategy } from '../../engine/trade-classifier';
 
 // ---------------------------------------------------------------------------
 // Synthetic XML contract note
@@ -110,6 +111,7 @@ function runPipeline() {
     contractNoteSheets: sheets,
     batchId,
     fileIds: { contractNote: fileId },
+    classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
   });
 
   // 4. Build vouchers (investor mode)

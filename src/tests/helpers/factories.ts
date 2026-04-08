@@ -3,7 +3,7 @@
  * voucher drafts, and file buffers used across multiple test files.
  */
 import { EventType, type CanonicalEvent } from '../../lib/types/events';
-import { VoucherType, VoucherStatus, type VoucherDraft, type VoucherLine } from '../../lib/types/vouchers';
+import { InvoiceIntent, VoucherType, VoucherStatus, type VoucherDraft, type VoucherLine } from '../../lib/types/vouchers';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -221,6 +221,7 @@ export function makeVoucherDraft(
     voucher_draft_id: crypto.randomUUID(),
     import_batch_id: 'batch-1',
     voucher_type: VoucherType.JOURNAL,
+    invoice_intent: InvoiceIntent.NONE,
     voucher_date: '2024-06-15',
     external_reference: null,
     narrative: null,

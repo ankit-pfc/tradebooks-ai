@@ -19,6 +19,7 @@ import { INVESTOR_DEFAULT, getDefaultTallyProfile } from '../../lib/engine/accou
 import { AccountingMode } from '../../lib/types/accounting';
 import { collectRequiredLedgers } from '../../lib/export/ledger-masters';
 import { generateFullExport } from '../../lib/export/tally-xml';
+import { TradeClassificationStrategy } from '../../lib/engine/trade-classifier';
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -49,13 +50,15 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
   const buffer = FILE_EXISTS ? readFileSync(TRADEBOOK_PATH) : Buffer.alloc(0);
   const parsed = FILE_EXISTS ? parseTradebook(buffer, 'Zerodha Tradebook.xlsx') : null;
   const rows = parsed?.rows ?? [];
+  const buyRows = rows.filter((row) => row.trade_type.toLowerCase() === 'buy');
   const batchId = 'golden-test-batch';
 
   const events = FILE_EXISTS
     ? buildCanonicalEvents({
-        tradebookRows: rows,
+        tradebookRows: buyRows,
         batchId,
         fileIds: { tradebook: 'file-1' },
+        classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
       })
     : [];
 
@@ -78,6 +81,7 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
 
   it('generates canonical events', () => {
     expect(events.length).toBeGreaterThan(0);
+    expect(buyRows.length).toBeGreaterThan(0);
   });
 
   it('generates vouchers', () => {
@@ -146,7 +150,7 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
       const hasInventory = entries.some((entry) => entry['INVENTORYALLOCATIONS.LIST']);
       expect(v['@_VCHTYPE']).toBeTruthy();
       expect(v['@_ACTION']).toBe('Create');
-      expect(hasInventory ? 'Invoice Voucher View' : 'Accounting Voucher View').toBe(v['@_OBJVIEW']);
+      expect(v['@_OBJVIEW']).toBe(hasInventory ? 'Invoice Voucher View' : 'Accounting Voucher View');
       if (hasInventory) {
         expect(v.ISINVOICE).toBe('Yes');
       } else {

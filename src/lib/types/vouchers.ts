@@ -34,6 +34,16 @@ export enum VoucherStatus {
 }
 
 /**
+ * Typed rendering intent for voucher exporters.
+ * Keeps invoice-vs-accounting decisions out of narrative text.
+ */
+export enum InvoiceIntent {
+  NONE = 'NONE',
+  PURCHASE = 'PURCHASE',
+  SALES = 'SALES',
+}
+
+/**
  * A single generated Tally voucher, potentially aggregating multiple canonical events
  * depending on the VoucherGranularity setting in the accounting profile.
  *
@@ -44,6 +54,8 @@ export interface VoucherDraft {
   import_batch_id: string;
   /** Tally voucher type that determines the entry screen in Tally. */
   voucher_type: VoucherType;
+  /** Explicit invoice rendering intent for exporters. */
+  invoice_intent?: InvoiceIntent;
   /** Voucher date in ISO-8601 format ("YYYY-MM-DD"). */
   voucher_date: string;
   /** External reference number shown in Tally (e.g. contract note number, order ID). */

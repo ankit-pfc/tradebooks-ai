@@ -13,7 +13,7 @@
 
 import { create } from 'xmlbuilder2';
 import type { VoucherDraft, VoucherLine } from '../types/vouchers';
-import { VoucherType } from '../types/vouchers';
+import { InvoiceIntent, VoucherType } from '../types/vouchers';
 
 // ---------------------------------------------------------------------------
 // Public input types
@@ -127,11 +127,6 @@ function tallyRate(rate: string, unit = 'SH'): string {
   return `${Math.abs(n).toFixed(2)}/${unit}`;
 }
 
-function isTradeNarrative(narrative: string | null | undefined): boolean {
-  if (!narrative) return false;
-  return narrative.startsWith('Purchase of ') || narrative.startsWith('Sale of ');
-}
-
 function isLikelyPartyLedger(line: VoucherLine): boolean {
   if (line.quantity !== null || line.rate !== null) return false;
   return !/^(STCG|LTCG|STCL|LTCL|Speculative|Share Brokerage|GST|Stt|STT|Exchange and Other Charges|SEBI|Stamp|Cost of Shares Sold|Trading Sales)$/i.test(
@@ -145,22 +140,22 @@ export function resolveVoucherXmlRenderConfig(
   const hasInventoryLines = voucher.lines.some(
     (line) => line.quantity !== null && line.rate !== null,
   );
-  const narrative = voucher.narrative ?? '';
-  const tradeNarrative = isTradeNarrative(voucher.narrative);
-  const purchaseIntent =
-    voucher.voucher_type === VoucherType.PURCHASE ||
-    (voucher.voucher_type === VoucherType.JOURNAL && narrative.startsWith('Purchase of '));
-  const salesIntent =
-    voucher.voucher_type === VoucherType.SALES ||
-    (voucher.voucher_type === VoucherType.JOURNAL && narrative.startsWith('Sale of '));
+  const invoiceIntent =
+    voucher.invoice_intent ??
+    (voucher.voucher_type === VoucherType.PURCHASE
+      ? InvoiceIntent.PURCHASE
+      : voucher.voucher_type === VoucherType.SALES
+        ? InvoiceIntent.SALES
+        : InvoiceIntent.NONE);
+  const isSalesIntent = invoiceIntent === InvoiceIntent.SALES;
 
-  const tallyVoucherType = hasInventoryLines && (purchaseIntent || salesIntent)
-    ? salesIntent
+  const tallyVoucherType = hasInventoryLines && invoiceIntent !== InvoiceIntent.NONE
+    ? isSalesIntent
       ? 'Sales'
       : 'Purchase'
     : VOUCHER_TYPE_MAP[voucher.voucher_type] ?? 'Journal';
 
-  const isInvoice = hasInventoryLines && (purchaseIntent || salesIntent || tradeNarrative);
+  const isInvoice = hasInventoryLines && invoiceIntent !== InvoiceIntent.NONE;
   const objView: VoucherXmlRenderConfig['objView'] = isInvoice
     ? 'Invoice Voucher View'
     : 'Accounting Voucher View';

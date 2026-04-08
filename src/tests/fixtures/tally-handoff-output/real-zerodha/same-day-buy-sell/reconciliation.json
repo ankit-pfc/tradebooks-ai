@@ -3,74 +3,74 @@
   "note_count": 1,
   "note_reports": [
     {
-      "contract_note_no": "CNT-24/25-103858427",
-      "gross_trade_total": "116626.00",
-      "allocated_brokerage": "0.01",
-      "allocated_exchange_charges": "24.51",
-      "allocated_gst": "4.44",
-      "allocated_sebi_charges": "0.16",
-      "allocated_stamp_duty": "3.00",
-      "allocated_stt": "155.00",
-      "final_derived_broker_payable_receivable": "116438.88",
-      "source_contract_note_payable_receivable": "116438.88",
+      "contract_note_no": "CN-SAME-DAY",
+      "gross_trade_total": "25.00",
+      "allocated_brokerage": "0.20",
+      "allocated_exchange_charges": "0.59",
+      "allocated_gst": "0.08",
+      "allocated_sebi_charges": "0.01",
+      "allocated_stamp_duty": "0.61",
+      "allocated_stt": "0.45",
+      "final_derived_broker_payable_receivable": "23.06",
+      "source_contract_note_payable_receivable": "23.06",
       "variance": "0.00"
     }
   ],
   "voucher_summaries": [
     {
-      "voucher_number": "CNT-24/25-103858427/VISHAL-X",
+      "voucher_number": "CN-SAME-DAY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "19416.65",
-      "total_credit": "19416.65",
-      "stock_item": "VISHAL-X-SH",
-      "cost_basis": "19416.65",
+      "total_debit": "451.04",
+      "total_credit": "451.04",
+      "stock_item": "INFY-SH",
+      "cost_basis": "451.04",
       "gain_loss": "0.00",
-      "narration": "Purchase of VISHAL-X-SH @ 38.83 × 500 units (3 fills)"
+      "narration": "Purchase of INFY @ 90 × 5 units"
     },
     {
-      "voucher_number": "CNT-24/25-103858427/MARUTI-A",
+      "voucher_number": "ORD-3",
       "voucher_type": "JOURNAL",
-      "total_debit": "13603.60",
-      "total_credit": "13603.60",
-      "stock_item": "MARUTI-A-SH",
-      "cost_basis": "0.00",
-      "gain_loss": "13603.60",
-      "narration": "Sale of MARUTI-A @ 13603.6 × 1 units"
+      "total_debit": "450.00",
+      "total_credit": "450.00",
+      "stock_item": "INFY-SH",
+      "cost_basis": "450.00",
+      "gain_loss": "0.00",
+      "narration": "Purchase of INFY @ 90 × 5 units"
     },
     {
-      "voucher_number": "CNT-24/25-103858427/MARUTI-A",
+      "voucher_number": "CN-SAME-DAY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "81621.60",
-      "total_credit": "81621.60",
-      "stock_item": "MARUTI-A-SH",
-      "cost_basis": "0.00",
-      "gain_loss": "81621.60",
-      "narration": "Sale of MARUTI-A @ 13603.6 × 6 units"
+      "total_debit": "475.00",
+      "total_credit": "475.00",
+      "stock_item": "INFY-SH",
+      "cost_basis": "451.04",
+      "gain_loss": "23.96",
+      "narration": "Sale of INFY @ 95 × 5 units"
     },
     {
-      "voucher_number": "CNT-24/25-103858427/MARUTI-A",
+      "voucher_number": "ORD-4",
       "voucher_type": "JOURNAL",
-      "total_debit": "40810.80",
-      "total_credit": "40810.80",
-      "stock_item": "MARUTI-A-SH",
-      "cost_basis": "0.00",
-      "gain_loss": "40810.80",
-      "narration": "Sale of MARUTI-A @ 13603.6 × 3 units"
+      "total_debit": "475.00",
+      "total_credit": "475.00",
+      "stock_item": "INFY-SH",
+      "cost_basis": "450.00",
+      "gain_loss": "25.00",
+      "narration": "Sale of INFY @ 95 × 5 units"
     },
     {
       "voucher_number": null,
       "voucher_type": "JOURNAL",
-      "total_debit": "155.00",
-      "total_credit": "155.00",
+      "total_debit": "0.45",
+      "total_credit": "0.45",
       "stock_item": null,
       "cost_basis": "0.00",
       "gain_loss": "0.00",
-      "narration": "STT for period 2024-08-01 to 2024-08-01 — 6 trade(s)"
+      "narration": "STT for period 2024-04-03 to 2024-04-03 — 2 trade(s)"
     }
   ],
   "trade_match": {
-    "matched": 0,
+    "matched": 2,
     "unmatched_tradebook": 0,
-    "unmatched_contract_note": 6
+    "unmatched_contract_note": 0
   }
 }

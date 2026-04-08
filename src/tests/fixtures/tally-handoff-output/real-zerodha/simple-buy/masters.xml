@@ -149,9 +149,9 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="SANDUMA-B-SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>SANDUMA-B-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -161,7 +161,7 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>SANDUMA-B-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -396,14 +396,14 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="SANDUMA-B-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>SANDUMA-B-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>SH</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>SANDUMA-B-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

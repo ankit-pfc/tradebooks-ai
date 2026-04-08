@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 import '/tmp/verify-real-zerodha.ts';
 
 describe('real Zerodha verification', () => {
-  it('writes a reconciliation artifact with no failed notes', () => {
+  it('writes a reconciliation artifact that reflects the real validation failure', () => {
     expect(existsSync('/tmp/verify-real-zerodha-report.json')).toBe(true);
     const report = JSON.parse(readFileSync('/tmp/verify-real-zerodha-report.json', 'utf8'));
-    expect(report.report.totals.note_failures).toBe(0);
-    expect(report.full_reconciliation.overall_status).not.toBe('FAILED');
-    expect(report.traces.simple_buy.xml_validation.voucherSummaries.length).toBeGreaterThan(0);
-    expect(report.traces.partial_fifo_sell.xml_validation.voucherSummaries.length).toBeGreaterThan(0);
-    expect(report.traces.same_day_buy_sell.xml_validation.voucherSummaries.length).toBeGreaterThan(0);
+    expect(report.pipeline_status).toBe('validation_failed');
+    expect(report.validation_error.code).toBe('E_NEGATIVE_CONTRACT_NOTE_CHARGE');
+    expect(report.report.totals.note_failures).toBeGreaterThan(0);
+    expect(report.traces).toBeNull();
+    expect(report.samples).toBeNull();
   });
 });

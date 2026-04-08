@@ -164,6 +164,29 @@ describe('runProcessingPipeline — happy path (tradebook)', () => {
 });
 
 describe('runProcessingPipeline — validation errors', () => {
+    it('fails on ambiguous trade classification by default before voucher generation', async () => {
+        const ambiguousTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-15,NSE,EQ,SBIN,INE062A01020,BUY,10,100.00,,T200,ORD200,09:15:00',
+        ].join('\n'));
+        const baseWithoutStrategy = { ...BASE_INPUT };
+        delete baseWithoutStrategy.classificationStrategy;
+
+        await expect(
+            runProcessingPipeline({
+                ...baseWithoutStrategy,
+                files: [
+                    {
+                        fileId: 'file-ambiguous-001',
+                        fileName: 'ambiguous-tradebook.csv',
+                        buffer: ambiguousTradebook,
+                        mimeType: 'text/csv',
+                    },
+                ],
+            }),
+        ).rejects.toMatchObject({ code: 'E_CLASSIFICATION_AMBIGUOUS' });
+    });
+
     it('throws when no processable file is detected', async () => {
         await expect(
             runProcessingPipeline({

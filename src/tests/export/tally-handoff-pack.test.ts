@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { homedir } from 'node:os';
 import Decimal from 'decimal.js';
 
 import { parseTradebook } from '../../lib/parsers/zerodha/tradebook';
@@ -18,20 +17,7 @@ import { EventType } from '../../lib/types/events';
 import { collectRequiredLedgers } from '../../lib/export/ledger-masters';
 import { generateFullExport, resolveVoucherXmlRenderConfig } from '../../lib/export/tally-xml';
 
-const TRADEBOOK_FILE = resolve(
-  homedir(),
-  'Downloads',
-  'Zerodha reports sss',
-  'FY 2425',
-  'tradebook-FC9134-EQ.xlsx',
-);
-const CONTRACT_NOTE_FILE = resolve(
-  homedir(),
-  'Downloads',
-  'Zerodha reports sss',
-  'FY 2425',
-  'Contract Notes_FC9134_2024-04-01_2025-03-31.xlsx',
-);
+const FIXTURE_PATH = resolve(process.cwd(), 'src', 'tests', 'fixtures', 'tally-handoff-pack-fixture.json');
 const OUTPUT_ROOT = resolve(
   process.cwd(),
   'src',
@@ -40,8 +26,6 @@ const OUTPUT_ROOT = resolve(
   'tally-handoff-output',
   'real-zerodha',
 );
-
-const HAS_REAL_FILES = existsSync(TRADEBOOK_FILE) && existsSync(CONTRACT_NOTE_FILE);
 
 type ParsedNote = {
   noteNo: string;
@@ -92,24 +76,6 @@ function buildTradebookSubset(rows: ReturnType<typeof parseTradebook>['rows'], k
   const escape = (value: string) => (/[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
   const lines = [header, ...csvRows].map((row) => row.map(escape).join(','));
   return Buffer.from(`\ufeff${lines.join('\n')}`);
-}
-
-function getParsedNotes(parsed: ReturnType<typeof parseContractNotes>): ParsedNote[] {
-  const notes: ParsedNote[] = [];
-  let cursor = 0;
-  for (let i = 0; i < parsed.charges.length; i++) {
-    const charges = parsed.charges[i];
-    const tradeCount = parsed.tradesPerSheet?.[i] ?? 0;
-    notes.push({
-      noteNo: charges.contract_note_no,
-      tradeDate: charges.trade_date,
-      settlementNo: charges.settlement_no,
-      trades: parsed.trades.slice(cursor, cursor + tradeCount),
-      charges,
-    });
-    cursor += tradeCount;
-  }
-  return notes;
 }
 
 function noteGrossTradeTotal(note: { trades: ParsedNote['trades'] }): Decimal {
@@ -343,7 +309,12 @@ function writeSampleFiles(sampleName: string, build: ReturnType<typeof buildPipe
   return { sampleDir, mastersPath, transactionsPath, checklistPath, reconciliationPath };
 }
 
-describe.skipIf(!HAS_REAL_FILES)('Tally handoff pack', () => {
+type HandoffPackFixture = {
+  tradebookRows: ReturnType<typeof parseTradebook>['rows'];
+  notes: ParsedNote[];
+};
+
+describe('Tally handoff pack', () => {
   let pack: {
     samples: Array<{
       name: string;
@@ -354,13 +325,12 @@ describe.skipIf(!HAS_REAL_FILES)('Tally handoff pack', () => {
   } | null = null;
 
   beforeAll(() => {
-    const tradebookBuffer = readFileSync(TRADEBOOK_FILE);
-    const contractNoteBuffer = readFileSync(CONTRACT_NOTE_FILE);
-    const parsedTradebook = parseTradebook(tradebookBuffer, 'tradebook-FC9134-EQ.xlsx');
-    const parsedCnFull = parseContractNotes(contractNoteBuffer, 'Contract Notes_FC9134_2024-04-01_2025-03-31.xlsx');
-    const notes = getParsedNotes(parsedCnFull);
+    const fixture = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as HandoffPackFixture;
+    const notes = fixture.notes;
 
-    const fullBuild = buildPipeline(parsedTradebook.rows, notes);
+    expect(notes.length).toBeGreaterThan(0);
+
+    const fullBuild = buildPipeline(fixture.tradebookRows, notes);
     const simpleBuyNote = findSimpleBuyNote(notes);
     const sameDayNote = findSameDayMixedNote(notes);
     const partialFifo = findPartialFifoCase(fullBuild.events);
@@ -392,7 +362,7 @@ describe.skipIf(!HAS_REAL_FILES)('Tally handoff pack', () => {
 
     pack = {
       samples: samples.map((sample) => {
-        const build = buildPipeline(parsedTradebook.rows, sample.notes);
+        const build = buildPipeline(fixture.tradebookRows, sample.notes);
         const paths = writeSampleFiles(sample.name, build, sample.notes);
         return {
           name: sample.name,
@@ -402,6 +372,24 @@ describe.skipIf(!HAS_REAL_FILES)('Tally handoff pack', () => {
         };
       }),
     };
+  });
+
+  it('rejects the checked-in negative-charge contract note fixture with a typed validation error', () => {
+    const fixture = JSON.parse(readFileSync(resolve(process.cwd(), 'src', 'tests', 'fixtures', 'negative-charge-cn.json'), 'utf8')) as {
+      tradebookRows: ReturnType<typeof parseTradebook>['rows'];
+      contractNote: {
+        trades: ReturnType<typeof parseContractNotes>['trades'];
+        charges: ReturnType<typeof parseContractNotes>['charges'][number];
+      };
+    };
+
+    expect(() => buildPipeline(fixture.tradebookRows, [{
+      noteNo: fixture.contractNote.charges.contract_note_no,
+      tradeDate: fixture.contractNote.charges.trade_date,
+      settlementNo: fixture.contractNote.charges.settlement_no,
+      trades: fixture.contractNote.trades,
+      charges: fixture.contractNote.charges,
+    }])).toThrow('Negative contract-note charges are not yet supported in buy vouchers.');
   });
 
   it('writes deterministic artifact files for each sample', () => {

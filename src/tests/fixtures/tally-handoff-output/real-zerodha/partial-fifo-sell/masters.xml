@@ -149,9 +149,9 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="SHAKTIPUMP-BE-SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>SHAKTIPUMP-BE-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -161,54 +161,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>SHAKTIPUMP-BE-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="WEBELSOLAR-BE-SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="STCG ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>WEBELSOLAR-BE-SH</NAME>
-            </NAME.LIST>
-            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>WEBELSOLAR-BE-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="SANDUMA-EQ-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>SANDUMA-EQ-SH</NAME>
-            </NAME.LIST>
-            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SANDUMA-EQ-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="STCG ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>STCG ON SHAKTIPUMP-BE</NAME>
+              <NAME>STCG ON INFY</NAME>
             </NAME.LIST>
             <PARENT>STCG</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -218,16 +180,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>STCG ON SHAKTIPUMP-BE</NAME>
+                <NAME>STCG ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="LTCG ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="LTCG ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>LTCG ON SHAKTIPUMP-BE</NAME>
+              <NAME>LTCG ON INFY</NAME>
             </NAME.LIST>
             <PARENT>LTCG</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -237,16 +199,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>LTCG ON SHAKTIPUMP-BE</NAME>
+                <NAME>LTCG ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="STCL ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="STCL ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>STCL ON SHAKTIPUMP-BE</NAME>
+              <NAME>STCL ON INFY</NAME>
             </NAME.LIST>
             <PARENT>STCL</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -256,16 +218,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>STCL ON SHAKTIPUMP-BE</NAME>
+                <NAME>STCL ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="LTCL ON SHAKTIPUMP-BE" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="LTCL ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>LTCL ON SHAKTIPUMP-BE</NAME>
+              <NAME>LTCL ON INFY</NAME>
             </NAME.LIST>
             <PARENT>LTCL</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -275,7 +237,7 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>LTCL ON SHAKTIPUMP-BE</NAME>
+                <NAME>LTCL ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -295,82 +257,6 @@
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>Intraday Gain on Sale of Shares - ZERODHA</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="STCG ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>STCG ON WEBELSOLAR-BE</NAME>
-            </NAME.LIST>
-            <PARENT>STCG</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>STCG ON WEBELSOLAR-BE</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="LTCG ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>LTCG ON WEBELSOLAR-BE</NAME>
-            </NAME.LIST>
-            <PARENT>LTCG</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>LTCG ON WEBELSOLAR-BE</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="STCL ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>STCL ON WEBELSOLAR-BE</NAME>
-            </NAME.LIST>
-            <PARENT>STCL</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>STCL ON WEBELSOLAR-BE</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="LTCL ON WEBELSOLAR-BE" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>LTCL ON WEBELSOLAR-BE</NAME>
-            </NAME.LIST>
-            <PARENT>LTCL</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>LTCL ON WEBELSOLAR-BE</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -605,42 +491,14 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="SANDUMA-EQ-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>SANDUMA-EQ-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>SH</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>SANDUMA-EQ-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </STOCKITEM>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="SHAKTIPUMP-BE-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>SHAKTIPUMP-BE-SH</NAME>
-            </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SHAKTIPUMP-BE-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </STOCKITEM>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="WEBELSOLAR-BE-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>WEBELSOLAR-BE-SH</NAME>
-            </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>WEBELSOLAR-BE-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

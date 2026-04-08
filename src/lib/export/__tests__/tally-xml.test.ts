@@ -8,12 +8,13 @@
 
 import { describe, it, expect } from 'vitest';
 import { generateVouchersXml, type VoucherDraftWithLines } from '../tally-xml';
-import { VoucherStatus, VoucherType } from '../../types/vouchers';
+import { InvoiceIntent, VoucherStatus, VoucherType } from '../../types/vouchers';
 
 function makeVoucher(
   voucher_type: VoucherType,
   withStockLine: boolean,
   narrative = 'test',
+  invoiceIntent: InvoiceIntent = InvoiceIntent.NONE,
 ): VoucherDraftWithLines {
   const lines: VoucherDraftWithLines['lines'] = [
     {
@@ -65,6 +66,7 @@ function makeVoucher(
     voucher_draft_id: 'v1',
     import_batch_id: 'b1',
     voucher_type,
+    invoice_intent: invoiceIntent,
     voucher_date: '2025-04-01',
     external_reference: 'CN-1',
     narrative,
@@ -80,7 +82,7 @@ function makeVoucher(
 describe('generateVouchersXml — purchase/sales invoice rendering', () => {
   it('renders journal purchase drafts with stock lines as Purchase invoice vouchers', () => {
     const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.JOURNAL, true, 'Purchase of INFY @ 100 × 10 units')],
+      [makeVoucher(VoucherType.JOURNAL, true, 'renamed narrative', InvoiceIntent.PURCHASE)],
       'Test Co',
     );
     expect(xml).toContain('VCHTYPE="Purchase"');
@@ -94,7 +96,7 @@ describe('generateVouchersXml — purchase/sales invoice rendering', () => {
 
   it('renders journal sales drafts with stock lines as Sales invoice vouchers', () => {
     const xml = generateVouchersXml(
-      [makeVoucher(VoucherType.JOURNAL, true, 'Sale of INFY @ 100 × 10 units')],
+      [makeVoucher(VoucherType.JOURNAL, true, 'renamed narrative', InvoiceIntent.SALES)],
       'Test Co',
     );
     expect(xml).toContain('VCHTYPE="Sales"');
@@ -107,17 +109,32 @@ describe('generateVouchersXml — purchase/sales invoice rendering', () => {
   });
 
   it('renders explicit purchase vouchers with stock lines as invoice vouchers', () => {
-    const xml = generateVouchersXml([makeVoucher(VoucherType.PURCHASE, true)], 'Test Co');
+    const xml = generateVouchersXml(
+      [makeVoucher(VoucherType.PURCHASE, true, 'anything', InvoiceIntent.PURCHASE)],
+      'Test Co',
+    );
     expect(xml).toContain('VCHTYPE="Purchase"');
     expect(xml).toContain('OBJVIEW="Invoice Voucher View"');
     expect(xml).toContain('<ISINVOICE>Yes</ISINVOICE>');
   });
 
   it('renders explicit sales vouchers with stock lines as invoice vouchers', () => {
-    const xml = generateVouchersXml([makeVoucher(VoucherType.SALES, true)], 'Test Co');
+    const xml = generateVouchersXml(
+      [makeVoucher(VoucherType.SALES, true, 'anything', InvoiceIntent.SALES)],
+      'Test Co',
+    );
     expect(xml).toContain('VCHTYPE="Sales"');
     expect(xml).toContain('OBJVIEW="Invoice Voucher View"');
     expect(xml).toContain('<ISINVOICE>Yes</ISINVOICE>');
+  });
+
+  it('does not let narrative text control invoice rendering', () => {
+    const xml = generateVouchersXml(
+      [makeVoucher(VoucherType.JOURNAL, true, 'completely unrelated text', InvoiceIntent.PURCHASE)],
+      'Test Co',
+    );
+    expect(xml).toContain('VCHTYPE="Purchase"');
+    expect(xml).toContain('OBJVIEW="Invoice Voucher View"');
   });
 
   it('keeps non-trade journals on Accounting Voucher View', () => {

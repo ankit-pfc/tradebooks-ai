@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   buildBuyVoucher,
   buildSellVoucher,
@@ -13,7 +15,9 @@ import { ChargeTreatment } from '../../types/accounting';
 import { EventType } from '../../types/events';
 import { VoucherType } from '../../types/vouchers';
 import { CostLotTracker } from '../cost-lots';
-import { TradeClassification } from '../trade-classifier';
+import { TradeClassification, TradeClassificationStrategy } from '../trade-classifier';
+import { buildCanonicalEvents, pairContractNoteData } from '../canonical-events';
+import { isPipelineValidationError } from '../../errors/pipeline-validation';
 import type { CostDisposal } from '../cost-lots';
 import { makeBuyEvent, makeSellEvent, makeChargeEvent, makeEvent } from '../../../tests/helpers/factories';
 
@@ -50,6 +54,21 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
     expect(voucher.total_debit).toBe(voucher.total_credit);
     expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+  });
+
+  it('rejects negative contract-note charges with a typed validation error', () => {
+    const event = makeBuyEvent({ gross_amount: '25000.00' });
+    const charges = [makeChargeEvent(EventType.STT, '-2.50')];
+
+    try {
+      buildBuyVoucher(event, INVESTOR_DEFAULT, charges);
+      throw new Error('Expected negative charge validation failure');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_NEGATIVE_CONTRACT_NOTE_CHARGE');
+      }
+    }
   });
 });
 
@@ -453,49 +472,66 @@ describe('buildSellVoucher — zero-cost disposal', () => {
     gain_or_loss: '26000.00',
   }];
 
-  it('investor mode: no asset CR line when totalCostBasis = 0', () => {
+  it('investor mode: rejects zero-cost inventory rather than emitting a 0-rate stock line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
-    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
-
-    // Asset CR line is always emitted (even zero-cost) so Tally sees stock movement
-    const assetLine = voucher.lines.find(l => l.ledger_name.includes('Investment') && l.dr_cr === 'CR');
-    expect(assetLine).toBeDefined();
-    expect(assetLine?.amount).toBe('0.00');
-    expect(assetLine?.rate).toBe('0');
+    expect(() => buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100))
+      .toThrow('Sell vouchers cannot emit inventory allocations without a positive cost basis');
   });
 
-  it('investor mode: voucher is balanced with zero-cost asset line', () => {
+  it('trader mode: rejects zero-cost inventory rather than emitting a 0-rate stock line', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
-    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
-    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(() => buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals))
+      .toThrow('Sell vouchers cannot emit inventory allocations without a positive cost basis');
   });
 
-  it('investor mode: full gross booked as gain', () => {
-    const event = makeSellEvent({ gross_amount: '26000.00' });
-    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
-
-    const gainLine = voucher.lines.find(l => l.ledger_name.includes('Capital Gain') && l.dr_cr === 'CR');
-    expect(gainLine?.amount).toBe('26000.00');
+  it('throws a typed validation error for zero-cost inventory', () => {
+    try {
+      buildSellVoucher(makeSellEvent({ gross_amount: '26000.00' }), INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
+      throw new Error('Expected zero-cost inventory validation failure');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_MISSING_COST_BASIS_FOR_INVENTORY');
+      }
+    }
   });
+});
 
-  it('trader mode: stockLedger CR present with zero amount, no cost DR when totalCostBasis = 0', () => {
-    const event = makeSellEvent({ gross_amount: '26000.00' });
-    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
+describe('buildVouchers — negative charge regression fixture', () => {
+  it('throws E_NEGATIVE_CONTRACT_NOTE_CHARGE for the checked-in contract note fixture', () => {
+    const fixturePath = resolve(process.cwd(), 'src', 'tests', 'fixtures', 'negative-charge-cn.json');
+    const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
+      tradebookRows: Array<Record<string, string>>;
+      contractNote: {
+        trades: Array<Record<string, string>>;
+        charges: Record<string, string>;
+      };
+    };
 
-    // Stock CR line is always emitted so Tally sees the inventory movement
-    const stockLine = voucher.lines.find(l => l.ledger_name.includes('Shares-in-Trade') && l.dr_cr === 'CR');
-    expect(stockLine).toBeDefined();
-    expect(stockLine?.amount).toBe('0.00');
-    expect(stockLine?.rate).toBe('0');
+    const contractNoteSheets = pairContractNoteData(
+      fixture.contractNote.trades,
+      [fixture.contractNote.charges],
+      [fixture.contractNote.trades.length],
+    );
+    const events = buildCanonicalEvents({
+      tradebookRows: fixture.tradebookRows,
+      contractNoteSheets,
+      batchId: 'negative-charge-fixture',
+      fileIds: { tradebook: 'tradebook-fixture', contractNote: 'contract-note-fixture' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
 
-    const costLine = voucher.lines.find(l => l.ledger_name.includes('Cost of Shares Sold') && l.dr_cr === 'DR');
-    expect(costLine).toBeUndefined();
-  });
-
-  it('trader mode: voucher is balanced with zero-cost stock line', () => {
-    const event = makeSellEvent({ gross_amount: '26000.00' });
-    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
-    expect(voucher.total_debit).toBe(voucher.total_credit);
+    try {
+      buildVouchers(events, INVESTOR_DEFAULT, new CostLotTracker());
+      throw new Error('Expected negative-charge regression to throw');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_NEGATIVE_CONTRACT_NOTE_CHARGE');
+        expect(err.details?.contract_note_ref).toBe('CN-NEG-0001');
+        expect(err.details?.charge_type).toBe('EXCHANGE_CHARGE');
+      }
+    }
   });
 });
 

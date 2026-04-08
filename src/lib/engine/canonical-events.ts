@@ -662,7 +662,7 @@ export function contractNoteToEvents(
 
     // Charge events (non-GST)
     for (const { field, eventType: chargeEventType, chargeType } of CHARGE_EVENT_MAP) {
-      const amount = new Decimal(alloc[field]).abs();
+      const amount = new Decimal(alloc[field]);
       if (amount.isZero()) continue;
 
       events.push({
@@ -690,8 +690,7 @@ export function contractNoteToEvents(
     // GST: consolidate CGST + SGST + IGST into one GST_ON_CHARGES event
     const gstTotal = new Decimal(alloc.cgst)
       .add(new Decimal(alloc.sgst))
-      .add(new Decimal(alloc.igst))
-      .abs();
+      .add(new Decimal(alloc.igst));
     if (!gstTotal.isZero()) {
       events.push({
         event_id: crypto.randomUUID(),
@@ -942,9 +941,9 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
     classifiedEvents = reclassifyIntradayTrades(classifiedEvents);
   } else if (classificationStrategy === TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT) {
     classifiedEvents = applyAssumeAllEqInvestment(classifiedEvents);
-  } else {
-    ensureStrictClassification(classifiedEvents);
   }
+
+  ensureStrictClassification(classifiedEvents);
 
   // 7. Optional deterministic event IDs for explain/debug snapshots and
   // reproducible golden outputs.

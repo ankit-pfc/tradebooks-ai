@@ -3,137 +3,107 @@
   "note_count": 2,
   "note_reports": [
     {
-      "contract_note_no": "CNT-24/25-8443358",
-      "gross_trade_total": "134087.50",
-      "allocated_brokerage": "0.01",
-      "allocated_exchange_charges": "5.36",
-      "allocated_gst": "0.99",
-      "allocated_sebi_charges": "0.16",
-      "allocated_stamp_duty": "2.00",
-      "allocated_stt": "161.00",
-      "final_derived_broker_payable_receivable": "133917.98",
-      "source_contract_note_payable_receivable": "133917.98",
+      "contract_note_no": "CN-SIMPLE-BUY",
+      "gross_trade_total": "-1000.00",
+      "allocated_brokerage": "0.20",
+      "allocated_exchange_charges": "0.59",
+      "allocated_gst": "0.08",
+      "allocated_sebi_charges": "0.01",
+      "allocated_stamp_duty": "0.61",
+      "allocated_stt": "1.20",
+      "final_derived_broker_payable_receivable": "-1002.69",
+      "source_contract_note_payable_receivable": "-1002.69",
       "variance": "0.00"
     },
     {
-      "contract_note_no": "CNT-24/25-10756898",
-      "gross_trade_total": "-133621.00",
-      "allocated_brokerage": "0.01",
-      "allocated_exchange_charges": "5.32",
-      "allocated_gst": "0.99",
-      "allocated_sebi_charges": "0.16",
-      "allocated_stamp_duty": "22.00",
-      "allocated_stt": "163.00",
-      "final_derived_broker_payable_receivable": "-133812.48",
-      "source_contract_note_payable_receivable": "-133812.48",
+      "contract_note_no": "CN-SAME-DAY",
+      "gross_trade_total": "25.00",
+      "allocated_brokerage": "0.20",
+      "allocated_exchange_charges": "0.59",
+      "allocated_gst": "0.08",
+      "allocated_sebi_charges": "0.01",
+      "allocated_stamp_duty": "0.61",
+      "allocated_stt": "0.45",
+      "final_derived_broker_payable_receivable": "23.06",
+      "source_contract_note_payable_receivable": "23.06",
       "variance": "0.00"
     }
   ],
   "voucher_summaries": [
     {
-      "voucher_number": "CNT-24/25-8443358/WEBELSOLAR-BE",
+      "voucher_number": "CN-SIMPLE-BUY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "8169.03",
-      "total_credit": "8169.03",
-      "stock_item": "WEBELSOLAR-BE-SH",
-      "cost_basis": "8169.03",
+      "total_debit": "1001.49",
+      "total_credit": "1001.49",
+      "stock_item": "INFY-SH",
+      "cost_basis": "1001.49",
       "gain_loss": "0.00",
-      "narration": "Purchase of WEBELSOLAR-BE-SH @ 544.60 × 15 units (2 fills)"
+      "narration": "Purchase of INFY @ 100 × 10 units"
     },
     {
-      "voucher_number": "CNT-24/25-8443358/WEBELSOLAR-BE",
+      "voucher_number": "ORD-1",
       "voucher_type": "JOURNAL",
-      "total_debit": "5441.02",
-      "total_credit": "5441.02",
-      "stock_item": "WEBELSOLAR-BE-SH",
-      "cost_basis": "5441.02",
+      "total_debit": "1000.00",
+      "total_credit": "1000.00",
+      "stock_item": "INFY-SH",
+      "cost_basis": "1000.00",
       "gain_loss": "0.00",
-      "narration": "Purchase of WEBELSOLAR-BE @ 544 × 10 units"
+      "narration": "Purchase of INFY @ 100 × 10 units"
     },
     {
-      "voucher_number": "CNT-24/25-8443358/SHAKTIPUMP-BE",
+      "voucher_number": "CN-SAME-DAY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "39877.65",
-      "total_credit": "39877.65",
-      "stock_item": "SHAKTIPUMP-BE-SH",
-      "cost_basis": "0.00",
-      "gain_loss": "39877.65",
-      "narration": "Sale of SHAKTIPUMP-BE @ 1476.95 × 27 units"
-    },
-    {
-      "voucher_number": "CNT-24/25-8443358/SHAKTIPUMP-BE",
-      "voucher_type": "JOURNAL",
-      "total_debit": "53170.20",
-      "total_credit": "53170.20",
-      "stock_item": "SHAKTIPUMP-BE-SH",
-      "cost_basis": "0.00",
-      "gain_loss": "53170.20",
-      "narration": "Sale of SHAKTIPUMP-BE @ 1476.95 × 36 units"
-    },
-    {
-      "voucher_number": "CNT-24/25-8443358/SHAKTIPUMP-BE",
-      "voucher_type": "JOURNAL",
-      "total_debit": "54647.15",
-      "total_credit": "54647.15",
-      "stock_item": "SHAKTIPUMP-BE-SH",
-      "cost_basis": "0.00",
-      "gain_loss": "54647.15",
-      "narration": "Sale of SHAKTIPUMP-BE @ 1476.95 × 37 units"
-    },
-    {
-      "voucher_number": "CNT-24/25-10756898/SANDUMA-EQ",
-      "voucher_type": "JOURNAL",
-      "total_debit": "138926.17",
-      "total_credit": "138926.17",
-      "stock_item": "SANDUMA-EQ-SH",
-      "cost_basis": "138926.17",
+      "total_debit": "451.04",
+      "total_credit": "451.04",
+      "stock_item": "INFY-SH",
+      "cost_basis": "451.04",
       "gain_loss": "0.00",
-      "narration": "Purchase of SANDUMA-EQ-SH @ 463.09 × 300 units (2 fills)"
+      "narration": "Purchase of INFY @ 90 × 5 units"
     },
     {
-      "voucher_number": "CNT-24/25-10756898/SANDUMA-EQ",
+      "voucher_number": "ORD-3",
       "voucher_type": "JOURNAL",
-      "total_debit": "9240.74",
-      "total_credit": "9240.74",
-      "stock_item": "SANDUMA-EQ-SH",
-      "cost_basis": "9240.74",
+      "total_debit": "450.00",
+      "total_credit": "450.00",
+      "stock_item": "INFY-SH",
+      "cost_basis": "450.00",
       "gain_loss": "0.00",
-      "narration": "Purchase of SANDUMA-EQ @ 461.95 × 20 units"
+      "narration": "Purchase of INFY @ 90 × 5 units"
     },
     {
-      "voucher_number": "CNT-24/25-10756898/WEBELSOLAR-BE",
+      "voucher_number": "CN-SAME-DAY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "10458.00",
-      "total_credit": "10458.00",
-      "stock_item": "WEBELSOLAR-BE-SH",
-      "cost_basis": "9801.34",
-      "gain_loss": "656.66",
-      "narration": "Sale of WEBELSOLAR-BE @ 581 × 18 units"
+      "total_debit": "500.75",
+      "total_credit": "500.75",
+      "stock_item": "INFY-SH",
+      "cost_basis": "500.75",
+      "gain_loss": "0.00",
+      "narration": "Sale of INFY @ 95 × 5 units"
     },
     {
-      "voucher_number": "CNT-24/25-10756898/WEBELSOLAR-BE",
+      "voucher_number": "ORD-4",
       "voucher_type": "JOURNAL",
-      "total_debit": "4060.00",
-      "total_credit": "4060.00",
-      "stock_item": "WEBELSOLAR-BE-SH",
-      "cost_basis": "3808.71",
-      "gain_loss": "251.29",
-      "narration": "Sale of WEBELSOLAR-BE @ 580 × 7 units"
+      "total_debit": "500.00",
+      "total_credit": "500.00",
+      "stock_item": "INFY-SH",
+      "cost_basis": "500.00",
+      "gain_loss": "0.00",
+      "narration": "Sale of INFY @ 95 × 5 units"
     },
     {
       "voucher_number": null,
       "voucher_type": "JOURNAL",
-      "total_debit": "324.00",
-      "total_credit": "324.00",
+      "total_debit": "1.65",
+      "total_credit": "1.65",
       "stock_item": null,
       "cost_basis": "0.00",
       "gain_loss": "0.00",
-      "narration": "STT for period 2024-04-10 to 2024-04-15 — 11 trade(s)"
+      "narration": "STT for period 2024-04-01 to 2024-04-03 — 3 trade(s)"
     }
   ],
   "trade_match": {
-    "matched": 0,
+    "matched": 3,
     "unmatched_tradebook": 0,
-    "unmatched_contract_note": 11
+    "unmatched_contract_note": 0
   }
 }

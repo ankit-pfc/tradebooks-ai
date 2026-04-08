@@ -149,9 +149,9 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="MARUTI-A-SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>MARUTI-A-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -161,35 +161,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>MARUTI-A-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="VISHAL-X-SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="STCG ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>VISHAL-X-SH</NAME>
-            </NAME.LIST>
-            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>Yes</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>VISHAL-X-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="STCG ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>STCG ON MARUTI-A</NAME>
+              <NAME>STCG ON INFY</NAME>
             </NAME.LIST>
             <PARENT>STCG</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -199,16 +180,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>STCG ON MARUTI-A</NAME>
+                <NAME>STCG ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="LTCG ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="LTCG ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>LTCG ON MARUTI-A</NAME>
+              <NAME>LTCG ON INFY</NAME>
             </NAME.LIST>
             <PARENT>LTCG</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -218,16 +199,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>LTCG ON MARUTI-A</NAME>
+                <NAME>LTCG ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="STCL ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="STCL ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>STCL ON MARUTI-A</NAME>
+              <NAME>STCL ON INFY</NAME>
             </NAME.LIST>
             <PARENT>STCL</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -237,16 +218,16 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>STCL ON MARUTI-A</NAME>
+                <NAME>STCL ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="LTCL ON MARUTI-A" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="LTCL ON INFY" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>LTCL ON MARUTI-A</NAME>
+              <NAME>LTCL ON INFY</NAME>
             </NAME.LIST>
             <PARENT>LTCL</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
@@ -256,7 +237,7 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>LTCL ON MARUTI-A</NAME>
+                <NAME>LTCL ON INFY</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -510,28 +491,14 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="MARUTI-A-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>MARUTI-A-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>SH</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>MARUTI-A-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </STOCKITEM>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="VISHAL-X-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>VISHAL-X-SH</NAME>
-            </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>VISHAL-X-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

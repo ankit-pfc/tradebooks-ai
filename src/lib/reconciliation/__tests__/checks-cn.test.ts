@@ -74,7 +74,7 @@ describe('checkContractNoteChargeReconciliation', () => {
     expect(result.status).toBe('PASSED');
   });
 
-  it('normalizes negative contract-note charges before comparing to allocated events', () => {
+  it('reconciles signed negative contract-note charges against signed canonical charge events', () => {
     const charges = [makeCnCharges({
       stt: '-25.00',
       exchange_charges: '-5.00',
@@ -86,16 +86,26 @@ describe('checkContractNoteChargeReconciliation', () => {
       igst: '0',
     })];
     const events: CanonicalEvent[] = [
-      makeChargeEvent('STT', EventType.STT, '25.00'),
-      makeChargeEvent('EXCHANGE_CHARGE', EventType.EXCHANGE_CHARGE, '5.00'),
-      makeChargeEvent('CLEARING_CHARGE', EventType.EXCHANGE_CHARGE, '1.00'),
-      makeChargeEvent('SEBI_CHARGE', EventType.SEBI_CHARGE, '0.25'),
-      makeChargeEvent('STAMP_DUTY', EventType.STAMP_DUTY, '3.75'),
-      makeChargeEvent('GST_ON_CHARGES', EventType.GST_ON_CHARGES, '1.80'),
+      makeChargeEvent('STT', EventType.STT, '-25.00'),
+      makeChargeEvent('EXCHANGE_CHARGE', EventType.EXCHANGE_CHARGE, '-5.00'),
+      makeChargeEvent('CLEARING_CHARGE', EventType.EXCHANGE_CHARGE, '-1.00'),
+      makeChargeEvent('SEBI_CHARGE', EventType.SEBI_CHARGE, '-0.25'),
+      makeChargeEvent('STAMP_DUTY', EventType.STAMP_DUTY, '-3.75'),
+      makeChargeEvent('GST_ON_CHARGES', EventType.GST_ON_CHARGES, '-1.80'),
     ];
 
     const result = checkContractNoteChargeReconciliation(events, charges);
     expect(result.status).toBe('PASSED');
+  });
+
+  it('fails when the sign of allocated charges regresses', () => {
+    const charges = [makeCnCharges({ stt: '-25.00' })];
+    const events: CanonicalEvent[] = [
+      makeChargeEvent('STT', EventType.STT, '25.00'),
+    ];
+
+    const result = checkContractNoteChargeReconciliation(events, charges);
+    expect(result.status).toBe('FAILED');
   });
 
   it('fails when charges mismatch', () => {

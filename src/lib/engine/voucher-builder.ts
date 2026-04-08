@@ -20,6 +20,7 @@ import {
 } from '../types/accounting';
 import {
   VoucherStatus,
+  InvoiceIntent,
   VoucherType,
   type VoucherDraft,
   type VoucherLine,
@@ -34,6 +35,7 @@ import {
   resolveDividendLedger,
 } from './ledger-resolver';
 import { TradeClassification } from './trade-classifier';
+import { PipelineValidationError } from '../errors/pipeline-validation';
 
 export type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
 
@@ -129,6 +131,32 @@ function isSpeculativeTrade(event: CanonicalEvent): boolean {
   return event.trade_classification === TradeClassification.SPECULATIVE_BUSINESS;
 }
 
+function assertKnownChargeSign(
+  chargeEvents: CanonicalEvent[],
+  context: string,
+): void {
+  const negativeCharge = chargeEvents.find((chargeEvent) =>
+    new Decimal(chargeEvent.charge_amount).isNegative(),
+  );
+
+  if (!negativeCharge) {
+    return;
+  }
+
+  throw new PipelineValidationError(
+    'E_NEGATIVE_CONTRACT_NOTE_CHARGE',
+    `Negative contract-note charges are not yet supported in ${context}.`,
+    {
+      event_id: negativeCharge.event_id,
+      event_type: negativeCharge.event_type,
+      charge_type: negativeCharge.charge_type,
+      charge_amount: negativeCharge.charge_amount,
+      contract_note_ref: negativeCharge.contract_note_ref,
+      external_ref: negativeCharge.external_ref,
+    },
+  );
+}
+
 export function deriveEffectiveProfile(
   profile: AccountingProfile,
   event: CanonicalEvent,
@@ -167,6 +195,17 @@ function withTradeReviewNarrative(narrative: string, event: CanonicalEvent): str
   }
 
   return narrative;
+}
+
+function invoiceIntentForTrade(event: CanonicalEvent): InvoiceIntent {
+  switch (event.event_type) {
+    case EventType.BUY_TRADE:
+      return InvoiceIntent.PURCHASE;
+    case EventType.SELL_TRADE:
+      return InvoiceIntent.SALES;
+    default:
+      return InvoiceIntent.NONE;
+  }
 }
 
 function calculateHoldingPeriodDays(
@@ -258,6 +297,7 @@ export function buildBuyVoucher(
   const draftId = crypto.randomUUID();
   const symbol = symbolFromEvent(event);
   const capitalize = shouldCapitalizeBuyCharges(effectiveProfile);
+  assertKnownChargeSign(chargeEvents, 'buy vouchers');
 
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
   const assetLedger = tallyProfile
@@ -328,6 +368,7 @@ export function buildBuyVoucher(
     // ISINVENTORYAFFECTED=Yes on the ledger master. See bug-report PDF
     // pages 5-6.
     voucher_type: VoucherType.JOURNAL,
+    invoice_intent: invoiceIntentForTrade(event),
     voucher_date: event.event_date,
     // Voucher number = CN number / security symbol. Unique per (CN, security)
     // so multi-script CNs don't collide on Tally import while still carrying
@@ -392,6 +433,7 @@ export function buildSellVoucher(
   const draftId = crypto.randomUUID();
   const symbol = symbolFromEvent(event);
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
+  assertKnownChargeSign(chargeEvents, 'sell vouchers');
 
   const grossAmount = new Decimal(event.gross_amount);
   const totalCharges = chargeEvents.reduce(
@@ -406,6 +448,18 @@ export function buildSellVoucher(
   // stays balanced even when per-lot rounded disposals introduce a 0.01 drift.
   const totalGainLoss = grossAmount.sub(totalCostBasis);
   const skipInventory = isSpeculativeTrade(event);
+  if (!skipInventory && totalCostBasis.lte(0)) {
+    throw new PipelineValidationError(
+      'E_MISSING_COST_BASIS_FOR_INVENTORY',
+      'Sell vouchers cannot emit inventory allocations without a positive cost basis.',
+      {
+        event_id: event.event_id,
+        security_id: event.security_id,
+        gross_amount: event.gross_amount,
+        quantity: event.quantity,
+      },
+    );
+  }
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
@@ -555,6 +609,7 @@ export function buildSellVoucher(
     // the F12 "Use Inventory Allocations for Ledgers" flag on the investment
     // ledger master (ISINVENTORYAFFECTED=Yes). See bug-report PDF pages 5-6.
     voucher_type: VoucherType.JOURNAL,
+    invoice_intent: invoiceIntentForTrade(event),
     voucher_date: event.event_date,
     // Voucher number = CN number / security symbol. See buildBuyVoucher for
     // the rationale and disambiguation strategy.
@@ -616,6 +671,7 @@ export function buildSettlementVoucher(
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
     voucher_type: isReceipt ? VoucherType.RECEIPT : VoucherType.PAYMENT,
+    invoice_intent: InvoiceIntent.NONE,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? null,
     narrative: event.external_ref ?? (isReceipt ? 'Funds received' : 'Funds paid'),
@@ -647,6 +703,7 @@ export function buildDividendVoucher(
   const dividendLedger = tallyProfile
     ? resolveDividendLedger(tallyProfile, symbol).name
     : L.DIVIDEND_INCOME.name;
+  assertKnownChargeSign(tdsChargeEvents, 'dividend vouchers');
 
   const tdsTotal = tdsChargeEvents.reduce(
     (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
@@ -673,6 +730,7 @@ export function buildDividendVoucher(
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
     voucher_type: VoucherType.RECEIPT,
+    invoice_intent: InvoiceIntent.NONE,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? null,
     narrative: `Dividend received - ${symbol}`,
@@ -744,6 +802,7 @@ export function buildCorporateActionVoucher(
       voucher_draft_id: draftId,
       import_batch_id: event.import_batch_id,
       voucher_type: VoucherType.JOURNAL,
+      invoice_intent: InvoiceIntent.NONE,
       voucher_date: event.event_date,
       external_reference: event.external_ref ?? null,
       narrative: `Merger/Demerger: ${symbol} → ${newSymbol}`,
@@ -778,6 +837,7 @@ export function buildCorporateActionVoucher(
       voucher_draft_id: draftId,
       import_batch_id: event.import_batch_id,
       voucher_type: VoucherType.JOURNAL,
+      invoice_intent: InvoiceIntent.NONE,
       voucher_date: event.event_date,
       external_reference: event.external_ref ?? null,
       narrative: `Rights issue subscription - ${symbol} @ ${event.rate}`,
@@ -831,6 +891,7 @@ export function buildOffMarketTransferVoucher(
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
     voucher_type: VoucherType.JOURNAL,
+    invoice_intent: InvoiceIntent.NONE,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? null,
     narrative: `Off-market transfer of ${symbol} - REQUIRES MANUAL REVIEW`,
@@ -905,6 +966,7 @@ export function buildAuctionAdjustmentVoucher(
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
     voucher_type: VoucherType.JOURNAL,
+    invoice_intent: InvoiceIntent.NONE,
     voucher_date: event.event_date,
     external_reference: event.external_ref ?? null,
     narrative: `Auction settlement of ${symbol}`,
@@ -941,6 +1003,7 @@ export function buildSttSummaryVoucher(
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft | null {
   if (sttEvents.length === 0) return null;
+  assertKnownChargeSign(sttEvents, 'STT summary vouchers');
 
   const totalStt = sttEvents.reduce(
     (sum, e) => sum.add(new Decimal(e.charge_amount)),
@@ -968,6 +1031,7 @@ export function buildSttSummaryVoucher(
     voucher_draft_id: draftId,
     import_batch_id: sttEvents[0].import_batch_id,
     voucher_type: VoucherType.JOURNAL,
+    invoice_intent: InvoiceIntent.NONE,
     voucher_date: latest,
     external_reference: null,
     narrative: `STT for period ${earliest} to ${latest} — ${tradeCount} trade(s)`,
@@ -1009,6 +1073,24 @@ export function buildVouchers(
   costTracker: CostLotTracker,
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft[] {
+  const ambiguousTrade = events.find(
+    (event) =>
+      (event.event_type === EventType.BUY_TRADE || event.event_type === EventType.SELL_TRADE) &&
+      event.trade_classification === TradeClassification.PROFILE_DRIVEN,
+  );
+  if (ambiguousTrade) {
+    throw new PipelineValidationError(
+      'E_CLASSIFICATION_AMBIGUOUS',
+      'Ambiguous trade classification must be resolved before voucher generation.',
+      {
+        event_id: ambiguousTrade.event_id,
+        security_id: ambiguousTrade.security_id,
+        event_date: ambiguousTrade.event_date,
+        source_row_ids: ambiguousTrade.source_row_ids,
+      },
+    );
+  }
+
   // Sort by date ascending, then by event type (BUY before SELL on same day)
   const sorted = [...events].sort((a, b) => {
     const dateCmp = a.event_date.localeCompare(b.event_date);
@@ -1105,27 +1187,10 @@ export function buildVouchers(
         );
         chargeEvents.forEach((ce) => handledChargeIds.add(ce.event_id));
 
-        let disposals: CostDisposal[] = [];
-        try {
-          disposals = costTracker.disposeLots(
-            event,
-            profile.cost_basis_method as 'FIFO' | 'WEIGHTED_AVERAGE',
-          );
-        } catch {
-          // If no lots exist (e.g. partial data), create a zero-cost disposal
-          // so the voucher can still be built in DRAFT status.
-          const qty = new Decimal(event.quantity).abs();
-          disposals = [
-            {
-              lot_id: 'UNKNOWN',
-              acquisition_date: event.event_date,
-              quantity_sold: qty.toFixed(),
-              unit_cost: '0',
-              total_cost: '0',
-              gain_or_loss: new Decimal(event.gross_amount).toFixed(2),
-            },
-          ];
-        }
+        const disposals = costTracker.disposeLots(
+          event,
+          profile.cost_basis_method as 'FIFO' | 'WEIGHTED_AVERAGE',
+        );
 
         const holdingPeriodDays = calculateHoldingPeriodDays(event.event_date, disposals);
         vouchers.push(

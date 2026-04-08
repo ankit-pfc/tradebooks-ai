@@ -320,7 +320,11 @@ describe('pairContractNoteData', () => {
 
 describe('buildCanonicalEvents', () => {
   it('returns empty for empty inputs', () => {
-    const events = buildCanonicalEvents({ batchId: 'b', fileIds: {} });
+    const events = buildCanonicalEvents({
+      batchId: 'b',
+      fileIds: {},
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
     expect(events).toHaveLength(0);
   });
 
@@ -329,6 +333,7 @@ describe('buildCanonicalEvents', () => {
       tradebookRows: [makeTradebookRow()],
       batchId: 'b',
       fileIds: { tradebook: 'f1' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
     expect(events.length).toBeGreaterThan(0);
     expect(events[0].event_type).toBe(EventType.BUY_TRADE);
@@ -344,6 +349,7 @@ describe('buildCanonicalEvents', () => {
       }],
       batchId: 'b',
       fileIds: { tradebook: 'f1', contractNote: 'f2' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
     // Should only have CN-sourced trade, not tradebook duplicate
     const tradeEvents = events.filter(
@@ -362,6 +368,7 @@ describe('buildCanonicalEvents', () => {
       dividendRows: [makeDividendRow()],
       batchId: 'b',
       fileIds: { fundsStatement: 'f1', dividends: 'f2' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
     // Funds-statement dividend should be skipped, but payout should remain
     const divEvents = events.filter(e => e.event_type === EventType.DIVIDEND);
@@ -375,6 +382,7 @@ describe('buildCanonicalEvents', () => {
       corporateActions: [makeCorporateAction({ action_type: 'BONUS' })],
       batchId: 'b',
       fileIds: { corporateActions: 'f1' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
     expect(events.some(e => e.event_type === EventType.BONUS_SHARES)).toBe(true);
   });
@@ -387,6 +395,7 @@ describe('buildCanonicalEvents', () => {
       }],
       batchId: 'b',
       fileIds: { contractNote: 'f2' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     const tradeEvent = events.find(e => e.event_type === EventType.BUY_TRADE);

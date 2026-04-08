@@ -17,6 +17,7 @@ import { buildVouchers } from '../voucher-builder';
 import { INVESTOR_DEFAULT } from '../accounting-policy';
 import { matchTrades } from '../trade-matcher';
 import { EventType } from '../../types/events';
+import { TradeClassificationStrategy } from '../trade-classifier';
 import type {
   ZerodhaTradebookRow,
   ZerodhaContractNoteTradeRow,
@@ -113,6 +114,7 @@ describe('multi-file pipeline integration', () => {
       tradebookRows: [buyRow, sellRow],
       batchId: 'batch-tb',
       fileIds: { tradebook: 'file-tb' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     expect(events).toHaveLength(2);
@@ -136,6 +138,7 @@ describe('multi-file pipeline integration', () => {
       contractNoteSheets: sheets,
       batchId: 'batch-cn',
       fileIds: { contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     const tradeEvents = events.filter(
@@ -173,6 +176,7 @@ describe('multi-file pipeline integration', () => {
       contractNoteSheets: [{ charges, trades: [cnTrade] }],
       batchId: 'batch-both',
       fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     // Should have 1 trade (from CN) + N charges, NOT 2 trades
@@ -207,6 +211,7 @@ describe('multi-file pipeline integration', () => {
       fundsRows: [fundsRow],
       batchId: 'batch-all',
       fileIds: { tradebook: 'file-tb', contractNote: 'file-cn', fundsStatement: 'file-fs' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     // Should have: 1 trade (CN) + charges + 1 BANK_RECEIPT (from funds)
@@ -253,6 +258,7 @@ describe('multi-file pipeline integration', () => {
       contractNoteSheets: sheets,
       batchId: 'batch-multi',
       fileIds: { contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     // 3 trades + charges for each
@@ -280,6 +286,7 @@ describe('multi-file pipeline integration', () => {
       contractNoteSheets: sheets,
       batchId: 'batch-alloc',
       fileIds: { contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
     });
 
     const sttEvents = events.filter((e) => e.charge_type === 'STT');
