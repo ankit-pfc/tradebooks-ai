@@ -1,7 +1,5 @@
 export type PipelineValidationCode =
-  | 'E_CLASSIFICATION_AMBIGUOUS'
-  | 'E_STAMP_DUTY_WITHOUT_BUY_SIDE'
-  | 'E_NEGATIVE_CONTRACT_NOTE_CHARGE';
+  | 'E_CLASSIFICATION_AMBIGUOUS';
 
 export class PipelineValidationError extends Error {
   readonly code: PipelineValidationCode;

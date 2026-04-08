@@ -8,6 +8,7 @@ import {
   buildSettlementVoucher,
   buildDividendVoucher,
   buildCorporateActionVoucher,
+  buildSttSummaryVoucher,
   buildVouchers,
 } from '../voucher-builder';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../accounting-policy';
@@ -439,6 +440,81 @@ describe('buildDividendVoucher', () => {
     const crDiv = findLine(voucher.lines, 'Dividend', 'CR');
     expect(crDiv?.amount).toBe('1000.00');
     expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
+
+  it('negative TDS (refund case): emits a balanced voucher with CR TDS refund line', () => {
+    // Rare real-world case: broker/issuer refunds previously-deducted TDS
+    // bundled with the dividend posting. The pipeline used to throw
+    // E_NEGATIVE_CONTRACT_NOTE_CHARGE. It now sums algebraically and posts
+    // the refund as CR on the TDS ledger so the voucher stays balanced.
+    const event = makeEvent({
+      event_type: EventType.DIVIDEND,
+      gross_amount: '1000.00',
+      security_id: 'NSE:RELIANCE',
+    });
+    const tdsRefund = makeChargeEvent(EventType.TDS_ON_DIVIDEND, '-50.00');
+    const voucher = buildDividendVoucher(event, [tdsRefund]);
+
+    // DR Bank 1050, CR Dividend 1000, CR TDS 50 → balanced at 1050.
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('1050.00');
+    const drBank = findLine(voucher.lines, 'Bank', 'DR');
+    expect(drBank?.amount).toBe('1050.00');
+    const crTds = findLine(voucher.lines, 'TDS', 'CR');
+    expect(crTds?.amount).toBe('50.00');
+    // No DR TDS line in the refund case.
+    expect(findLine(voucher.lines, 'TDS', 'DR')).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildSttSummaryVoucher — negative-sign (refund) case
+// ---------------------------------------------------------------------------
+describe('buildSttSummaryVoucher — sign handling', () => {
+  it('positive STT: DR STT / CR Broker (existing behavior)', () => {
+    const voucher = buildSttSummaryVoucher([
+      makeChargeEvent(EventType.STT, '12.50'),
+      makeChargeEvent(EventType.STT, '7.50'),
+    ]);
+    expect(voucher).not.toBeNull();
+    expect(voucher!.total_debit).toBe(voucher!.total_credit);
+    expect(voucher!.total_debit).toBe('20.00');
+    expect(findLine(voucher!.lines, 'Securities Transaction Tax', 'DR')?.amount).toBe('20.00');
+    expect(findLine(voucher!.lines, 'Zerodha', 'CR')?.amount).toBe('20.00');
+  });
+
+  it('net negative STT (refund): flips to DR Broker / CR STT', () => {
+    // Prior behavior: throw E_NEGATIVE_CONTRACT_NOTE_CHARGE. New behavior:
+    // broker refunded STT on a cancelled/corrected trade — post the refund
+    // as DR Broker (broker paid us back) / CR STT (reverse the expense).
+    const voucher = buildSttSummaryVoucher([
+      makeChargeEvent(EventType.STT, '5.00'),
+      makeChargeEvent(EventType.STT, '-15.00'),
+    ]);
+    expect(voucher).not.toBeNull();
+    expect(voucher!.total_debit).toBe(voucher!.total_credit);
+    expect(voucher!.total_debit).toBe('10.00');
+    expect(findLine(voucher!.lines, 'Zerodha', 'DR')?.amount).toBe('10.00');
+    expect(findLine(voucher!.lines, 'Securities Transaction Tax', 'CR')?.amount).toBe('10.00');
+  });
+
+  it('net zero STT: returns null (no voucher emitted)', () => {
+    const voucher = buildSttSummaryVoucher([
+      makeChargeEvent(EventType.STT, '10.00'),
+      makeChargeEvent(EventType.STT, '-10.00'),
+    ]);
+    expect(voucher).toBeNull();
+  });
+
+  it('individual negative STT with positive net: produces a normal DR STT voucher', () => {
+    const voucher = buildSttSummaryVoucher([
+      makeChargeEvent(EventType.STT, '20.00'),
+      makeChargeEvent(EventType.STT, '-5.00'),
+    ]);
+    expect(voucher).not.toBeNull();
+    expect(voucher!.total_debit).toBe('15.00');
+    expect(findLine(voucher!.lines, 'Securities Transaction Tax', 'DR')?.amount).toBe('15.00');
+    expect(findLine(voucher!.lines, 'Zerodha', 'CR')?.amount).toBe('15.00');
   });
 });
 

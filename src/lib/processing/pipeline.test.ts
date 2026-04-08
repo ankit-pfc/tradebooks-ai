@@ -324,37 +324,44 @@ describe('runProcessingPipeline — matchResult present with real fixture', () =
 describe('runProcessingPipeline — corporate actions', () => {
     // A tradebook where the buy uses the pre-split ISIN and the sell uses the
     // post-split ISIN after a 1:5 face-value split. Without a declared
-    // STOCK_SPLIT corporate action, the sell would throw
-    // "sell quantity exceeds open lots" because cost lots stay keyed to the
-    // old ISIN. With the corporate action, lots migrate to the new ISIN and
-    // the sell resolves cleanly.
+    // STOCK_SPLIT corporate action, cost lots stay keyed to the old ISIN and
+    // the sell has no matching inventory. The cost-lot engine (see
+    // cost-lots.ts _disposeFifo / _disposeWeightedAverage) now records the
+    // sell as a zero-cost "uncovered" disposal rather than throwing — the
+    // voucher builder emits a balanced voucher with the full proceeds
+    // routed to the gain ledger. Declaring the corporate action is still the
+    // correct path (see the next test), but the pipeline no longer blocks.
     const splitScenarioTradebook = Buffer.from([
         'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
         '2024-05-12,NSE,EQ,SPLITCO,INE111A01012,BUY,10,4200.00,CNC,T200,ORD200,09:15:00',
         '2024-11-12,NSE,EQ,SPLITCO,INE111A01020,SELL,50,857.15,CNC,T201,ORD201,09:15:00',
     ].join('\n'));
 
-    it('throws without corporate action when ISIN changes across a split', async () => {
-        let caught: unknown;
-        try {
-            await runProcessingPipeline({
-                ...BASE_INPUT,
-                batchId: 'batch-split-fail',
-                files: [
-                    {
-                        fileId: 'file-split-001',
-                        fileName: 'tradebook-split.csv',
-                        buffer: splitScenarioTradebook,
-                        mimeType: 'text/csv',
-                    },
-                ],
-            });
-        } catch (err) {
-            caught = err;
-        }
-        expect(caught).toBeInstanceOf(Error);
-        expect((caught as Error).message).toMatch(/exceeds open lots/);
-        expect((caught as Error).message).toMatch(/INE111A01020/);
+    it('produces a balanced uncovered-disposal voucher when ISIN changes without a declared corporate action', async () => {
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-split-fail',
+            files: [
+                {
+                    fileId: 'file-split-001',
+                    fileName: 'tradebook-split.csv',
+                    buffer: splitScenarioTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        // Pipeline no longer blocks — both trades are processed, and a
+        // buy + sell voucher pair is emitted.
+        expect(result.voucherCount).toBeGreaterThanOrEqual(2);
+        // Only the 2 trade events are present (no corporate action event,
+        // since none was declared).
+        expect(result.eventCount).toBe(2);
+        // The sell voucher for the post-split ISIN (INE111A01020) has no
+        // matching lots, so it's emitted as an uncovered disposal. That
+        // means no inventory-bearing line for the new ISIN is written
+        // (zero-cost basis ⇒ voucher-builder skips the asset CR line).
+        expect(result.transactionsXml).not.toMatch(/INE111A01020[^<]*<\/STOCKITEMNAME>/);
     });
 
     it('migrates lots and balances when STOCK_SPLIT corporate action is declared', async () => {

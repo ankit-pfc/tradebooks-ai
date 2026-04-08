@@ -186,15 +186,21 @@ describe('allocateCharges', () => {
     expect(result[1].stamp_duty).toBe('0.00');
   });
 
-  it('raises a typed validation error when stamp duty exists without any buy-side turnover', () => {
+  it('falls back to all-trades proportional split when stamp duty exists without any buy-side turnover', () => {
+    // Edge case: a sell-only CN (reversal, broker batching quirk) still
+    // carries a stamp-duty aggregate. Rather than block the pipeline, the
+    // allocator falls back to proportional split across all trades so the
+    // charge posts — user can reclassify in Tally.
     const trades = [
       makeTrade({ trade_no: '2001', buy_sell: 'S', quantity: '10', gross_rate: '100.00' }),
+      makeTrade({ trade_no: '2002', buy_sell: 'S', quantity: '30', gross_rate: '100.00' }),
     ];
     const charges = makeCharges({ stamp_duty: '1.00' });
 
-    expect(() => allocateCharges(trades, charges)).toThrow(
-      'Contract note reports stamp duty but has no buy-side turnover',
-    );
+    const result = allocateCharges(trades, charges);
+    // Proportional split: 1000/4000 * 1.00 = 0.25, 3000/4000 * 1.00 = 0.75
+    expect(result[0].stamp_duty).toBe('0.25');
+    expect(result[1].stamp_duty).toBe('0.75');
   });
 
   it('handles all-zero charges gracefully', () => {

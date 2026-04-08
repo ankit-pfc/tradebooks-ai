@@ -132,39 +132,6 @@ function isSpeculativeTrade(event: CanonicalEvent): boolean {
 }
 
 /**
- * Reject negative charge events for contexts that have no semantically valid
- * meaning for refunds (e.g. STT summary, dividend TDS — neither broker nor
- * tax authority issues "negative" amounts there). For trade buy/sell vouchers
- * we instead post negative charges as CR (refund) lines, since Zerodha
- * legitimately emits small negative exchange-charge rebates on contract notes.
- */
-function assertKnownChargeSign(
-  chargeEvents: CanonicalEvent[],
-  context: string,
-): void {
-  const negativeCharge = chargeEvents.find((chargeEvent) =>
-    new Decimal(chargeEvent.charge_amount).isNegative(),
-  );
-
-  if (!negativeCharge) {
-    return;
-  }
-
-  throw new PipelineValidationError(
-    'E_NEGATIVE_CONTRACT_NOTE_CHARGE',
-    `Negative contract-note charges are not yet supported in ${context}.`,
-    {
-      event_id: negativeCharge.event_id,
-      event_type: negativeCharge.event_type,
-      charge_type: negativeCharge.charge_type,
-      charge_amount: negativeCharge.charge_amount,
-      contract_note_ref: negativeCharge.contract_note_ref,
-      external_ref: negativeCharge.external_ref,
-    },
-  );
-}
-
-/**
  * Append a charge expense line to a voucher draft, choosing DR for normal
  * charges and CR for negative refunds (e.g. exchange-charge rebates that
  * Zerodha occasionally emits on real contract notes). Zero-amount charges
@@ -742,8 +709,11 @@ export function buildDividendVoucher(
   const dividendLedger = tallyProfile
     ? resolveDividendLedger(tallyProfile, symbol).name
     : L.DIVIDEND_INCOME.name;
-  assertKnownChargeSign(tdsChargeEvents, 'dividend vouchers');
 
+  // Sum TDS algebraically. Individual TDS events can be negative on real
+  // data (rare: post-facto TDS refunds bundled with the dividend posting).
+  // We no longer reject — instead we emit a CR TDS line to represent the
+  // refund so the voucher balances.
   const tdsTotal = tdsChargeEvents.reduce(
     (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
     new Decimal(0),
@@ -752,18 +722,26 @@ export function buildDividendVoucher(
 
   const lines: VoucherLine[] = [];
   let lineNo = 1;
+  const tdsLedger = tallyProfile?.tdsOnDividend.name ?? L.TDS_ON_DIVIDEND.name;
 
-  // DR: Bank receives the net amount (gross minus TDS)
+  // DR: Bank receives the net amount (gross minus TDS). If TDS is negative
+  // (refund case), netAmount > grossAmount — the bank still debits the
+  // actual amount received.
   lines.push(makeLine(draftId, lineNo++, bankName, netAmount, 'DR'));
 
-  // DR: TDS deducted at source (when TDS > 0)
+  // DR: TDS deducted at source (normal case, tdsTotal > 0).
   if (tdsTotal.greaterThan(0)) {
-    const tdsLedger = tallyProfile?.tdsOnDividend.name ?? L.TDS_ON_DIVIDEND.name;
     lines.push(makeLine(draftId, lineNo++, tdsLedger, tdsTotal, 'DR'));
   }
 
   // CR: Dividend income at gross
   lines.push(makeLine(draftId, lineNo++, dividendLedger, grossAmount, 'CR'));
+
+  // CR: TDS refund (negative-TDS case). Balances the voucher when the
+  // broker/issuer refunds previously-deducted TDS alongside the dividend.
+  if (tdsTotal.isNegative()) {
+    lines.push(makeLine(draftId, lineNo++, tdsLedger, tdsTotal.abs(), 'CR'));
+  }
 
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
@@ -1034,15 +1012,27 @@ export function buildAuctionAdjustmentVoucher(
  * journal records the cash outflow so the Zerodha Ledger reconciles with the
  * broker statement.
  *
- *   DR  STT (Capital Account / Indirect Expenses)   {total STT}
- *   CR  Zerodha Broking                              {total STT}
+ * Normal case (net STT > 0):
+ *   DR  STT                                  {total STT}
+ *   CR  Zerodha Broking                      {total STT}
+ *
+ * Negative-sign case (net STT < 0 — e.g. broker reversed/refunded STT on a
+ * cancelled or corrected trade): flip DR/CR so the voucher stays balanced
+ * and the broker cash flow mirrors the refund.
+ *
+ *   DR  Zerodha Broking                      {|total STT|}
+ *   CR  STT                                  {|total STT|}
+ *
+ * Individual STT events can legitimately be negative on real Zerodha data
+ * (trade corrections, post-close adjustments). We sum algebraically rather
+ * than reject — matching the same "absorb and let Tally reconcile" philosophy
+ * used for sell-side charge rebates and uncovered FIFO disposals.
  */
 export function buildSttSummaryVoucher(
   sttEvents: CanonicalEvent[],
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft | null {
   if (sttEvents.length === 0) return null;
-  assertKnownChargeSign(sttEvents, 'STT summary vouchers');
 
   const totalStt = sttEvents.reduce(
     (sum, e) => sum.add(new Decimal(e.charge_amount)),
@@ -1061,10 +1051,17 @@ export function buildSttSummaryVoucher(
   const brokerLedger = tallyProfile?.broker.name ?? L.BROKER.name;
 
   const draftId = crypto.randomUUID();
-  const lines: VoucherLine[] = [
-    makeLine(draftId, 1, sttLedger, totalStt, 'DR'),
-    makeLine(draftId, 2, brokerLedger, totalStt, 'CR'),
-  ];
+  const isRefund = totalStt.isNegative();
+  const absAmount = totalStt.abs();
+  const lines: VoucherLine[] = isRefund
+    ? [
+        makeLine(draftId, 1, brokerLedger, absAmount, 'DR'),
+        makeLine(draftId, 2, sttLedger, absAmount, 'CR'),
+      ]
+    : [
+        makeLine(draftId, 1, sttLedger, totalStt, 'DR'),
+        makeLine(draftId, 2, brokerLedger, totalStt, 'CR'),
+      ];
 
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,

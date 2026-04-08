@@ -12,7 +12,6 @@ import type {
   ZerodhaContractNoteTradeRow,
   ZerodhaContractNoteCharges,
 } from '../parsers/zerodha/types';
-import { PipelineValidationError } from '../errors/pipeline-validation';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -111,23 +110,20 @@ export function allocateCharges(
   const sgstSplits = proportionalSplit(dec(charges.sgst), tradeValues);
   const igstSplits = proportionalSplit(dec(charges.igst), tradeValues);
   const sebiSplits = proportionalSplit(dec(charges.sebi_fees), tradeValues);
-  // Stamp duty applies only on buy-side turnover.
+  // Stamp duty is levied on buy-side turnover per Indian law. In practice
+  // the vast majority of contract notes with stamp duty have a buy side, so
+  // we allocate proportionally against buy-side trade values. When a CN
+  // reports stamp duty but has no buy side (rare: reversal-only CN, broker
+  // batching quirk), we fall back to an all-trades proportional split so
+  // the charge still posts and the pipeline stays unblocked. User can
+  // reclassify in Tally if needed.
   const buySideTradeValues = trades.map((trade, index) =>
     trade.buy_sell === 'B' ? tradeValues[index] : new Decimal(0),
   );
   const stampAggregate = dec(charges.stamp_duty);
   const hasBuySideTurnover = buySideTradeValues.some((value) => value.gt(0));
-  if (!hasBuySideTurnover && stampAggregate.gt(0)) {
-    throw new PipelineValidationError(
-      'E_STAMP_DUTY_WITHOUT_BUY_SIDE',
-      'Contract note reports stamp duty but has no buy-side turnover to allocate it against.',
-      {
-        stamp_duty: charges.stamp_duty,
-        trade_count: trades.length,
-      },
-    );
-  }
-  const stampSplits = proportionalSplit(stampAggregate, buySideTradeValues);
+  const stampAllocationBasis = hasBuySideTurnover ? buySideTradeValues : tradeValues;
+  const stampSplits = proportionalSplit(stampAggregate, stampAllocationBasis);
 
   // Brokerage: prefer per-unit rates from the trade rows (XLSX contract notes carry
   // these). When all per-unit rates are zero but the aggregate brokerage is non-zero
