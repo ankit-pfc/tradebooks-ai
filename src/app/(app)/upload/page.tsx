@@ -970,8 +970,10 @@ function StepProcessing({
   onRetryWithStrategy: (strategy: 'ASSUME_ALL_EQ_INVESTMENT' | 'HEURISTIC_SAME_DAY_FLAT_INTRADAY') => void;
 }) {
   const isClassificationAmbiguous = errorCode === 'E_CLASSIFICATION_AMBIGUOUS';
-  const disposeLotsSecurityId = extractSecurityIdFromDisposeError(errorMessage);
-  const isDisposeLotsError = disposeLotsSecurityId !== null && batchId !== null;
+  // TODO: corporate actions temporarily disabled — re-enable when unblocked
+  // const disposeLotsSecurityId = extractSecurityIdFromDisposeError(errorMessage);
+  // const isDisposeLotsError = disposeLotsSecurityId !== null && batchId !== null;
+  const isDisposeLotsError = false;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
