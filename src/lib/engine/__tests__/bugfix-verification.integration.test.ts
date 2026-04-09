@@ -434,64 +434,59 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
 
   const result = runFullPipeline(csv);
 
-  it('IRCTC sell voucher has OBJVIEW="Accounting Voucher View" (no inventory)', () => {
-    const parsed = parseXml(result.transactionsXml);
-    const vouchers = getVouchers(parsed);
-    const irctcSell = vouchers.find(v =>
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('IRCTC') &&
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('Sale'),
+  // Under the investor-mode intraday consolidation rule, IRCTC's same-day
+  // MIS round-trip is folded into ONE consolidated journal voucher with a
+  // narration like "25 shares intraday loss in IRCTC" — not two separate
+  // buy/sell vouchers. The RELIANCE delivery buy is unaffected and remains
+  // a per-fill investment-ledger voucher.
+  it('IRCTC intraday produces ONE consolidated voucher with no per-fill Purchase/Sale narratives', () => {
+    const perFillNarratives = result.vouchers.filter(v =>
+      v.narrative?.includes('IRCTC') &&
+      (v.narrative?.includes('Purchase of') || v.narrative?.includes('Sale of')),
     );
-    expect(irctcSell).toBeDefined();
-    expect((irctcSell as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
+    expect(perFillNarratives).toHaveLength(0);
+
+    const intraday = result.vouchers.filter(v =>
+      v.narrative?.includes('IRCTC') && v.narrative?.includes('intraday'),
+    );
+    expect(intraday).toHaveLength(1);
   });
 
-  it('IRCTC sell voucher has NO ISINVOICE element (or not Yes)', () => {
+  it('IRCTC consolidated voucher is OBJVIEW="Accounting Voucher View" with no inventory allocations', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
-    const irctcSell = vouchers.find(v =>
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('IRCTC') &&
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('Sale'),
+    const irctcVoucher = vouchers.find(v =>
+      String((v as Record<string, unknown>).NARRATION ?? '').includes('IRCTC'),
+    );
+    expect(irctcVoucher).toBeDefined();
+    expect((irctcVoucher as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
+    // Consolidated intraday voucher is a plain accounting entry — no stock
+    // lines anywhere on the voucher.
+    const lines = getVoucherLines(irctcVoucher!);
+    for (const l of lines) {
+      const allocs = getInventoryAllocations(l);
+      expect(allocs).toHaveLength(0);
+    }
+  });
+
+  it('IRCTC consolidated voucher has no ISINVOICE=Yes', () => {
+    const parsed = parseXml(result.transactionsXml);
+    const vouchers = getVouchers(parsed);
+    const irctcVoucher = vouchers.find(v =>
+      String((v as Record<string, unknown>).NARRATION ?? '').includes('IRCTC'),
     )!;
-    const isInvoice = (irctcSell as Record<string, unknown>).ISINVOICE;
-    // Should either be absent or not "Yes"
+    const isInvoice = (irctcVoucher as Record<string, unknown>).ISINVOICE;
     expect(isInvoice).not.toBe('Yes');
   });
 
-  it('IRCTC sell voucher has NO INVENTORYALLOCATIONS.LIST on any line', () => {
-    const parsed = parseXml(result.transactionsXml);
-    const vouchers = getVouchers(parsed);
-    const irctcSell = vouchers.find(v =>
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('IRCTC') &&
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('Sale'),
+  it('IRCTC consolidated voucher routes to the speculation ledger (intraday gain/loss, same ledger)', () => {
+    const irctcVoucher = result.vouchers.find(v =>
+      v.narrative?.includes('IRCTC') && v.narrative?.includes('intraday'),
     )!;
-    const lines = getVoucherLines(irctcSell);
-    for (const l of lines) {
-      const allocs = getInventoryAllocations(l);
-      expect(allocs).toHaveLength(0);
-    }
-  });
-
-  it('IRCTC buy voucher also has NO INVENTORYALLOCATIONS.LIST', () => {
-    const parsed = parseXml(result.transactionsXml);
-    const vouchers = getVouchers(parsed);
-    const irctcBuy = vouchers.find(v =>
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('IRCTC') &&
-      String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
-    )!;
-    expect(irctcBuy).toBeDefined();
-    const lines = getVoucherLines(irctcBuy);
-    for (const l of lines) {
-      const allocs = getInventoryAllocations(l);
-      expect(allocs).toHaveLength(0);
-    }
-  });
-
-  it('IRCTC sell gain/loss uses speculation ledger', () => {
-    const irctcSell = result.vouchers.find(v =>
-      v.narrative?.includes('IRCTC') && v.narrative?.includes('Sale'),
-    )!;
-    // Should have a line routing to speculation gain or loss
-    const specLine = irctcSell.lines.find(l =>
+    expect(irctcVoucher).toBeDefined();
+    // Exactly one line routes to the intraday speculation ledger — the
+    // side (DR for loss, CR for gain) depends on netPnL sign.
+    const specLine = irctcVoucher.lines.find(l =>
       l.ledger_name.toLowerCase().includes('intraday') ||
       l.ledger_name.toLowerCase().includes('speculat'),
     );
@@ -524,43 +519,48 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
 // ===========================================================================
 
 describe('Scenario 4: Speculative gain/loss single ledger', () => {
+  // Two DIFFERENT scrips on the same day — one ends intraday in a gain, the
+  // other in a loss. Each scrip gets its own consolidated intraday voucher
+  // under the investor-mode intraday consolidation rule, which lets us
+  // exercise both the gain (CR intraday ledger) and loss (DR intraday
+  // ledger) sides of the single CA_SPECULATION_GAIN net ledger.
   const csv = buildTradebookCsv([
     // HDFC intraday GAIN: buy 25 @ 2490, sell 25 @ 2515 same day (MIS)
     ['20-04-2021', 'NSE', 'EQ', 'HDFC', 'INE001A01036', 'buy', '25', '2490.00', 'MIS', 'T4001', 'O4001', '09:30:00'],
     ['20-04-2021', 'NSE', 'EQ', 'HDFC', 'INE001A01036', 'sell', '25', '2515.00', 'MIS', 'T4002', 'O4002', '14:00:00'],
-    // HDFC intraday LOSS: buy 5 @ 2490, sell 5 @ 2420 same day (MIS)
-    ['20-04-2021', 'NSE', 'EQ', 'HDFC', 'INE001A01036', 'buy', '5', '2490.00', 'MIS', 'T4003', 'O4003', '10:00:00'],
-    ['20-04-2021', 'NSE', 'EQ', 'HDFC', 'INE001A01036', 'sell', '5', '2420.00', 'MIS', 'T4004', 'O4004', '15:00:00'],
+    // TATAMOTORS intraday LOSS: buy 5 @ 500, sell 5 @ 430 same day (MIS)
+    ['20-04-2021', 'NSE', 'EQ', 'TATAMOTORS', 'INE155A01022', 'buy', '5', '500.00', 'MIS', 'T4003', 'O4003', '10:00:00'],
+    ['20-04-2021', 'NSE', 'EQ', 'TATAMOTORS', 'INE155A01022', 'sell', '5', '430.00', 'MIS', 'T4004', 'O4004', '15:00:00'],
   ]);
 
   const result = runFullPipeline(csv);
 
-  it('gain voucher uses speculation ledger (CR line)', () => {
-    const sellVouchers = result.vouchers.filter(v => v.narrative?.includes('Sale'));
-    // Find the gain voucher (sell @ 2515 > buy @ 2490)
-    const gainV = sellVouchers.find(v => {
-      return v.lines.some(l =>
-        l.dr_cr === 'CR' && (
-          l.ledger_name.toLowerCase().includes('intraday') ||
-          l.ledger_name.toLowerCase().includes('speculat')
-        ),
-      );
-    });
-    expect(gainV).toBeDefined();
+  it('HDFC gain voucher posts to the speculation ledger as CR', () => {
+    const hdfcGain = result.vouchers.find(v =>
+      v.narrative?.includes('HDFC') && v.narrative?.includes('intraday gain'),
+    );
+    expect(hdfcGain).toBeDefined();
+    const specLine = hdfcGain!.lines.find(l =>
+      l.dr_cr === 'CR' && (
+        l.ledger_name.toLowerCase().includes('intraday') ||
+        l.ledger_name.toLowerCase().includes('speculat')
+      ),
+    );
+    expect(specLine).toBeDefined();
   });
 
-  it('loss voucher uses speculation ledger (DR line)', () => {
-    const sellVouchers = result.vouchers.filter(v => v.narrative?.includes('Sale'));
-    // Find the loss voucher (sell @ 2420 < buy @ 2490)
-    const lossV = sellVouchers.find(v => {
-      return v.lines.some(l =>
-        l.dr_cr === 'DR' && (
-          l.ledger_name.toLowerCase().includes('intraday') ||
-          l.ledger_name.toLowerCase().includes('speculat')
-        ),
-      );
-    });
-    expect(lossV).toBeDefined();
+  it('TATAMOTORS loss voucher posts to the same speculation ledger as DR', () => {
+    const tmLoss = result.vouchers.find(v =>
+      v.narrative?.includes('TATAMOTORS') && v.narrative?.includes('intraday loss'),
+    );
+    expect(tmLoss).toBeDefined();
+    const specLine = tmLoss!.lines.find(l =>
+      l.dr_cr === 'DR' && (
+        l.ledger_name.toLowerCase().includes('intraday') ||
+        l.ledger_name.toLowerCase().includes('speculat')
+      ),
+    );
+    expect(specLine).toBeDefined();
   });
 
   it('mastersXml has speculation ledger(s) under Speculative Business Income group', () => {
@@ -651,66 +651,72 @@ describe('Scenario 4b: CN-sourced intraday end-to-end (B1+B2+B3)', () => {
     }
   });
 
-  it('B2: buy voucher is JOURNAL (not Purchase) and has NO inventory line', () => {
-    const buyVoucher = vouchers.find((v) => v.narrative?.includes('Purchase'));
-    expect(buyVoucher).toBeDefined();
-    expect(buyVoucher!.voucher_type).toBe('JOURNAL');
-    const lineWithInventory = buyVoucher!.lines.find((l) => l.quantity !== null);
-    expect(lineWithInventory).toBeUndefined();
-  });
+  it('B2: same-day round-trip is folded into ONE consolidated intraday Journal — no per-fill Purchase/Sale vouchers', () => {
+    // Under investor-mode intraday consolidation, the HDFC same-day buy+sell
+    // produces exactly ONE journal voucher with narration "10 shares
+    // intraday gain in HDFC" (or loss). The old per-fill "Purchase of HDFC"
+    // and "Sale of HDFC" vouchers must NOT exist.
+    const perFillBuys = vouchers.filter((v) => v.narrative?.startsWith('Purchase of HDFC'));
+    const perFillSells = vouchers.filter((v) => v.narrative?.startsWith('Sale of HDFC'));
+    expect(perFillBuys).toHaveLength(0);
+    expect(perFillSells).toHaveLength(0);
 
-  it('B2: sell voucher is JOURNAL and routes gain to the SINGLE intraday net ledger', () => {
-    const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'));
-    expect(sellVoucher).toBeDefined();
-    expect(sellVoucher!.voucher_type).toBe('JOURNAL');
-    // Gain CR should land on the unified intraday ledger (CA_SPECULATION_GAIN
-    // is now the single net ledger — losses also post here as DR-side).
-    const gainLine = sellVoucher!.lines.find(
+    const intraday = vouchers.filter((v) =>
+      v.narrative?.includes('HDFC') && v.narrative?.includes('intraday'),
+    );
+    expect(intraday).toHaveLength(1);
+    const iv = intraday[0];
+    expect(iv.voucher_type).toBe('JOURNAL');
+    expect(iv.lines).toHaveLength(2);
+
+    // Lines are plain accounting lines only — no stock metadata.
+    for (const l of iv.lines) {
+      expect(l.quantity).toBeNull();
+      expect(l.security_id).toBeNull();
+      expect(l.rate).toBeNull();
+      expect(l.stock_item_name).toBeNull();
+    }
+
+    // Gain CR lands on the unified intraday ledger (CA_SPECULATION_GAIN is
+    // the single net ledger — losses also post here on the DR side).
+    const intradayLine = iv.lines.find(
       (l) => l.ledger_name === 'Intraday Gain on Sale of Shares - ZERODHA',
     );
-    expect(gainLine).toBeDefined();
-    expect(gainLine!.dr_cr).toBe('CR');
+    expect(intradayLine).toBeDefined();
   });
 
-  it('B3: non-STT sell charges are absorbed into saleConsideration; STT is emitted as a separate summary voucher', () => {
-    // After the investor-mode capitalization fix (Sec 48 / ITR-2): charges
-    // other than STT are no longer posted as separate DR expense lines on
-    // the sell voucher — they're absorbed into sale consideration so the
-    // gain/loss CR line is smaller by exactly the non-STT charge total.
-    // STT is handled out-of-band: the pipeline strips STT events from trade
-    // vouchers entirely and emits ONE lump-sum STT summary journal for the
-    // batch (see filteredSttEvents → buildSttSummaryVoucher). This still
-    // satisfies bug-report item #15 (charges reduce net P&L) — the mechanism
-    // for non-STT is netting inside the trade voucher, and STT is visible
-    // as a standalone non-deductible expense in its own voucher.
-    const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'))!;
+  it('B3: all sell-side charges — INCLUDING STT — are absorbed into netPnL; no standalone STT summary voucher is emitted for the CN', () => {
+    // Under the investor-mode intraday consolidation rule, Sec 43(5)
+    // speculative business income treats STT as a deductible expense. The
+    // consolidated voucher absorbs ALL charges (brokerage, GST, exchange,
+    // SEBI, stamp, and STT) into a single netPnL figure. This is
+    // intentionally different from the delivery (Sec 48) path where STT
+    // must remain a visible non-deductible line. The STT summary voucher
+    // must therefore NOT carry the 60.00 STT from this intraday-only CN.
+    const intraday = vouchers.find((v) =>
+      v.narrative?.includes('HDFC') && v.narrative?.includes('intraday'),
+    )!;
 
-    // No separate brokerage / exchange / GST / SEBI / stamp DR lines on the
-    // sell voucher itself.
-    const chargeDrs = sellVoucher.lines.filter(
-      (l) =>
-        l.dr_cr === 'DR' &&
-        (l.ledger_name.toLowerCase().includes('brokerage') ||
-          l.ledger_name.toLowerCase().includes('exchange') ||
-          l.ledger_name.toLowerCase().includes('gst') ||
-          l.ledger_name.toLowerCase().includes('sebi') ||
-          l.ledger_name.toLowerCase().includes('stamp') ||
-          /securities transaction tax|^stt\b/i.test(l.ledger_name)),
+    // The consolidated voucher has exactly 2 lines — broker + intraday
+    // ledger — and no separate charge DR lines of any kind.
+    const chargeLines = intraday.lines.filter((l) =>
+      l.ledger_name.toLowerCase().includes('brokerage') ||
+      l.ledger_name.toLowerCase().includes('exchange') ||
+      l.ledger_name.toLowerCase().includes('gst') ||
+      l.ledger_name.toLowerCase().includes('sebi') ||
+      l.ledger_name.toLowerCase().includes('stamp') ||
+      /securities transaction tax|^stt\b/i.test(l.ledger_name),
     );
-    expect(chargeDrs).toHaveLength(0);
+    expect(chargeLines).toHaveLength(0);
 
-    // STT for the batch is emitted as its own summary voucher carrying the
-    // full aggregated STT amount (60.00 from the CN).
+    // STT summary voucher must not exist (or must be 0) for an
+    // intraday-only CN — all STT was already folded into netPnL.
     const sttVoucher = vouchers.find((v) =>
       v.lines.some(
         (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
       ),
     );
-    expect(sttVoucher).toBeDefined();
-    const sttDr = sttVoucher!.lines.find(
-      (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
-    )!;
-    expect(sttDr.amount).toBe('60.00');
+    expect(sttVoucher).toBeUndefined();
   });
 });
 
@@ -846,11 +852,14 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
   });
 
   it('HDFC intraday gain/loss uses speculation ledger', () => {
-    const hdfcSell = result.vouchers.find(v =>
-      v.narrative?.includes('HDFC') && v.narrative?.includes('Sale'),
-    )!;
-    expect(hdfcSell).toBeDefined();
-    const specLine = hdfcSell.lines.find(l =>
+    // Under the investor-mode intraday consolidation rule, HDFC's same-day
+    // round-trip is folded into ONE voucher with an "intraday" narration,
+    // not a per-fill "Sale of HDFC" voucher.
+    const hdfcIntraday = result.vouchers.find(v =>
+      v.narrative?.includes('HDFC') && v.narrative?.includes('intraday'),
+    );
+    expect(hdfcIntraday).toBeDefined();
+    const specLine = hdfcIntraday!.lines.find(l =>
       l.ledger_name.toLowerCase().includes('intraday') ||
       l.ledger_name.toLowerCase().includes('speculat'),
     );
@@ -1240,25 +1249,35 @@ describe('Regression: no trades are dropped between input and generated XML', ()
   it('every delivery buy/sell appears exactly once in generated XML as Journal vouchers', () => {
     const vouchers = getVouchers(parseXml(result.transactionsXml));
 
-    const tradeVouchers = vouchers.filter(v => {
+    const deliveryVouchers = vouchers.filter(v => {
       const narr = String(v.NARRATION ?? '');
       return narr.includes('Purchase of') || narr.includes('Sale of');
     });
 
-    // 3 delivery buys + 2 delivery sells + 2 intraday (HDFC buy + sell, each
-    // reclassified to speculative but emitted as separate journal vouchers).
-    expect(tradeVouchers).toHaveLength(7);
+    // 3 delivery buys + 2 delivery sells = 5. The HDFC same-day MIS
+    // round-trip is folded into ONE consolidated intraday journal voucher
+    // with a separate "intraday" narration, so it does NOT appear in the
+    // "Purchase of" / "Sale of" filter.
+    expect(deliveryVouchers).toHaveLength(5);
+
+    // The HDFC intraday round-trip must still be present — just under the
+    // consolidated-voucher narration format.
+    const hdfcIntraday = vouchers.filter(v =>
+      String(v.NARRATION ?? '').includes('HDFC') &&
+      String(v.NARRATION ?? '').includes('intraday'),
+    );
+    expect(hdfcIntraday).toHaveLength(1);
 
     // Investor mode: every trade voucher — whether delivery (with inventory)
     // or intraday (without) — lands in the Journal register.
-    for (const v of tradeVouchers) {
+    for (const v of [...deliveryVouchers, ...hdfcIntraday]) {
       expect(v['@_VCHTYPE']).toBe('Journal');
       expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
       expect(v.ISINVOICE).toBeUndefined();
     }
 
-    // Every symbol from input sells must appear as a Sale narrative in output.
-    const sellNarratives = tradeVouchers
+    // Every symbol from input delivery sells must appear as a Sale narrative.
+    const sellNarratives = deliveryVouchers
       .map(v => String(v.NARRATION ?? ''))
       .filter(n => n.includes('Sale of'));
     expect(sellNarratives.some(n => n.includes('INFY'))).toBe(true);

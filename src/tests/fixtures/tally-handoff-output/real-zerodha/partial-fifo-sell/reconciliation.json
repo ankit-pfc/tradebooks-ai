@@ -51,54 +51,34 @@
       "narration": "Purchase of INFY @ 100 × 10 units"
     },
     {
+      "voucher_number": null,
+      "voucher_type": "JOURNAL",
+      "total_debit": "1.20",
+      "total_credit": "1.20",
+      "stock_item": null,
+      "cost_basis": "0.00",
+      "gain_loss": "0.00",
+      "narration": "STT for period 2024-04-01 to 2024-04-01 — 1 trade(s)"
+    },
+    {
       "voucher_number": "CN-SAME-DAY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "451.04",
-      "total_credit": "451.04",
-      "stock_item": "INFY-SH",
-      "cost_basis": "451.04",
+      "total_debit": "23.06",
+      "total_credit": "23.06",
+      "stock_item": null,
+      "cost_basis": "0.00",
       "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04"
+      "narration": "5 shares intraday gain in INFY"
     },
     {
       "voucher_number": "ORD-3",
       "voucher_type": "JOURNAL",
-      "total_debit": "450.00",
-      "total_credit": "450.00",
-      "stock_item": "INFY-SH",
-      "cost_basis": "450.00",
-      "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 90 × 5 units"
-    },
-    {
-      "voucher_number": "CN-SAME-DAY/INFY",
-      "voucher_type": "JOURNAL",
-      "total_debit": "500.75",
-      "total_credit": "500.75",
-      "stock_item": "INFY-SH",
-      "cost_basis": "500.75",
-      "gain_loss": "0.00",
-      "narration": "Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04"
-    },
-    {
-      "voucher_number": "ORD-4",
-      "voucher_type": "JOURNAL",
-      "total_debit": "500.00",
-      "total_credit": "500.00",
-      "stock_item": "INFY-SH",
-      "cost_basis": "500.00",
-      "gain_loss": "0.00",
-      "narration": "Sale of INFY @ 95 × 5 units"
-    },
-    {
-      "voucher_number": null,
-      "voucher_type": "JOURNAL",
-      "total_debit": "1.65",
-      "total_credit": "1.65",
+      "total_debit": "25.00",
+      "total_credit": "25.00",
       "stock_item": null,
       "cost_basis": "0.00",
       "gain_loss": "0.00",
-      "narration": "STT for period 2024-04-01 to 2024-04-03 — 3 trade(s)"
+      "narration": "5 shares intraday gain in INFY"
     }
   ],
   "trade_match": {

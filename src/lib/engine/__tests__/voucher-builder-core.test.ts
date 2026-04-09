@@ -11,6 +11,7 @@ import {
   buildCorporateActionVoucher,
   buildSttSummaryVoucher,
   buildVouchers,
+  buildIntradayConsolidatedVoucher,
 } from '../voucher-builder';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../accounting-policy';
 import { isPipelineValidationError } from '../../errors/pipeline-validation';
@@ -1212,12 +1213,14 @@ describe('buildVouchers — mixed batch per-trade profile branching', () => {
 
     const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
 
-    expect(vouchers).toHaveLength(6);
+    // 5 vouchers total: CNC buy + CNC sell + 1 consolidated MIS intraday +
+    // NRML buy + NRML sell. MIS same-day buy+sell is now folded into ONE
+    // intraday voucher by the SPECULATIVE_BUSINESS pre-pass — the per-fill
+    // MIS vouchers are no longer emitted.
+    expect(vouchers).toHaveLength(5);
 
     const cncBuy = vouchers.find((voucher) => voucher.external_reference === 'CNC-BUY')!;
     const cncSell = vouchers.find((voucher) => voucher.external_reference === 'CNC-SELL')!;
-    const misBuy = vouchers.find((voucher) => voucher.external_reference === 'MIS-BUY')!;
-    const misSell = vouchers.find((voucher) => voucher.external_reference === 'MIS-SELL')!;
     const nrmlBuy = vouchers.find((voucher) => voucher.external_reference === 'NRML-BUY')!;
     const nrmlSell = vouchers.find((voucher) => voucher.external_reference === 'NRML-SELL')!;
 
@@ -1227,18 +1230,31 @@ describe('buildVouchers — mixed batch per-trade profile branching', () => {
     expect(findLine(cncSell.lines, 'Investment in Equity Shares', 'CR')).toBeDefined();
     expect(cncSell.lines.some((line) => line.ledger_name.includes('Speculative'))).toBe(false);
 
-    // MIS (speculative) now uses investor/journal structure with inventory.
-    // Non-STT charges (brokerage) are capitalized into the asset line, not
-    // posted as a separate DR — gross 1600 + brokerage 8 = 1608.
-    const misAssetLine = findLine(misBuy.lines, 'Investment in Equity Shares', 'DR');
-    expect(misAssetLine).toBeDefined();
-    expect(misAssetLine?.amount).toBe('1608.00');
-    expect(findLine(misBuy.lines, 'Brokerage', 'DR')).toBeUndefined();
+    // MIS (speculative same-day round-trip) is consolidated into ONE
+    // intraday voucher: gross_sell 1680 − gross_buy 1600 − charges 16 (2×8
+    // brokerage) = +64 netPnL.
+    const misConsolidated = vouchers.find((v) =>
+      v.narrative?.includes('intraday') && v.narrative?.includes('MISSTOCK'),
+    )!;
+    expect(misConsolidated).toBeDefined();
+    expect(misConsolidated.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(misConsolidated.invoice_intent).toBe(InvoiceIntent.NONE);
+    expect(misConsolidated.narrative).toBe('8 shares intraday gain in MISSTOCK');
+    expect(misConsolidated.lines).toHaveLength(2);
+    expect(findLine(misConsolidated.lines, 'Zerodha Broking', 'DR')?.amount).toBe('64.00');
+    expect(findLine(misConsolidated.lines, 'Intraday Gain on Sale of Shares', 'CR')?.amount).toBe('64.00');
+    // No per-scrip investment ledger line, no inventory metadata.
+    expect(findLine(misConsolidated.lines, 'Investment in Equity Shares', 'DR')).toBeUndefined();
+    expect(findLine(misConsolidated.lines, 'Investment in Equity Shares', 'CR')).toBeUndefined();
+    for (const line of misConsolidated.lines) {
+      expect(line.security_id).toBeNull();
+      expect(line.quantity).toBeNull();
+      expect(line.rate).toBeNull();
+      expect(line.stock_item_name).toBeNull();
+    }
 
-    // MIS sell uses investor structure: no Trading Sales / Cost of Shares Sold
-    expect(misSell.voucher_type).toBe(VoucherType.JOURNAL);
-    expect(findLine(misSell.lines, 'Trading Sales', 'CR')).toBeUndefined();
-    expect(findLine(misSell.lines, 'Cost of Shares Sold', 'DR')).toBeUndefined();
+    // Per-fill MIS vouchers must NOT exist any more.
+    expect(vouchers.find((v) => v.external_reference === 'MIS-SELL')).toBeUndefined();
 
     expect(findLine(nrmlBuy.lines, 'Shares-in-Trade', 'DR')).toBeDefined();
     expect(findLine(nrmlSell.lines, 'Trading Sales', 'CR')).toBeDefined();
@@ -1583,6 +1599,199 @@ describe('investor trade voucher contract (HARD RULE tripwire)', () => {
     for (const voucher of tradeVouchers) {
       expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
       expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildIntradayConsolidatedVoucher — investor-mode same-day round-trip
+// ---------------------------------------------------------------------------
+describe('buildIntradayConsolidatedVoucher', () => {
+  // Helper: build an intraday trade event (BUY or SELL) with
+  // SPECULATIVE_BUSINESS classification — the only classification the
+  // voucher consolidator accepts.
+  function makeIntradayBuy(overrides: Partial<Parameters<typeof makeBuyEvent>[0]> = {}) {
+    return makeBuyEvent({
+      event_date: '2021-04-07',
+      security_id: 'NSE:GRAPHITE',
+      trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+      contract_note_ref: 'CN-FY22-7',
+      ...overrides,
+    });
+  }
+  function makeIntradaySell(overrides: Partial<Parameters<typeof makeSellEvent>[0]> = {}) {
+    return makeSellEvent({
+      event_date: '2021-04-07',
+      security_id: 'NSE:GRAPHITE',
+      trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+      contract_note_ref: 'CN-FY22-7',
+      ...overrides,
+    });
+  }
+  function makeIntradayCharge(type: EventType, amount: string) {
+    return makeChargeEvent(type, amount, 'NSE:GRAPHITE', {
+      event_date: '2021-04-07',
+      trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+    });
+  }
+
+  it('gain: emits one Journal with DR broker / CR intraday ledger and no stock-item lines', () => {
+    // buy 50 @ 100 (gross 5000), sell 50 @ 110 (gross 5500), charges 50.
+    // netPnL = 5500 - 5000 - 50 = +450 → gain.
+    const buy = makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' });
+    const sell = makeIntradaySell({ quantity: '-50', rate: '110', gross_amount: '5500.00' });
+    const charges = [
+      makeIntradayCharge(EventType.BROKERAGE, '20.00'),
+      makeIntradayCharge(EventType.STT, '25.00'),
+      makeIntradayCharge(EventType.GST_ON_CHARGES, '5.00'),
+    ];
+    const voucher = buildIntradayConsolidatedVoucher([buy], [sell], charges, INVESTOR_DEFAULT);
+    expect(voucher).not.toBeNull();
+    const v = voucher!;
+    expect(v.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(v.invoice_intent).toBe(InvoiceIntent.NONE);
+    expect(v.lines).toHaveLength(2);
+
+    // Gain case: DR broker, CR intraday ledger.
+    const brokerDr = findLine(v.lines, 'Zerodha Broking', 'DR');
+    const intradayCr = findLine(v.lines, 'Intraday Gain on Sale of Shares', 'CR');
+    expect(brokerDr?.amount).toBe('450.00');
+    expect(intradayCr?.amount).toBe('450.00');
+
+    // Voucher is balanced.
+    expect(v.total_debit).toBe(v.total_credit);
+
+    // Plain accounting lines: no inventory metadata anywhere.
+    for (const line of v.lines) {
+      expect(line.security_id).toBeNull();
+      expect(line.quantity).toBeNull();
+      expect(line.rate).toBeNull();
+      expect(line.stock_item_name).toBeNull();
+    }
+
+    // Narration matches the user's requested wording.
+    expect(v.narrative).toBe('50 shares intraday gain in GRAPHITE');
+
+    // Voucher number uses {cn_ref}/{symbol} so multi-scrip CNs don't collide.
+    expect(v.external_reference).toBe('CN-FY22-7/GRAPHITE');
+
+    // source_event_ids references every trade + charge event that was folded in.
+    expect(v.source_event_ids).toContain(buy.event_id);
+    expect(v.source_event_ids).toContain(sell.event_id);
+    for (const c of charges) expect(v.source_event_ids).toContain(c.event_id);
+  });
+
+  it('loss: emits one Journal with DR intraday ledger / CR broker (reversed)', () => {
+    // buy 50 @ 110 (gross 5500), sell 50 @ 100 (gross 5000), charges 50.
+    // netPnL = 5000 - 5500 - 50 = -550 → loss.
+    const buy = makeIntradayBuy({ quantity: '50', rate: '110', gross_amount: '5500.00' });
+    const sell = makeIntradaySell({ quantity: '-50', rate: '100', gross_amount: '5000.00' });
+    const charges = [
+      makeIntradayCharge(EventType.BROKERAGE, '20.00'),
+      makeIntradayCharge(EventType.STT, '25.00'),
+      makeIntradayCharge(EventType.GST_ON_CHARGES, '5.00'),
+    ];
+    const voucher = buildIntradayConsolidatedVoucher([buy], [sell], charges, INVESTOR_DEFAULT);
+    expect(voucher).not.toBeNull();
+    const v = voucher!;
+
+    // Loss case: DR intraday ledger, CR broker. The single CA_SPECULATION_GAIN
+    // ledger nets gains and losses on one Tally ledger, so a loss simply
+    // posts a DR to the same name.
+    const intradayDr = findLine(v.lines, 'Intraday Gain on Sale of Shares', 'DR');
+    const brokerCr = findLine(v.lines, 'Zerodha Broking', 'CR');
+    expect(intradayDr?.amount).toBe('550.00');
+    expect(brokerCr?.amount).toBe('550.00');
+
+    expect(v.narrative).toBe('50 shares intraday loss in GRAPHITE');
+  });
+
+  it('multi-fill buy + single-fill sell: sums gross correctly before computing netPnL', () => {
+    // 30 @ 100 + 20 @ 102 buys = 3000 + 2040 = 5040 gross buy.
+    // Single 50 @ 110 sell = 5500 gross sell. Charges 40.
+    // netPnL = 5500 - 5040 - 40 = +420.
+    const buy1 = makeIntradayBuy({ quantity: '30', rate: '100', gross_amount: '3000.00' });
+    const buy2 = makeIntradayBuy({ quantity: '20', rate: '102', gross_amount: '2040.00' });
+    const sell = makeIntradaySell({ quantity: '-50', rate: '110', gross_amount: '5500.00' });
+    const charges = [
+      makeIntradayCharge(EventType.BROKERAGE, '15.00'),
+      makeIntradayCharge(EventType.STT, '20.00'),
+      makeIntradayCharge(EventType.GST_ON_CHARGES, '5.00'),
+    ];
+    const voucher = buildIntradayConsolidatedVoucher([buy1, buy2], [sell], charges, INVESTOR_DEFAULT);
+    expect(voucher).not.toBeNull();
+    const v = voucher!;
+    const brokerDr = findLine(v.lines, 'Zerodha Broking', 'DR');
+    expect(brokerDr?.amount).toBe('420.00');
+    // Quantity in narration is the sum of absolute buy quantities.
+    expect(v.narrative).toBe('50 shares intraday gain in GRAPHITE');
+  });
+
+  it('zero-net (gain exactly equals charges) returns null and emits nothing', () => {
+    // buy 50 @ 100, sell 50 @ 101 (gross 5050). Charges 50.
+    // netPnL = 5050 - 5000 - 50 = 0 → null, no voucher.
+    const buy = makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' });
+    const sell = makeIntradaySell({ quantity: '-50', rate: '101', gross_amount: '5050.00' });
+    const charges = [
+      makeIntradayCharge(EventType.BROKERAGE, '20.00'),
+      makeIntradayCharge(EventType.STT, '25.00'),
+      makeIntradayCharge(EventType.GST_ON_CHARGES, '5.00'),
+    ];
+    const voucher = buildIntradayConsolidatedVoucher([buy], [sell], charges, INVESTOR_DEFAULT);
+    expect(voucher).toBeNull();
+  });
+
+  it('tripwire: passes assertInvestorTradeVoucherContract (Journal + NONE)', () => {
+    // Defense-in-depth: the consolidated intraday voucher runs through the
+    // same hard tripwire as delivery vouchers. If anyone ever rewires the
+    // builder to emit a Sales/Purchase voucher for intraday, this test
+    // catches it at the source instead of at XML-serialization time.
+    const buy = makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' });
+    const sell = makeIntradaySell({ quantity: '-50', rate: '110', gross_amount: '5500.00' });
+    const voucher = buildIntradayConsolidatedVoucher([buy], [sell], [], INVESTOR_DEFAULT);
+    expect(voucher).not.toBeNull();
+    expect(() =>
+      assertInvestorTradeVoucherContract(voucher!, INVESTOR_DEFAULT, buy),
+    ).not.toThrow();
+  });
+
+  it('buildVouchers orchestrator: same-day round-trip with STT produces ONE intraday voucher and does NOT leak STT into the summary voucher', () => {
+    // End-to-end integration: buildVouchers() must (a) fold the round-trip
+    // into a single consolidated voucher, (b) NOT emit two per-fill
+    // delivery vouchers, and (c) NOT push intraday STT into the lump-sum
+    // STT summary voucher (that would double-credit Zerodha).
+    const tracker = new CostLotTracker();
+    const events = [
+      makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' }),
+      makeIntradayCharge(EventType.BROKERAGE, '20.00'),
+      makeIntradayCharge(EventType.STT, '25.00'),
+      makeIntradayCharge(EventType.GST_ON_CHARGES, '5.00'),
+      makeIntradaySell({ quantity: '-50', rate: '110', gross_amount: '5500.00' }),
+    ];
+    const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
+
+    // Exactly one intraday voucher, no per-fill delivery vouchers.
+    const intradayVouchers = vouchers.filter((v) =>
+      v.narrative?.includes('intraday gain') || v.narrative?.includes('intraday loss'),
+    );
+    expect(intradayVouchers).toHaveLength(1);
+    expect(intradayVouchers[0].narrative).toBe('50 shares intraday gain in GRAPHITE');
+
+    // No delivery buy/sell voucher for the same scrip.
+    const deliveryTradeVouchers = vouchers.filter(
+      (v) =>
+        v.narrative?.startsWith('Purchase of GRAPHITE') ||
+        v.narrative?.startsWith('Sale of GRAPHITE'),
+    );
+    expect(deliveryTradeVouchers).toHaveLength(0);
+
+    // STT summary voucher: must either not exist, or have zero amount.
+    // The intraday pre-pass must never add intraday STT to filteredSttEvents.
+    const sttSummary = vouchers.filter((v) => v.narrative?.includes('STT for period'));
+    if (sttSummary.length > 0) {
+      for (const s of sttSummary) {
+        expect(s.total_debit).toBe('0.00');
+      }
     }
   });
 });

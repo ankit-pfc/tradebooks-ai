@@ -418,6 +418,44 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Trading Sales" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Trading Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Trading Sales</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Cost of Shares Sold" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Cost of Shares Sold</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Cost of Shares Sold</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>Short Term Capital Gain on Sale of Shares</NAME>
@@ -619,172 +657,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
         <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
+          <DATE>20240401</DATE>
+          <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04</NARRATION>
-          <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-451.04</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>90.21/SH</RATE>
-              <AMOUNT>-451.04</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>451.04</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
-          <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-450.00</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>90.00/SH</RATE>
-              <AMOUNT>-450.00</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>450.00</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04</NARRATION>
-          <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-474.55</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>500.75</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>100.15/SH</RATE>
-              <AMOUNT>500.75</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>STCL ON INFY</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-26.20</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
-          <VOUCHERNUMBER>ORD-4</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-475.00</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>500.00</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>100.00/SH</RATE>
-              <AMOUNT>500.00</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>STCL ON INFY</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-25.00</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>STT for period 2024-04-01 to 2024-04-03 — 3 trade(s)</NARRATION>
+          <NARRATION>STT for period 2024-04-01 to 2024-04-01 — 1 trade(s)</NARRATION>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>Stt</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -794,7 +670,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-1.65</AMOUNT>
+            <AMOUNT>-1.20</AMOUNT>
           </LEDGERENTRIES.LIST>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -803,7 +679,65 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>1.65</AMOUNT>
+            <AMOUNT>1.20</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
+          <DATE>20240403</DATE>
+          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+          <NARRATION>5 shares intraday gain in INFY</NARRATION>
+          <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-23.06</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Intraday Gain on Sale of Shares - ZERODHA</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>23.06</AMOUNT>
+          </LEDGERENTRIES.LIST>
+        </VOUCHER>
+      </TALLYMESSAGE>
+      <TALLYMESSAGE xmlns:UDF="TallyUDF">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
+          <DATE>20240403</DATE>
+          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
+          <NARRATION>5 shares intraday gain in INFY</NARRATION>
+          <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>-25.00</AMOUNT>
+          </LEDGERENTRIES.LIST>
+          <LEDGERENTRIES.LIST>
+            <LEDGERNAME>Intraday Gain on Sale of Shares - ZERODHA</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <LEDGERFROMITEM>No</LEDGERFROMITEM>
+            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
+            <AMOUNT>25.00</AMOUNT>
           </LEDGERENTRIES.LIST>
         </VOUCHER>
       </TALLYMESSAGE>
@@ -1230,11 +1164,11 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="Trading Sales" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+              <NAME>Trading Sales</NAME>
             </NAME.LIST>
-            <PARENT>Indirect Incomes</PARENT>
+            <PARENT>Sales Accounts</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
             <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
             <AFFECTSSTOCK>No</AFFECTSSTOCK>
@@ -1242,18 +1176,18 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+                <NAME>Trading Sales</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Short Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="Cost of Shares Sold" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+              <NAME>Cost of Shares Sold</NAME>
             </NAME.LIST>
-            <PARENT>Indirect Expenses</PARENT>
+            <PARENT>Purchase Accounts</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
             <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
             <AFFECTSSTOCK>No</AFFECTSSTOCK>
@@ -1261,79 +1195,11 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+                <NAME>Cost of Shares Sold</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Long Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>Long Term Capital Gain on Sale of Shares</NAME>
-            </NAME.LIST>
-            <PARENT>Indirect Incomes</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>Long Term Capital Gain on Sale of Shares</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Long Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>Long Term Capital Loss on Sale of Shares</NAME>
-            </NAME.LIST>
-            <PARENT>Indirect Expenses</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>Long Term Capital Loss on Sale of Shares</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>INFY-SH</NAME>
-            </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>INFY-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </STOCKITEM>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>SH</NAME>
-            </NAME.LIST>
-            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>SH</ORIGINALNAME>
-            <DECIMALPLACES>0</DECIMALPLACES>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </UNIT>
         </TALLYMESSAGE>
       </REQUESTDATA>
     </IMPORTDATA>
@@ -1362,34 +1228,27 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04</NARRATION>
+          <NARRATION>5 shares intraday gain in INFY</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
+          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
+            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
             <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-451.04</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>90.21/SH</RATE>
-              <AMOUNT>-451.04</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
+            <AMOUNT>-23.06</AMOUNT>
           </LEDGERENTRIES.LIST>
           <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
+            <LEDGERNAME>Intraday Gain on Sale of Shares - ZERODHA</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
             <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>451.04</AMOUNT>
+            <AMOUNT>23.06</AMOUNT>
           </LEDGERENTRIES.LIST>
         </VOUCHER>
       </TALLYMESSAGE>
@@ -1398,45 +1257,9 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
+          <NARRATION>5 shares intraday gain in INFY</NARRATION>
           <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-450.00</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>90.00/SH</RATE>
-              <AMOUNT>-450.00</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>450.00</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04</NARRATION>
-          <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -1445,105 +1268,16 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-474.55</AMOUNT>
+            <AMOUNT>-25.00</AMOUNT>
           </LEDGERENTRIES.LIST>
           <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>451.04</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>90.21/SH</RATE>
-              <AMOUNT>451.04</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>STCG ON INFY</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>23.51</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
-          <VOUCHERNUMBER>ORD-4</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-475.00</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>INFY-SH</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>450.00</AMOUNT>
-            <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>5 SH</ACTUALQTY>
-              <BILLEDQTY>5 SH</BILLEDQTY>
-              <RATE>90.00/SH</RATE>
-              <AMOUNT>450.00</AMOUNT>
-            </INVENTORYALLOCATIONS.LIST>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>STCG ON INFY</LEDGERNAME>
+            <LEDGERNAME>Intraday Gain on Sale of Shares - ZERODHA</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
             <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>25.00</AMOUNT>
-          </LEDGERENTRIES.LIST>
-        </VOUCHER>
-      </TALLYMESSAGE>
-      <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
-          <DATE>20240403</DATE>
-          <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>STT for period 2024-04-03 to 2024-04-03 — 2 trade(s)</NARRATION>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>Stt</PARTYLEDGERNAME>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>Stt</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.45</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>0.45</AMOUNT>
           </LEDGERENTRIES.LIST>
         </VOUCHER>
       </TALLYMESSAGE>

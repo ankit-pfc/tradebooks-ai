@@ -20,52 +20,22 @@
     {
       "voucher_number": "CN-SAME-DAY/INFY",
       "voucher_type": "JOURNAL",
-      "total_debit": "451.04",
-      "total_credit": "451.04",
-      "stock_item": "INFY-SH",
-      "cost_basis": "451.04",
+      "total_debit": "23.06",
+      "total_credit": "23.06",
+      "stock_item": null,
+      "cost_basis": "0.00",
       "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04"
+      "narration": "5 shares intraday gain in INFY"
     },
     {
       "voucher_number": "ORD-3",
       "voucher_type": "JOURNAL",
-      "total_debit": "450.00",
-      "total_credit": "450.00",
-      "stock_item": "INFY-SH",
-      "cost_basis": "450.00",
-      "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 90 × 5 units"
-    },
-    {
-      "voucher_number": "CN-SAME-DAY/INFY",
-      "voucher_type": "JOURNAL",
-      "total_debit": "474.55",
-      "total_credit": "474.55",
-      "stock_item": "INFY-SH",
-      "cost_basis": "451.04",
-      "gain_loss": "23.51",
-      "narration": "Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04"
-    },
-    {
-      "voucher_number": "ORD-4",
-      "voucher_type": "JOURNAL",
-      "total_debit": "475.00",
-      "total_credit": "475.00",
-      "stock_item": "INFY-SH",
-      "cost_basis": "450.00",
-      "gain_loss": "25.00",
-      "narration": "Sale of INFY @ 95 × 5 units"
-    },
-    {
-      "voucher_number": null,
-      "voucher_type": "JOURNAL",
-      "total_debit": "0.45",
-      "total_credit": "0.45",
+      "total_debit": "25.00",
+      "total_credit": "25.00",
       "stock_item": null,
       "cost_basis": "0.00",
       "gain_loss": "0.00",
-      "narration": "STT for period 2024-04-03 to 2024-04-03 — 2 trade(s)"
+      "narration": "5 shares intraday gain in INFY"
     }
   ],
   "trade_match": {

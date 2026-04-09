@@ -903,6 +903,20 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
     tradebookRows,
   });
 
+  // Under investor mode (ASSUME_ALL_EQ_INVESTMENT), we deliberately use
+  // STRICT_PRODUCT during row creation so that no-product equity rows stay
+  // PROFILE_DRIVEN instead of being short-circuited to INVESTMENT inside
+  // classifyTrade(). The two-step post-pass below then (a) flips same-day
+  // full-netoff groups to SPECULATIVE_BUSINESS via reclassifyIntradayTrades,
+  // and (b) flips whatever is still PROFILE_DRIVEN to INVESTMENT via
+  // applyAssumeAllEqInvestment. This ordering is what lets intraday
+  // round-trips on FY21-22-style CNs (no product column) land on the
+  // consolidated intraday voucher path.
+  const rowCreationStrategy =
+    classificationStrategy === TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT
+      ? TradeClassificationStrategy.STRICT_PRODUCT
+      : classificationStrategy;
+
   // Collect CN trade_no values for dedup against tradebook trade_id
   const cnTradeNos = new Set<string>();
 
@@ -915,7 +929,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       fileIds.contractNote ?? '',
       contractNoteSymbolByDescription,
       isinSymbolMap,
-      classificationStrategy,
+      rowCreationStrategy,
     );
     for (const e of cnEvents) {
       events.push(e);
@@ -936,7 +950,7 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       batchId,
       fileIds.tradebook ?? '',
       isinSymbolMap,
-      classificationStrategy,
+      rowCreationStrategy,
     );
     events.push(...rowEvents);
   }
@@ -970,6 +984,17 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
   if (classificationStrategy === TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY) {
     classifiedEvents = reclassifyIntradayTrades(classifiedEvents);
   } else if (classificationStrategy === TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT) {
+    // Step 1: detect same-day full netoffs in PROFILE_DRIVEN (unclassified)
+    // trade events and flip them (plus their tied charges) to
+    // SPECULATIVE_BUSINESS. This catches unclassified contract-note rows that
+    // round-tripped on the same day (e.g. Graphite 07/04/21 on the FY21-22
+    // Zerodha layout that has no product column) and routes them through the
+    // intraday voucher path. Explicit CNC/MIS/NRML trades are untouched by
+    // reclassifyIntradayTrades because that function only reclassifies
+    // PROFILE_DRIVEN events.
+    classifiedEvents = reclassifyIntradayTrades(classifiedEvents);
+    // Step 2: everything still PROFILE_DRIVEN after step 1 is treated as
+    // INVESTMENT (user intent: "if broker didn't tag it, it's a hold").
     classifiedEvents = applyAssumeAllEqInvestment(classifiedEvents);
   }
 
@@ -1018,8 +1043,12 @@ export function reclassifyIntradayTrades(events: CanonicalEvent[]): CanonicalEve
   // with explicit product codes — CNC (INVESTMENT), NRML
   // (NON_SPECULATIVE_BUSINESS), MIS (SPECULATIVE_BUSINESS already) — were
   // tagged at the broker by the user with intent and must be respected.
-  // A CNC trade that happens to net off same-day is still a delivery trade
-  // for tax purposes; it carries forward and the user pays STCG.
+  // An explicit CNC trade that happens to net off same-day is still a
+  // delivery trade for tax purposes; it carries forward and the user pays
+  // STCG. Unclassified CN rows (no product column) DO flip to intraday —
+  // the investor-mode strategy runs this pass before applyAssumeAllEqInvestment
+  // specifically so the Graphite-07/04/21 case lands on the intraday voucher
+  // path instead of being flipped to INVESTMENT first.
   const intradayTradeIndexes = new Set<number>();
   for (const indexes of groups.values()) {
     if (indexes.length < 2) continue; // need at least one buy + one sell

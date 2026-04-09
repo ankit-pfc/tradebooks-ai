@@ -1,6 +1,7 @@
 export type PipelineValidationCode =
   | 'E_CLASSIFICATION_AMBIGUOUS'
-  | 'E_INVESTOR_TRADE_MUST_BE_JOURNAL';
+  | 'E_INVESTOR_TRADE_MUST_BE_JOURNAL'
+  | 'E_INTRADAY_EMPTY_GROUP';
 
 export class PipelineValidationError extends Error {
   readonly code: PipelineValidationCode;

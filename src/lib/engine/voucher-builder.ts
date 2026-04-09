@@ -899,6 +899,150 @@ export function buildSellVoucher(
 }
 
 // ---------------------------------------------------------------------------
+// buildIntradayConsolidatedVoucher
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a single consolidated Journal voucher for a same-day full-netoff
+ * intraday round-trip on one scrip.
+ *
+ * Intraday round-trips produce a net cash effect on the Zerodha ledger equal
+ * to `gross_sell − gross_buy − total_charges` (where total_charges sums ALL
+ * charges on both buy and sell sides, STT included). The user's accounting
+ * convention is to record this as ONE plain two-line journal:
+ *
+ *   Gain case  (netPnL > 0):
+ *     DR  Zerodha Broking                         (netPnL)
+ *     CR  Intraday Gain on Sale of Shares - ...   (netPnL)
+ *
+ *   Loss case  (netPnL < 0):
+ *     DR  Intraday Gain on Sale of Shares - ...   (|netPnL|)
+ *     CR  Zerodha Broking                         (|netPnL|)
+ *
+ * No inventory allocation, no security_id, no quantity, no rate, no stock
+ * item, no per-scrip investment ledger, no separate STT line. STT is
+ * absorbed into netPnL: this is tax-correct because Sec 43(5) treats
+ * intraday as speculative business income where STT IS a deductible expense
+ * (unlike capital gains under Sec 48 where STT must stay visible as
+ * disallowed).
+ *
+ * Returns null when netPnL rounds to zero — a zero-amount journal would be
+ * meaningless and Tally rejects zero-amount entries.
+ *
+ * Precondition: `buys` and `sells` are non-empty arrays of BUY_TRADE /
+ * SELL_TRADE events for the same (security_id, event_date) whose absolute
+ * quantities sum to the same value. Caller (buildVouchers pre-pass) is
+ * responsible for enforcing that.
+ */
+export function buildIntradayConsolidatedVoucher(
+  buys: CanonicalEvent[],
+  sells: CanonicalEvent[],
+  chargeEvents: CanonicalEvent[],
+  profile: AccountingProfile,
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft | null {
+  if (buys.length === 0 || sells.length === 0) {
+    throw new PipelineValidationError(
+      'E_INTRADAY_EMPTY_GROUP',
+      'buildIntradayConsolidatedVoucher requires at least one buy and one sell event.',
+      { buys_count: buys.length, sells_count: sells.length },
+    );
+  }
+
+  const representative = buys[0];
+  const effectiveProfile = deriveEffectiveProfile(profile, representative);
+  const draftId = crypto.randomUUID();
+  const symbol = symbolFromEvent(representative);
+
+  const grossBuy = buys.reduce(
+    (sum, e) => sum.add(new Decimal(e.gross_amount)),
+    new Decimal(0),
+  );
+  const grossSell = sells.reduce(
+    (sum, e) => sum.add(new Decimal(e.gross_amount)),
+    new Decimal(0),
+  );
+  const totalCharges = chargeEvents.reduce(
+    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
+    new Decimal(0),
+  );
+
+  // netPnL = money actually landing in Zerodha after the round-trip
+  //         = gross_sell - gross_buy - all charges (incl. STT)
+  const netPnL = grossSell.sub(grossBuy).sub(totalCharges);
+  const rounded = netPnL.toDecimalPlaces(2);
+
+  // Zero-net (gain exactly cancels charges): skip the voucher entirely.
+  // Zerodha's ledger is unchanged, so there's nothing to book.
+  if (rounded.isZero()) {
+    return null;
+  }
+
+  const qty = buys.reduce(
+    (sum, e) => sum.add(new Decimal(e.quantity).abs()),
+    new Decimal(0),
+  );
+
+  const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
+  // For intraday (holding_period_days = 0) the ledger resolver routes to
+  // CA_SPECULATION_GAIN = "Intraday Gain on Sale of Shares - ZERODHA".
+  const intradayLedger = tallyProfile
+    ? resolveCapitalGainLedger(tallyProfile, symbol, 0, true).name
+    : L.CA_SPECULATION_GAIN.name;
+
+  const isGain = rounded.isPositive();
+  const absAmount = rounded.abs();
+
+  const lines: VoucherLine[] = isGain
+    ? [
+        // Gain: broker account grows, intraday income grows (CR).
+        makeLine(draftId, 1, brokerName, absAmount, 'DR'),
+        makeLine(draftId, 2, intradayLedger, absAmount, 'CR'),
+      ]
+    : [
+        // Loss: broker account shrinks, intraday income shrinks (DR to the
+        // same single net ledger — gains and losses share one Tally ledger
+        // and net on it, see CA_SPECULATION_GAIN comment in ledger-names.ts).
+        makeLine(draftId, 1, intradayLedger, absAmount, 'DR'),
+        makeLine(draftId, 2, brokerName, absAmount, 'CR'),
+      ];
+
+  const narration = `${qty.toFixed()} shares intraday ${isGain ? 'gain' : 'loss'} in ${symbol}`;
+
+  const draft: BuiltVoucherDraft = {
+    voucher_draft_id: draftId,
+    import_batch_id: representative.import_batch_id,
+    // All investor trade vouchers — including the consolidated intraday
+    // entry — must land in the Tally Journal register.
+    // See assertInvestorTradeVoucherContract.
+    voucher_type: VoucherType.JOURNAL,
+    invoice_intent: invoiceIntentForTrade(representative, effectiveProfile),
+    voucher_date: representative.event_date,
+    // Per-scrip suffix keeps multi-scrip intraday CNs from colliding and
+    // matches the delivery-voucher numbering pattern so disambiguation
+    // works uniformly downstream.
+    external_reference: representative.contract_note_ref
+      ? `${representative.contract_note_ref}/${symbol}`
+      : representative.external_ref ?? null,
+    narrative: narration,
+    total_debit: '0',
+    total_credit: '0',
+    draft_status: VoucherStatus.DRAFT,
+    source_event_ids: [
+      ...buys.map((e) => e.event_id),
+      ...sells.map((e) => e.event_id),
+      ...chargeEvents.map((ce) => ce.event_id),
+    ],
+    created_at: new Date().toISOString(),
+    lines,
+  };
+
+  assertBalanced(draft);
+  assertInvestorTradeVoucherContract(draft, effectiveProfile, representative);
+  return draft;
+}
+
+// ---------------------------------------------------------------------------
 // buildSettlementVoucher
 // ---------------------------------------------------------------------------
 
@@ -1416,7 +1560,11 @@ export function buildVouchers(
 
   const handledChargeIds = new Set<string>();
 
-  // Collect STT events filtered from trade vouchers for the lump-sum journal
+  // Collect STT events filtered from trade vouchers for the lump-sum journal.
+  // IMPORTANT: intraday STT must NEVER flow into this list — it is absorbed
+  // into the consolidated intraday voucher's netPnL. Including it would
+  // double-credit Zerodha (once on the intraday voucher, once on the STT
+  // summary voucher).
   const filteredSttEvents: CanonicalEvent[] = [];
 
   const filterVoucherChargeEvents = (
@@ -1439,11 +1587,113 @@ export function buildVouchers(
       return true;
     });
 
+  // ---------------------------------------------------------------------
+  // Intraday pre-pass: fold same-day full-netoff SPECULATIVE_BUSINESS
+  // trades into ONE consolidated Journal voucher per (scrip, date).
+  //
+  // We collect every BUY/SELL trade event with classification
+  // SPECULATIVE_BUSINESS, group by (security_id, event_date), and emit a
+  // single voucher for each group whose buy and sell quantities are equal.
+  // Charge events tied to those trades are absorbed into the consolidated
+  // voucher's netPnL and marked handled so the main loop skips them. The
+  // cost tracker is intentionally bypassed — intraday positions never
+  // persist, and delivery FIFO/WA basis for later trades must not see
+  // these fills.
+  // ---------------------------------------------------------------------
+  const intradayHandledTradeIds = new Set<string>();
+  type IntradayGroup = {
+    buys: CanonicalEvent[];
+    sells: CanonicalEvent[];
+    chargeEvents: CanonicalEvent[];
+  };
+  const intradayGroups = new Map<string, IntradayGroup>();
+  for (const event of sorted) {
+    if (
+      event.event_type !== EventType.BUY_TRADE &&
+      event.event_type !== EventType.SELL_TRADE
+    ) {
+      continue;
+    }
+    if (event.trade_classification !== TradeClassification.SPECULATIVE_BUSINESS) {
+      continue;
+    }
+    if (!event.security_id) continue;
+    const groupKey = `${event.security_id}|${event.event_date}`;
+    let group = intradayGroups.get(groupKey);
+    if (!group) {
+      group = { buys: [], sells: [], chargeEvents: [] };
+      intradayGroups.set(groupKey, group);
+    }
+    if (event.event_type === EventType.BUY_TRADE) {
+      group.buys.push(event);
+    } else {
+      group.sells.push(event);
+    }
+  }
+
+  for (const [, group] of intradayGroups) {
+    if (group.buys.length === 0 || group.sells.length === 0) continue;
+    const buyQty = group.buys.reduce(
+      (sum, e) => sum.add(new Decimal(e.quantity).abs()),
+      new Decimal(0),
+    );
+    const sellQty = group.sells.reduce(
+      (sum, e) => sum.add(new Decimal(e.quantity).abs()),
+      new Decimal(0),
+    );
+    // Defensive: reclassifyIntradayTrades only flips fully-matched groups,
+    // so buyQty should already equal sellQty here. If it doesn't, the
+    // classification is inconsistent — skip the group rather than emit a
+    // malformed voucher. The subsequent main-loop pass will pick up the
+    // individual trades via the normal buy/sell path.
+    if (!buyQty.equals(sellQty)) continue;
+
+    // Collect all charge events for every trade in the group. Reuse the
+    // existing chargeIndex so the key scheme (trade-level when
+    // external_ref is present, date|security otherwise) matches exactly.
+    const seenChargeIds = new Set<string>();
+    for (const trade of [...group.buys, ...group.sells]) {
+      const chargeKey = trade.external_ref
+        ? `${trade.event_date}|${trade.security_id ?? 'NONE'}|${trade.external_ref}`
+        : `${trade.event_date}|${trade.security_id ?? 'NONE'}`;
+      const charges = chargeIndex.get(chargeKey) ?? [];
+      for (const ce of charges) {
+        if (seenChargeIds.has(ce.event_id)) continue;
+        seenChargeIds.add(ce.event_id);
+        group.chargeEvents.push(ce);
+      }
+    }
+
+    const voucher = buildIntradayConsolidatedVoucher(
+      group.buys,
+      group.sells,
+      group.chargeEvents,
+      profile,
+      tallyProfile,
+    );
+    if (voucher) {
+      vouchers.push(voucher);
+    }
+
+    // Mark every participating event as handled regardless of whether
+    // the voucher was emitted (zero-net case returns null). The trades
+    // must not fall through to the normal buy/sell path, and the charges
+    // must not leak into filteredSttEvents.
+    for (const trade of group.buys) intradayHandledTradeIds.add(trade.event_id);
+    for (const trade of group.sells) intradayHandledTradeIds.add(trade.event_id);
+    for (const ce of group.chargeEvents) handledChargeIds.add(ce.event_id);
+  }
+
   for (const event of sorted) {
     if (isChargeEvent(event)) continue; // handled inline with trade events
 
     switch (event.event_type) {
       case EventType.BUY_TRADE: {
+        // Intraday trades were already consolidated in the pre-pass above.
+        // Skip them here so they never add lots to the cost tracker or emit
+        // a per-fill delivery voucher.
+        if (intradayHandledTradeIds.has(event.event_id)) break;
+
         const chargeKey = event.external_ref
           ? `${event.event_date}|${event.security_id ?? 'NONE'}|${event.external_ref}`
           : `${event.event_date}|${event.security_id ?? 'NONE'}`;
@@ -1474,6 +1724,11 @@ export function buildVouchers(
       }
 
       case EventType.SELL_TRADE: {
+        // Intraday trades were already consolidated in the pre-pass above.
+        // Skip them here so they never dispose lots from the cost tracker
+        // or emit a per-fill delivery voucher.
+        if (intradayHandledTradeIds.has(event.event_id)) break;
+
         const chargeKey = event.external_ref
           ? `${event.event_date}|${event.security_id ?? 'NONE'}|${event.external_ref}`
           : `${event.event_date}|${event.security_id ?? 'NONE'}`;

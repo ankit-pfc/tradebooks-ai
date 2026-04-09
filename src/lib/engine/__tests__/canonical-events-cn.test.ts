@@ -740,3 +740,245 @@ describe('reclassifyIntradayTrades', () => {
     expect(result[1].trade_classification).toBe(TradeClassification.INVESTMENT);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Investor-mode classification ordering — regression guard for the intraday
+// consolidation feature.
+//
+// Before the fix, ASSUME_ALL_EQ_INVESTMENT unconditionally flipped every
+// PROFILE_DRIVEN equity trade to INVESTMENT *before* intraday detection ran,
+// so same-day Zerodha CN round-trips (e.g. the Graphite 07/04/21 case) never
+// became SPECULATIVE_BUSINESS and never took the consolidated voucher path.
+//
+// The fix reorders the investor-mode classification pass to:
+//   (1) reclassifyIntradayTrades() first — detect full-netoff same-day
+//       groups in PROFILE_DRIVEN events and flip them to SPECULATIVE_BUSINESS,
+//   (2) applyAssumeAllEqInvestment() second — treat the rest as INVESTMENT.
+//
+// These tests pin that ordering so nobody can silently break it.
+// ---------------------------------------------------------------------------
+describe('buildCanonicalEvents — investor-mode intraday detection ordering', () => {
+  it('PROFILE_DRIVEN same-day round-trip in a CN flips to SPECULATIVE_BUSINESS (not INVESTMENT)', () => {
+    // Realistic Graphite-style scenario: old FY21-22 Zerodha CNs have no
+    // product code, so CN-sourced trades arrive as PROFILE_DRIVEN. Under
+    // investor mode, the intraday detection pass must run first, catch the
+    // same-day netoff, and flip both fills to SPECULATIVE_BUSINESS before
+    // the investment-assumption flip gets a chance to lock them as
+    // INVESTMENT.
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({ trade_date: '07-04-2021' }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'BUY-1',
+              buy_sell: 'B',
+              quantity: '50',
+              gross_rate: '100',
+              security_description: 'GRAPHITE/INE371A01025',
+            }),
+            makeCnTrade({
+              trade_no: 'SELL-1',
+              buy_sell: 'S',
+              quantity: '50',
+              gross_rate: '110',
+              security_description: 'GRAPHITE/INE371A01025',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(2);
+    for (const e of tradeEvents) {
+      expect(e.trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+    }
+  });
+
+  it('charge events tied to an investor-mode same-day netoff also flip to SPECULATIVE_BUSINESS', () => {
+    // reclassifyIntradayTrades carries charge events along with the trades,
+    // so downstream (buildVouchers pre-pass) can identify every charge
+    // belonging to the intraday group and absorb it into netPnL.
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({
+            trade_date: '07-04-2021',
+            stt: '6.00',
+            brokerage: '4.00',
+          }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'BUY-1',
+              buy_sell: 'B',
+              quantity: '50',
+              security_description: 'GRAPHITE/INE371A01025',
+            }),
+            makeCnTrade({
+              trade_no: 'SELL-1',
+              buy_sell: 'S',
+              quantity: '50',
+              security_description: 'GRAPHITE/INE371A01025',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
+
+    const chargeEvents = events.filter(
+      (e) => e.event_type !== EventType.BUY_TRADE && e.event_type !== EventType.SELL_TRADE,
+    );
+    expect(chargeEvents.length).toBeGreaterThan(0);
+    for (const c of chargeEvents) {
+      expect(c.trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+    }
+  });
+
+  it('explicit CNC same-day round-trip (tradebook with product=CNC) stays INVESTMENT under investor mode', () => {
+    // Regression guard for the user's explicit decision: "only auto-detect
+    // intraday for unclassified trades; explicit CNC stays as delivery".
+    // A tradebook row with `product: 'CNC'` classifies to INVESTMENT at
+    // row-creation time (STRICT_PRODUCT rules the CNC → INVESTMENT lookup,
+    // independent of strategy). The post-pass reclassifyIntradayTrades then
+    // sees these events as already-INVESTMENT and must NOT touch them, even
+    // though the two fills fully net off same-day. This preserves the user's
+    // explicit delivery intent regardless of same-day closeout.
+    const events = buildCanonicalEvents({
+      tradebookRows: [
+        makeTradebookRow({
+          trade_date: '2024-04-15',
+          symbol: 'HDFC',
+          isin: 'INE001A01036',
+          trade_type: 'buy',
+          quantity: '10',
+          price: '2500.00',
+          product: 'CNC',
+          trade_id: 'TB-BUY-1',
+          order_id: 'ORD-BUY-1',
+        }),
+        makeTradebookRow({
+          trade_date: '2024-04-15',
+          symbol: 'HDFC',
+          isin: 'INE001A01036',
+          trade_type: 'sell',
+          quantity: '10',
+          price: '2510.00',
+          product: 'CNC',
+          trade_id: 'TB-SELL-1',
+          order_id: 'ORD-SELL-1',
+        }),
+      ],
+      batchId: 'b',
+      fileIds: { tradebook: 'f' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(2);
+    for (const e of tradeEvents) {
+      expect(e.trade_classification).toBe(TradeClassification.INVESTMENT);
+    }
+  });
+
+  it('preserves explicit INVESTMENT classification on same-day round-trips (reclassifier skips non-PROFILE_DRIVEN)', () => {
+    // Direct-to-reclassifier test to lock in the "only PROFILE_DRIVEN"
+    // filter. If a trade has already been tagged INVESTMENT by an
+    // upstream classifier (e.g. an explicit CNC product code on a newer
+    // tradebook), reclassifyIntradayTrades must leave it alone. This is
+    // the canonical "keep explicit CNC as delivery" regression guard.
+    const baseEvent = {
+      event_id: 'a',
+      import_batch_id: 'b',
+      event_date: '2024-04-15',
+      settlement_date: null,
+      security_id: 'ISIN:INE001A01036',
+      security_symbol: 'HDFC',
+      rate: '2500',
+      gross_amount: '25000',
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: 'f',
+      source_row_ids: ['r1'],
+      contract_note_ref: null,
+      external_ref: null,
+      event_hash: 'h1',
+    };
+    const buy = {
+      ...baseEvent,
+      event_id: 'buy-1',
+      event_type: EventType.BUY_TRADE,
+      event_hash: 'h-buy',
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      quantity: '10',
+    };
+    const sell = {
+      ...baseEvent,
+      event_id: 'sell-1',
+      event_type: EventType.SELL_TRADE,
+      event_hash: 'h-sell',
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      quantity: '-10',
+    };
+    const reclassified = reclassifyIntradayTrades([buy, sell]);
+    expect(reclassified[0].trade_classification).toBe(TradeClassification.INVESTMENT);
+    expect(reclassified[1].trade_classification).toBe(TradeClassification.INVESTMENT);
+  });
+
+  it('delivery trades on different dates are unaffected by the intraday pass', () => {
+    // Buy on day 1, sell on day 5. Not same-day, so reclassifier is a
+    // no-op and applyAssumeAllEqInvestment keeps them as INVESTMENT.
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({ trade_date: '15-04-2024' }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'BUY-1',
+              buy_sell: 'B',
+              quantity: '10',
+              security_description: 'HDFC/INE001A01036',
+            }),
+          ],
+        },
+        {
+          charges: makeCnCharges({
+            contract_note_no: 'CN-002',
+            trade_date: '19-04-2024',
+          }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'SELL-1',
+              buy_sell: 'S',
+              quantity: '10',
+              security_description: 'HDFC/INE001A01036',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(2);
+    for (const e of tradeEvents) {
+      expect(e.trade_classification).toBe(TradeClassification.INVESTMENT);
+    }
+  });
+});

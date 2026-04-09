@@ -6,6 +6,6 @@
 - Sign conventions used: debits are negative amounts in XML, credits are positive amounts; purchase inventory quantities are positive, sale inventory quantities are negative.
 - Quantity/date/rate formatting: dates are YYYYMMDD, quantities carry the SH unit, and rates are written as rate/SH.
 - Representative voucher lines:
-DR:INFY-SH:451.04
-CR:ZERODHA - KITE:451.04
+DR:ZERODHA - KITE:23.06
+CR:Intraday Gain on Sale of Shares - ZERODHA:23.06
 - Included notes: CN-SAME-DAY.

@@ -415,11 +415,11 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="Trading Sales" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+              <NAME>Trading Sales</NAME>
             </NAME.LIST>
-            <PARENT>Indirect Incomes</PARENT>
+            <PARENT>Sales Accounts</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
             <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
             <AFFECTSSTOCK>No</AFFECTSSTOCK>
@@ -427,18 +427,18 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>Short Term Capital Gain on Sale of Shares</NAME>
+                <NAME>Trading Sales</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Short Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="Cost of Shares Sold" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+              <NAME>Cost of Shares Sold</NAME>
             </NAME.LIST>
-            <PARENT>Indirect Expenses</PARENT>
+            <PARENT>Purchase Accounts</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
             <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
             <AFFECTSSTOCK>No</AFFECTSSTOCK>
@@ -446,79 +446,11 @@
             <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>Short Term Capital Loss on Sale of Shares</NAME>
+                <NAME>Cost of Shares Sold</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Long Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>Long Term Capital Gain on Sale of Shares</NAME>
-            </NAME.LIST>
-            <PARENT>Indirect Incomes</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>Long Term Capital Gain on Sale of Shares</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <LEDGER NAME="Long Term Capital Loss on Sale of Shares" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>Long Term Capital Loss on Sale of Shares</NAME>
-            </NAME.LIST>
-            <PARENT>Indirect Expenses</PARENT>
-            <ISBILLWISEON>No</ISBILLWISEON>
-            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
-            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>Long Term Capital Loss on Sale of Shares</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </LEDGER>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>INFY-SH</NAME>
-            </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>INFY-SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </STOCKITEM>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>SH</NAME>
-            </NAME.LIST>
-            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>SH</ORIGINALNAME>
-            <DECIMALPLACES>0</DECIMALPLACES>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </UNIT>
         </TALLYMESSAGE>
       </REQUESTDATA>
     </IMPORTDATA>

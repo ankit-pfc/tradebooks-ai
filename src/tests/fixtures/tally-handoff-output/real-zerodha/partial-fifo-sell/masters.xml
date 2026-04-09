@@ -415,6 +415,44 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Trading Sales" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Trading Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Trading Sales</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Cost of Shares Sold" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Cost of Shares Sold</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase Accounts</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Cost of Shares Sold</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <LEDGER NAME="Short Term Capital Gain on Sale of Shares" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>Short Term Capital Gain on Sale of Shares</NAME>
