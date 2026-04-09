@@ -221,6 +221,76 @@ function invoiceIntentForTrade(
   }
 }
 
+/**
+ * HARD RULE — INVESTOR TRADE VOUCHERS MUST LAND IN THE JOURNAL REGISTER.
+ *
+ * This is the single choke-point contract for investor-mode buy/sell trades.
+ * It is a tripwire: if a future refactor ever produces an investor-mode trade
+ * voucher whose voucher_type is anything other than JOURNAL, or whose
+ * invoice_intent is anything other than NONE, this throws loudly at build
+ * time — breaking the pipeline long before any bad XML reaches a user.
+ *
+ * Why this rule exists (do not weaken without re-reading all three):
+ *   1. Investors file ITR-2 and report trades under Capital Gains. Sales /
+ *      Purchase registers in Tally feed the Profit & Loss statement, which
+ *      maps to ITR-3 business income. Posting investor trades there flips
+ *      the entire tax treatment from capital gains → business income and
+ *      corrupts the books.
+ *   2. The published Capital-Account / per-scrip ledger methodology that
+ *      this product is built on requires all investor trades to be Journal
+ *      vouchers with inventory flowing via the F12 "Use Inventory
+ *      Allocations for Ledgers" flag on the investment ledger master
+ *      (ISINVENTORYAFFECTED=Yes). See the bug report PDF pages 5–6.
+ *   3. The Tally XML serializer flips VCHTYPE from "Journal" to
+ *      "Sales"/"Purchase" when a voucher carries a non-NONE invoice_intent
+ *      alongside inventory lines. That flip is ONLY valid for TRADER mode.
+ *      Leaving invoice_intent=NONE for investor trades is what keeps them
+ *      in the Journal register.
+ *
+ * If you are a future change-author and need to add a new investor-trade
+ * code path: the contract is enforced here. You MUST set voucher_type to
+ * JOURNAL and invoice_intent to NONE. Do not disable or catch this error —
+ * fix the code path that produced the invalid draft.
+ */
+export function assertInvestorTradeVoucherContract(
+  draft: BuiltVoucherDraft,
+  effectiveProfile: AccountingProfile,
+  event: CanonicalEvent,
+): void {
+  if (effectiveProfile.mode !== AccountingMode.INVESTOR) {
+    return;
+  }
+
+  const voucherTypeOk = draft.voucher_type === VoucherType.JOURNAL;
+  const invoiceIntentOk =
+    draft.invoice_intent === InvoiceIntent.NONE ||
+    draft.invoice_intent === undefined;
+
+  if (voucherTypeOk && invoiceIntentOk) {
+    return;
+  }
+
+  throw new PipelineValidationError(
+    'E_INVESTOR_TRADE_MUST_BE_JOURNAL',
+    `Investor-mode trade voucher must be a Journal with invoice_intent=NONE, ` +
+      `but got voucher_type=${draft.voucher_type}, invoice_intent=${draft.invoice_intent}. ` +
+      `Investor trades land in the Tally Journal register; posting to the ` +
+      `Sales/Purchase register would flip the tax treatment from capital ` +
+      `gains (ITR-2) to business income (ITR-3) and corrupt the books. ` +
+      `See assertInvestorTradeVoucherContract in voucher-builder.ts for the ` +
+      `rationale. If you are adding a new investor-trade code path, set ` +
+      `voucher_type=JOURNAL and invoice_intent=NONE — do not disable this check.`,
+    {
+      event_id: event.event_id,
+      event_type: event.event_type,
+      security_id: event.security_id,
+      voucher_draft_id: draft.voucher_draft_id,
+      voucher_type: draft.voucher_type,
+      invoice_intent: draft.invoice_intent,
+    },
+  );
+}
+
 function calculateHoldingPeriodDays(
   sellDate: string,
   costDisposals: CostDisposal[],
@@ -414,6 +484,7 @@ export function buildBuyVoucher(
   };
 
   assertBalanced(draft);
+  assertInvestorTradeVoucherContract(draft, effectiveProfile, event);
   return draft;
 }
 
@@ -655,6 +726,7 @@ export function buildSellVoucher(
   };
 
   assertBalanced(draft);
+  assertInvestorTradeVoucherContract(draft, effectiveProfile, event);
   return draft;
 }
 

@@ -3,6 +3,7 @@ import Decimal from 'decimal.js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+  assertInvestorTradeVoucherContract,
   buildBuyVoucher,
   buildSellVoucher,
   buildSettlementVoucher,
@@ -12,6 +13,7 @@ import {
   buildVouchers,
 } from '../voucher-builder';
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../accounting-policy';
+import { isPipelineValidationError } from '../../errors/pipeline-validation';
 import { ChargeTreatment } from '../../types/accounting';
 import { EventType } from '../../types/events';
 import { InvoiceIntent, VoucherType } from '../../types/vouchers';
@@ -1206,5 +1208,277 @@ describe('buildVouchers — same-day CNC and parser overrides', () => {
     expect(findLine(buyVoucher.lines, 'Investment in Equity Shares', 'DR')).toBeUndefined();
     expect(findLine(sellVoucher.lines, 'Trading Sales', 'CR')?.amount).toBe('102000.00');
     expect(findLine(sellVoucher.lines, 'Cost of Shares Sold', 'DR')?.amount).toBe('100000.00');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HARD RULE — Investor trade voucher contract tripwire
+// ---------------------------------------------------------------------------
+//
+// These tests lock in the contract enforced by
+// assertInvestorTradeVoucherContract in voucher-builder.ts. If a future
+// refactor ever produces an investor-mode trade voucher with a non-Journal
+// type or a non-NONE invoice_intent, these tests MUST fail immediately —
+// this is the tripwire that prevents the "investor trades show up as
+// Sales/Purchase in Tally" bug from ever shipping again.
+//
+// If you are about to change these tests: STOP and re-read the rationale in
+// the header comment of assertInvestorTradeVoucherContract. Weakening this
+// contract flips investor books from capital-gains (ITR-2) to business
+// income (ITR-3) and silently corrupts the Profit & Loss statement.
+// ---------------------------------------------------------------------------
+describe('investor trade voucher contract (HARD RULE tripwire)', () => {
+  it('every investor-mode buy voucher is Journal + InvoiceIntent.NONE', () => {
+    const investorProducts = ['CNC', 'MTF'] as const;
+    for (const product of investorProducts) {
+      const event = makeBuyEvent({
+        quantity: '10',
+        rate: '2500.00',
+        gross_amount: '25000.00',
+        trade_product: product,
+      });
+      const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
+      expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+      expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
+    }
+  });
+
+  it('every investor-mode sell voucher is Journal + InvoiceIntent.NONE', () => {
+    const costDisposals: CostDisposal[] = [
+      {
+        lot_id: 'lot-1',
+        acquisition_date: '2024-06-01',
+        quantity_sold: '10',
+        unit_cost: '2500.000000',
+        total_cost: '25000.00',
+        gain_or_loss: '1000.00',
+      },
+    ];
+    const investorProducts = ['CNC', 'MTF'] as const;
+    for (const product of investorProducts) {
+      const event = makeSellEvent({
+        quantity: '-10',
+        rate: '2600.00',
+        gross_amount: '26000.00',
+        trade_product: product,
+      });
+      const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], costDisposals, 100);
+      expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+      expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
+    }
+  });
+
+  it('intraday / speculative trades (classified) also land as Journal + NONE', () => {
+    // Speculative trades are derived to INVESTOR mode with EXPENSE charges.
+    // They must still honour the JOURNAL + NONE contract.
+    const buyEvent = makeBuyEvent({
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+      trade_product: 'MIS',
+      trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+    });
+    const buyVoucher = buildBuyVoucher(buyEvent, INVESTOR_DEFAULT, []);
+    expect(buyVoucher.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(buyVoucher.invoice_intent).toBe(InvoiceIntent.NONE);
+
+    const sellEvent = makeSellEvent({
+      quantity: '-10',
+      rate: '2510.00',
+      gross_amount: '25100.00',
+      trade_product: 'MIS',
+      trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+    });
+    const sellVoucher = buildSellVoucher(
+      sellEvent,
+      INVESTOR_DEFAULT,
+      [],
+      [
+        {
+          lot_id: 'lot-1',
+          acquisition_date: '2024-06-01',
+          quantity_sold: '10',
+          unit_cost: '2500.000000',
+          total_cost: '25000.00',
+          gain_or_loss: '100.00',
+        },
+      ],
+      0,
+    );
+    expect(sellVoucher.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(sellVoucher.invoice_intent).toBe(InvoiceIntent.NONE);
+  });
+
+  it('trader mode is intentionally exempt and may carry Purchase/Sales intent', () => {
+    // The tripwire only fires for INVESTOR mode. Trader mode legitimately
+    // tags buy/sell vouchers with invoice_intent so the XML serializer can
+    // render them as Tally-native Purchase/Sales invoices. This test pins
+    // that exemption so a future over-eager "tighten the rule" change does
+    // not silently break trader mode.
+    const buyEvent = makeBuyEvent({
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+      trade_product: 'NRML',
+      trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+    });
+    const buyVoucher = buildBuyVoucher(buyEvent, TRADER_DEFAULT, []);
+    expect(buyVoucher.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(buyVoucher.invoice_intent).toBe(InvoiceIntent.PURCHASE);
+
+    const sellEvent = makeSellEvent({
+      quantity: '-10',
+      rate: '2600.00',
+      gross_amount: '26000.00',
+      trade_product: 'NRML',
+      trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+    });
+    const sellVoucher = buildSellVoucher(
+      sellEvent,
+      TRADER_DEFAULT,
+      [],
+      [
+        {
+          lot_id: 'lot-1',
+          acquisition_date: '2024-06-01',
+          quantity_sold: '10',
+          unit_cost: '2500.000000',
+          total_cost: '25000.00',
+          gain_or_loss: '1000.00',
+        },
+      ],
+      100,
+    );
+    expect(sellVoucher.voucher_type).toBe(VoucherType.JOURNAL);
+    expect(sellVoucher.invoice_intent).toBe(InvoiceIntent.SALES);
+  });
+
+  it('tripwire throws loudly when an investor draft carries PURCHASE intent', () => {
+    // Simulate a future regression where invoiceIntentForTrade is rewired or
+    // a new code path bypasses the mode check. Build a legitimate investor
+    // voucher, mutate the invoice_intent to PURCHASE, then re-run the
+    // contract assertion. This MUST throw with E_INVESTOR_TRADE_MUST_BE_JOURNAL.
+    const event = makeBuyEvent({
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+      trade_product: 'CNC',
+    });
+    const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
+
+    // Mutate the draft to simulate a regression upstream.
+    const corrupted = { ...voucher, invoice_intent: InvoiceIntent.PURCHASE };
+
+    let thrown: unknown = null;
+    try {
+      assertInvestorTradeVoucherContract(corrupted, INVESTOR_DEFAULT, event);
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).not.toBeNull();
+    expect(isPipelineValidationError(thrown)).toBe(true);
+    if (isPipelineValidationError(thrown)) {
+      expect(thrown.code).toBe('E_INVESTOR_TRADE_MUST_BE_JOURNAL');
+      expect(thrown.message).toContain('Journal');
+      expect(thrown.details?.invoice_intent).toBe(InvoiceIntent.PURCHASE);
+    }
+  });
+
+  it('tripwire throws when an investor draft carries a non-JOURNAL voucher_type', () => {
+    const event = makeSellEvent({
+      quantity: '-10',
+      rate: '2600.00',
+      gross_amount: '26000.00',
+      trade_product: 'CNC',
+    });
+    const voucher = buildSellVoucher(
+      event,
+      INVESTOR_DEFAULT,
+      [],
+      [
+        {
+          lot_id: 'lot-1',
+          acquisition_date: '2024-06-01',
+          quantity_sold: '10',
+          unit_cost: '2500.000000',
+          total_cost: '25000.00',
+          gain_or_loss: '1000.00',
+        },
+      ],
+      100,
+    );
+
+    const corrupted = { ...voucher, voucher_type: VoucherType.SALES };
+
+    let thrown: unknown = null;
+    try {
+      assertInvestorTradeVoucherContract(corrupted, INVESTOR_DEFAULT, event);
+    } catch (err) {
+      thrown = err;
+    }
+    expect(isPipelineValidationError(thrown)).toBe(true);
+    if (isPipelineValidationError(thrown)) {
+      expect(thrown.code).toBe('E_INVESTOR_TRADE_MUST_BE_JOURNAL');
+      expect(thrown.details?.voucher_type).toBe(VoucherType.SALES);
+    }
+  });
+
+  it('tripwire is silent for trader mode even with PURCHASE/SALES intent', () => {
+    // Defense-in-depth: the assertion should NEVER fire for trader mode.
+    // If this test breaks, someone has over-tightened the rule and will
+    // silently break the trader pipeline.
+    const buyEvent = makeBuyEvent({
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+      trade_product: 'NRML',
+      trade_classification: TradeClassification.NON_SPECULATIVE_BUSINESS,
+    });
+    const traderBuy = buildBuyVoucher(buyEvent, TRADER_DEFAULT, []);
+    expect(() =>
+      assertInvestorTradeVoucherContract(traderBuy, TRADER_DEFAULT, buyEvent),
+    ).not.toThrow();
+  });
+
+  it('full pipeline: investor canonical events → vouchers all respect JOURNAL + NONE', () => {
+    // Run the real orchestrator (buildVouchers) with a mix of buy, sell,
+    // and charge events to ensure NO trade voucher escapes with a non-NONE
+    // invoice_intent. This catches regressions that live in buildVouchers
+    // itself (e.g. a new code path that forgets invoiceIntentForTrade).
+    const tracker = new CostLotTracker();
+    const events = [
+      makeBuyEvent({
+        event_date: '2024-06-01',
+        quantity: '10',
+        rate: '2500.00',
+        gross_amount: '25000.00',
+        trade_product: 'CNC',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '20.00', { event_date: '2024-06-01' }),
+      makeChargeEvent(EventType.STT, '2.50', { event_date: '2024-06-01' }),
+      makeSellEvent({
+        event_date: '2024-12-01',
+        quantity: '-10',
+        rate: '2600.00',
+        gross_amount: '26000.00',
+        trade_product: 'CNC',
+      }),
+      makeChargeEvent(EventType.BROKERAGE, '25.00', { event_date: '2024-12-01' }),
+    ];
+    const vouchers = buildVouchers(events, INVESTOR_DEFAULT, tracker);
+
+    // Every trade voucher (buy or sell) must be JOURNAL + NONE. STT summary
+    // / settlement vouchers can be any type, so we filter to trade vouchers
+    // by narrative prefix which is stable across versions.
+    const tradeVouchers = vouchers.filter(
+      (v) =>
+        v.narrative?.startsWith('Purchase of') ||
+        v.narrative?.startsWith('Sale of'),
+    );
+    expect(tradeVouchers.length).toBeGreaterThan(0);
+    for (const voucher of tradeVouchers) {
+      expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+      expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
+    }
   });
 });

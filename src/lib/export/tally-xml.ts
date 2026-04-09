@@ -134,6 +134,22 @@ function isLikelyPartyLedger(line: VoucherLine): boolean {
   );
 }
 
+/**
+ * HARD RULE — INVESTOR TRADE VOUCHERS ARE ALWAYS JOURNAL.
+ *
+ * This resolver flips a JOURNAL voucher to "Sales"/"Purchase" when it
+ * carries inventory lines AND an explicit invoice_intent. That flip is ONLY
+ * valid for TRADER mode. For INVESTOR mode, the engine guarantees
+ * invoice_intent=NONE on all trade vouchers so this flip never fires — see
+ * assertInvestorTradeVoucherContract in engine/voucher-builder.ts, which is
+ * the single choke-point contract enforced at build time.
+ *
+ * Do NOT add a code path here that sets invoice_intent on an investor trade
+ * voucher. Do NOT weaken the builder tripwire. Doing so flips investor books
+ * from capital-gains (ITR-2) to business-income (ITR-3) and corrupts the
+ * Profit & Loss statement in Tally. See bug report pages 5–6 and the
+ * Capital-Account / per-scrip methodology docs.
+ */
 export function resolveVoucherXmlRenderConfig(
   voucher: VoucherDraftWithLines,
 ): VoucherXmlRenderConfig {
