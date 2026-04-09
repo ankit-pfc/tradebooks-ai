@@ -72,15 +72,25 @@ describe('buildBuyVoucher with TallyProfile', () => {
     expect(voucher.total_debit).toBe(voucher.total_credit);
   });
 
-  it('uses EXPENSE charge names with INVESTOR_TALLY_DEFAULT when not capitalizing', () => {
-    const expenseProfile = { ...INVESTOR_DEFAULT, charge_treatment: 'EXPENSE' as const };
-    const voucher = buildBuyVoucher(buyEvent, expenseProfile, [brokerageCharge, sttCharge], INVESTOR_TALLY_DEFAULT);
+  it('capitalizes non-STT charges into the asset and posts STT via the tally-profile STT ledger name', () => {
+    // Investor mode always capitalizes non-STT regardless of the charge_treatment
+    // flag (per Sec 48: STT is non-deductible, everything else is expenditure
+    // wholly incurred in connection with transfer and folds into cost basis).
+    const voucher = buildBuyVoucher(buyEvent, INVESTOR_DEFAULT, [brokerageCharge, sttCharge], INVESTOR_TALLY_DEFAULT);
 
-    // Charges should be consolidated per TallyProfile
+    // Asset absorbs gross + brokerage (STT excluded)
+    const assetLine = voucher.lines.find(l => l.dr_cr === 'DR' && l.ledger_name === 'RELIANCE-SH');
+    expect(assetLine?.amount).toBe('25020.00');
+
+    // Non-asset DR lines should be just the STT line — no separate brokerage
     const chargeLines = voucher.lines.filter(l => l.dr_cr === 'DR' && !l.ledger_name.includes('RELIANCE'));
-    const chargeNames = chargeLines.map(l => l.ledger_name);
-    expect(chargeNames).toContain(INVESTOR_TALLY_DEFAULT.chargeConsolidation[0].ledgerName); // Brokerage
-    expect(chargeNames).toContain(INVESTOR_TALLY_DEFAULT.chargeConsolidation[1].ledgerName); // STT
+    expect(chargeLines).toHaveLength(1);
+
+    // STT uses the tally-profile's consolidated STT ledger name
+    const sttEntry = INVESTOR_TALLY_DEFAULT.chargeConsolidation.find(c =>
+      c.eventTypes.includes(EventType.STT),
+    );
+    expect(chargeLines[0].ledger_name).toBe(sttEntry!.ledgerName);
   });
 
   it('uses trader stock-in-trade ledger with TRADER_TALLY_DEFAULT', () => {

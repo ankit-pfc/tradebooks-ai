@@ -90,7 +90,17 @@ function makePurchaseVoucher(opts: {
   };
 }
 
-function makeSalesVoucher(date = '2024-06-15'): BuiltVoucherDraft {
+function makeSalesVoucher(
+  dateOrOpts: string | { date?: string; ledger?: string; qty?: string; rate?: string; gross?: string } = '2024-06-15',
+): BuiltVoucherDraft {
+  const opts = typeof dateOrOpts === 'string' ? { date: dateOrOpts } : dateOrOpts;
+  const {
+    date = '2024-06-15',
+    ledger = 'Investment in Equity Shares - RELIANCE',
+    qty = '-10',
+    rate = '2500.00',
+    gross = '26000.00',
+  } = opts;
   const id = crypto.randomUUID();
   return {
     voucher_draft_id: id,
@@ -99,15 +109,99 @@ function makeSalesVoucher(date = '2024-06-15'): BuiltVoucherDraft {
     voucher_date: date,
     external_reference: null,
     narrative: 'Sale',
-    total_debit: '26000.00',
-    total_credit: '26000.00',
+    total_debit: gross,
+    total_credit: gross,
     draft_status: VoucherStatus.DRAFT,
     source_event_ids: [crypto.randomUUID()],
     created_at: new Date().toISOString(),
     lines: [
-      makeLine({ voucher_draft_id: id, line_no: 1, ledger_name: 'Zerodha Kite', amount: '26000.00', dr_cr: 'DR' }),
-      makeLine({ voucher_draft_id: id, line_no: 2, ledger_name: 'Investment in Equity Shares - RELIANCE', amount: '25000.00', dr_cr: 'CR', quantity: '-10', rate: '2500.00' }),
+      makeLine({ voucher_draft_id: id, line_no: 1, ledger_name: 'Zerodha Kite', amount: gross, dr_cr: 'DR' }),
+      makeLine({ voucher_draft_id: id, line_no: 2, ledger_name: ledger, amount: '25000.00', dr_cr: 'CR', quantity: qty, rate }),
       makeLine({ voucher_draft_id: id, line_no: 3, ledger_name: 'Short Term Capital Gain', amount: '1000.00', dr_cr: 'CR' }),
+    ],
+  };
+}
+
+/** Build an investor-mode JOURNAL sell voucher (matches new buildSellVoucher output). */
+function makeInvestorJournalSellVoucher(opts: {
+  date?: string;
+  ledger?: string;
+  qty?: string;
+  rate?: string;
+  costBasis?: string;
+  netProceeds?: string;
+  sttAmount?: string;
+  gainAmount?: string;
+  voucherId?: string;
+}): BuiltVoucherDraft {
+  const {
+    date = '2024-06-15',
+    ledger = 'Investment in Equity Shares - RELIANCE',
+    qty = '-10',
+    rate = '2500.00',
+    costBasis = '25000.00',
+    netProceeds = '25975.59',
+    sttAmount = '25.00',
+    gainAmount = '1000.59',
+    voucherId = crypto.randomUUID(),
+  } = opts;
+  return {
+    voucher_draft_id: voucherId,
+    import_batch_id: 'batch-1',
+    voucher_type: VoucherType.JOURNAL,
+    voucher_date: date,
+    external_reference: 'T002',
+    narrative: `Sale of RELIANCE @ ${rate} × ${qty} units | STT ${sttAmount} (non-deductible)`,
+    total_debit: (parseFloat(netProceeds) + parseFloat(sttAmount)).toFixed(2),
+    total_credit: (parseFloat(costBasis) + parseFloat(gainAmount)).toFixed(2),
+    draft_status: VoucherStatus.DRAFT,
+    source_event_ids: [crypto.randomUUID()],
+    created_at: new Date().toISOString(),
+    lines: [
+      makeLine({ voucher_draft_id: voucherId, line_no: 1, ledger_name: 'Zerodha Kite', amount: netProceeds, dr_cr: 'DR' }),
+      makeLine({ voucher_draft_id: voucherId, line_no: 2, ledger_name: 'Securities Transaction Tax', amount: sttAmount, dr_cr: 'DR' }),
+      makeLine({ voucher_draft_id: voucherId, line_no: 3, ledger_name: ledger, amount: costBasis, dr_cr: 'CR', quantity: qty, rate, security_id: 'NSE:RELIANCE' }),
+      makeLine({ voucher_draft_id: voucherId, line_no: 4, ledger_name: 'Short Term Capital Gain on Sale of Shares - RELIANCE', amount: gainAmount, dr_cr: 'CR' }),
+    ],
+  };
+}
+
+/** Build an investor-mode JOURNAL buy voucher (matches new buildBuyVoucher output). */
+function makeInvestorJournalBuyVoucher(opts: {
+  date?: string;
+  ledger?: string;
+  qty?: string;
+  rate?: string;
+  capitalizedAmount?: string;
+  sttAmount?: string;
+  voucherId?: string;
+}): BuiltVoucherDraft {
+  const {
+    date = '2024-06-15',
+    ledger = 'Investment in Equity Shares - RELIANCE',
+    qty = '10',
+    rate = '2502.00',
+    capitalizedAmount = '25020.00',
+    sttAmount = '2.50',
+    voucherId = crypto.randomUUID(),
+  } = opts;
+  const brokerTotal = (parseFloat(capitalizedAmount) + parseFloat(sttAmount)).toFixed(2);
+  return {
+    voucher_draft_id: voucherId,
+    import_batch_id: 'batch-1',
+    voucher_type: VoucherType.JOURNAL,
+    voucher_date: date,
+    external_reference: 'T001',
+    narrative: `Purchase of RELIANCE @ ${rate} × ${qty} units | STT ${sttAmount} (non-deductible)`,
+    total_debit: brokerTotal,
+    total_credit: brokerTotal,
+    draft_status: VoucherStatus.DRAFT,
+    source_event_ids: [crypto.randomUUID()],
+    created_at: new Date().toISOString(),
+    lines: [
+      makeLine({ voucher_draft_id: voucherId, line_no: 1, ledger_name: ledger, amount: capitalizedAmount, dr_cr: 'DR', quantity: qty, rate, security_id: 'NSE:RELIANCE' }),
+      makeLine({ voucher_draft_id: voucherId, line_no: 2, ledger_name: 'Securities Transaction Tax', amount: sttAmount, dr_cr: 'DR' }),
+      makeLine({ voucher_draft_id: voucherId, line_no: 3, ledger_name: 'Zerodha Kite', amount: brokerTotal, dr_cr: 'CR' }),
     ],
   };
 }
@@ -178,28 +272,105 @@ describe('mergeSameRatePurchaseVouchers', () => {
     expect(result).toHaveLength(2);
   });
 
-  it('does not merge SALES vouchers', () => {
+  it('merges SALES vouchers that share (date, scrip, rate)', () => {
+    // After Fix 4 (voucher-merger extended to sells), two same-rate sell
+    // fills on the same day/scrip collapse into a single voucher. Previously
+    // the merger restricted itself to PURCHASE vouchers only.
     const s1 = makeSalesVoucher();
     const s2 = makeSalesVoucher();
 
     const result = mergeSameRatePurchaseVouchers([s1, s2]);
-    expect(result).toHaveLength(2);
-    expect(result.every((v) => v.voucher_type === VoucherType.SALES)).toBe(true);
+    expect(result).toHaveLength(1);
+    expect(result[0].voucher_type).toBe(VoucherType.SALES);
   });
 
-  it('preserves SALES vouchers when mixed with PURCHASE vouchers', () => {
+  it('keeps SALES fills separate when rates differ', () => {
+    const s1 = makeSalesVoucher({ rate: '2600.00' });
+    const s2 = makeSalesVoucher({ rate: '2610.00' });
+
+    const result = mergeSameRatePurchaseVouchers([s1, s2]);
+    expect(result).toHaveLength(2);
+  });
+
+  it('does NOT merge a same-date same-rate BUY and SELL (side key prevents collapse)', () => {
+    // Critical: a buy and a sell at the same price on the same day are
+    // distinct events for cost-basis tracking. They must remain as two
+    // separate vouchers even though (date, scrip, rate) match.
+    const buy = makePurchaseVoucher({ qty: '10', rate: '2500.00', gross: '25000.00', brokerAmount: '25000.00' });
+    const sell = makeSalesVoucher({ rate: '2500.00' });
+
+    const result = mergeSameRatePurchaseVouchers([buy, sell]);
+    expect(result).toHaveLength(2);
+    expect(result.some((v) => v.voucher_type === VoucherType.PURCHASE)).toBe(true);
+    expect(result.some((v) => v.voucher_type === VoucherType.SALES)).toBe(true);
+  });
+
+  it('merges both buy and sell groups simultaneously', () => {
     const buy1 = makePurchaseVoucher({ qty: '10', gross: '25000.00', brokerAmount: '25000.00' });
     const buy2 = makePurchaseVoucher({ qty: '10', gross: '25000.00', brokerAmount: '25000.00' });
-    const sell = makeSalesVoucher();
+    const sell1 = makeSalesVoucher({ rate: '2600.00' });
+    const sell2 = makeSalesVoucher({ rate: '2600.00' });
 
-    const result = mergeSameRatePurchaseVouchers([buy1, buy2, sell]);
-    expect(result).toHaveLength(2); // 1 merged purchase + 1 sale
+    const result = mergeSameRatePurchaseVouchers([buy1, buy2, sell1, sell2]);
+    // 1 merged buy + 1 merged sell = 2
+    expect(result).toHaveLength(2);
 
     const purchase = result.find((v) => v.voucher_type === VoucherType.PURCHASE)!;
     expect(purchase.total_debit).toBe('50000.00');
 
     const sale = result.find((v) => v.voucher_type === VoucherType.SALES)!;
-    expect(sale.total_debit).toBe('26000.00');
+    // Two merged sells at 26000 each → 52000 total debit (broker).
+    expect(sale.total_debit).toBe('52000.00');
+  });
+
+  it('merges investor-mode JOURNAL sells (narrative-prefix detection)', () => {
+    // Investor-mode sells land as JOURNAL vouchers (not SALES) with
+    // narrative starting "Sale of ...". The merger must detect them via
+    // narrative prefix and merge same-rate fills.
+    const s1 = makeInvestorJournalSellVoucher({});
+    const s2 = makeInvestorJournalSellVoucher({});
+
+    const result = mergeSameRatePurchaseVouchers([s1, s2]);
+    expect(result).toHaveLength(1);
+
+    const merged = result[0];
+    expect(merged.voucher_type).toBe(VoucherType.JOURNAL);
+    // STT line should be summed across fills (25 + 25 = 50)
+    const sttLine = merged.lines.find((l) => l.ledger_name === 'Securities Transaction Tax');
+    expect(sttLine?.amount).toBe('50.00');
+    // Merged narration reflects the merged total and fills count
+    expect(merged.narrative).toContain('Sale of RELIANCE');
+    expect(merged.narrative).toContain('[merged 2 fills]');
+    expect(merged.narrative).toContain('STT 50.00 (non-deductible)');
+  });
+
+  it('merges investor-mode JOURNAL buys (narrative-prefix detection)', () => {
+    const b1 = makeInvestorJournalBuyVoucher({});
+    const b2 = makeInvestorJournalBuyVoucher({});
+
+    const result = mergeSameRatePurchaseVouchers([b1, b2]);
+    expect(result).toHaveLength(1);
+
+    const merged = result[0];
+    expect(merged.voucher_type).toBe(VoucherType.JOURNAL);
+    const assetLine = merged.lines.find((l) => l.ledger_name.includes('Investment'));
+    expect(assetLine?.amount).toBe('50040.00'); // 25020 + 25020
+    expect(assetLine?.quantity).toBe('20'); // 10 + 10
+    const sttLine = merged.lines.find((l) => l.ledger_name === 'Securities Transaction Tax');
+    expect(sttLine?.amount).toBe('5.00');
+    expect(merged.narrative).toContain('Purchase of RELIANCE');
+    expect(merged.narrative).toContain('[merged 2 fills]');
+  });
+
+  it('does NOT merge a JOURNAL buy and JOURNAL sell on the same date/rate', () => {
+    const buy = makeInvestorJournalBuyVoucher({ rate: '2500.00' });
+    const sell = makeInvestorJournalSellVoucher({ rate: '2500.00' });
+
+    const result = mergeSameRatePurchaseVouchers([buy, sell]);
+    expect(result).toHaveLength(2);
+    // Each voucher keeps its original narrative prefix
+    expect(result.find((v) => v.narrative?.startsWith('Purchase of'))).toBeDefined();
+    expect(result.find((v) => v.narrative?.startsWith('Sale of'))).toBeDefined();
   });
 
   it('merges charge DR lines of the same type when present', () => {
@@ -268,7 +439,7 @@ describe('mergeDailySummaryPurchaseVouchers', () => {
     expect(stockLine.quantity).toBe('30');
     expect(stockLine.amount).toBe('3200.00');
     expect(stockLine.rate).toBe('106.67');
-    expect(merged.narrative).toContain('(2 trades)');
+    expect(merged.narrative).toContain('[merged 2 trades]');
   });
 
   it('keeps same-day purchases separate when stocks differ', () => {

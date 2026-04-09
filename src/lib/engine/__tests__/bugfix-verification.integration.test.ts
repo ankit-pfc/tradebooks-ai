@@ -279,7 +279,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(actualQty.trim().startsWith('-')).toBe(false);
   });
 
-  it('sell voucher has INVENTORYALLOCATIONS.LIST with negative qty (stock OUT)', () => {
+  it('sell voucher has INVENTORYALLOCATIONS.LIST with positive qty (direction from CR parent, not sign)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const sellV = vouchers.find(v =>
@@ -291,9 +291,11 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(lineWithInventory).toBeDefined();
     const allocs = getInventoryAllocations(lineWithInventory);
     const actualQty = String(allocs[0].ACTUALQTY);
-    // CR = stock OUT → negative qty
+    // Qty is always unsigned — stock-out direction comes from the parent
+    // ledger's CR flag. Tally double-negates a negative CR quantity and
+    // INCREASES holdings on sale, so we always emit positive.
     expect(actualQty).toContain('30');
-    expect(actualQty.trim().startsWith('-')).toBe(true);
+    expect(actualQty.trim().startsWith('-')).toBe(false);
   });
 
   it('sell voucher gain/loss uses STCG ledger (holding < 365 days)', () => {
@@ -670,23 +672,45 @@ describe('Scenario 4b: CN-sourced intraday end-to-end (B1+B2+B3)', () => {
     expect(gainLine!.dr_cr).toBe('CR');
   });
 
-  it('B3: sell voucher includes DR lines for each charge ledger from the CN', () => {
-    // Charges are allocated to each trade pro-rata; sell side gets ~half of
-    // the aggregate brokerage/STT/etc. Debit lines must appear inside the
-    // intraday JV so they reduce the net P&L on import — this is the bug
-    // report item #15 contract.
+  it('B3: non-STT sell charges are absorbed into saleConsideration; STT is emitted as a separate summary voucher', () => {
+    // After the investor-mode capitalization fix (Sec 48 / ITR-2): charges
+    // other than STT are no longer posted as separate DR expense lines on
+    // the sell voucher — they're absorbed into sale consideration so the
+    // gain/loss CR line is smaller by exactly the non-STT charge total.
+    // STT is handled out-of-band: the pipeline strips STT events from trade
+    // vouchers entirely and emits ONE lump-sum STT summary journal for the
+    // batch (see filteredSttEvents → buildSttSummaryVoucher). This still
+    // satisfies bug-report item #15 (charges reduce net P&L) — the mechanism
+    // for non-STT is netting inside the trade voucher, and STT is visible
+    // as a standalone non-deductible expense in its own voucher.
     const sellVoucher = vouchers.find((v) => v.narrative?.includes('Sale'))!;
+
+    // No separate brokerage / exchange / GST / SEBI / stamp DR lines on the
+    // sell voucher itself.
     const chargeDrs = sellVoucher.lines.filter(
       (l) =>
         l.dr_cr === 'DR' &&
         (l.ledger_name.toLowerCase().includes('brokerage') ||
-          l.ledger_name.toLowerCase().includes('stt') ||
           l.ledger_name.toLowerCase().includes('exchange') ||
           l.ledger_name.toLowerCase().includes('gst') ||
           l.ledger_name.toLowerCase().includes('sebi') ||
-          l.ledger_name.toLowerCase().includes('stamp')),
+          l.ledger_name.toLowerCase().includes('stamp') ||
+          /securities transaction tax|^stt\b/i.test(l.ledger_name)),
     );
-    expect(chargeDrs.length).toBeGreaterThan(0);
+    expect(chargeDrs).toHaveLength(0);
+
+    // STT for the batch is emitted as its own summary voucher carrying the
+    // full aggregated STT amount (60.00 from the CN).
+    const sttVoucher = vouchers.find((v) =>
+      v.lines.some(
+        (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
+      ),
+    );
+    expect(sttVoucher).toBeDefined();
+    const sttDr = sttVoucher!.lines.find(
+      (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
+    )!;
+    expect(sttDr.amount).toBe('60.00');
   });
 });
 

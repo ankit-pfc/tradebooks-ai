@@ -550,7 +550,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240401</DATE>
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
+          <NARRATION>Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08</NARRATION>
           <VOUCHERNUMBER>CN-SIMPLE-BUY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
@@ -622,7 +622,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
+          <NARRATION>Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
@@ -694,7 +694,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
+          <NARRATION>Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
@@ -708,42 +708,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>-474.55</AMOUNT>
           </LEDGERENTRIES.LIST>
           <LEDGERENTRIES.LIST>
-            <LEDGERNAME>SHARE BROKERAGE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.10</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.30</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.01</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.04</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
@@ -753,8 +717,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>500.75</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
               <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>-5 SH</ACTUALQTY>
-              <BILLEDQTY>-5 SH</BILLEDQTY>
+              <ACTUALQTY>5 SH</ACTUALQTY>
+              <BILLEDQTY>5 SH</BILLEDQTY>
               <RATE>100.15/SH</RATE>
               <AMOUNT>500.75</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
@@ -766,7 +730,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-25.75</AMOUNT>
+            <AMOUNT>-26.20</AMOUNT>
           </LEDGERENTRIES.LIST>
         </VOUCHER>
       </TALLYMESSAGE>
@@ -798,8 +762,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>500.00</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
               <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>-5 SH</ACTUALQTY>
-              <BILLEDQTY>-5 SH</BILLEDQTY>
+              <ACTUALQTY>5 SH</ACTUALQTY>
+              <BILLEDQTY>5 SH</BILLEDQTY>
               <RATE>100.00/SH</RATE>
               <AMOUNT>500.00</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
@@ -1398,7 +1362,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
+          <NARRATION>Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
@@ -1470,7 +1434,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
+          <NARRATION>Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
@@ -1484,42 +1448,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>-474.55</AMOUNT>
           </LEDGERENTRIES.LIST>
           <LEDGERENTRIES.LIST>
-            <LEDGERNAME>SHARE BROKERAGE</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.10</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.30</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>Exchange and Other Charges</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.01</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
-            <LEDGERNAME>GST on Brokerage</LEDGERNAME>
-            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-            <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
-            <LEDGERFROMITEM>No</LEDGERFROMITEM>
-            <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>-0.04</AMOUNT>
-          </LEDGERENTRIES.LIST>
-          <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
@@ -1529,8 +1457,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>451.04</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
               <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>-5 SH</ACTUALQTY>
-              <BILLEDQTY>-5 SH</BILLEDQTY>
+              <ACTUALQTY>5 SH</ACTUALQTY>
+              <BILLEDQTY>5 SH</BILLEDQTY>
               <RATE>90.21/SH</RATE>
               <AMOUNT>451.04</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
@@ -1542,7 +1470,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
-            <AMOUNT>23.96</AMOUNT>
+            <AMOUNT>23.51</AMOUNT>
           </LEDGERENTRIES.LIST>
         </VOUCHER>
       </TALLYMESSAGE>
@@ -1574,8 +1502,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>450.00</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
               <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>-5 SH</ACTUALQTY>
-              <BILLEDQTY>-5 SH</BILLEDQTY>
+              <ACTUALQTY>5 SH</ACTUALQTY>
+              <BILLEDQTY>5 SH</BILLEDQTY>
               <RATE>90.00/SH</RATE>
               <AMOUNT>450.00</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
@@ -2079,7 +2007,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <DATE>20240401</DATE>
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
-          <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
+          <NARRATION>Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08</NARRATION>
           <VOUCHERNUMBER>CN-SIMPLE-BUY/INFY</VOUCHERNUMBER>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>

@@ -1,15 +1,17 @@
 /**
  * voucher-merger.ts
- * Post-processing step that consolidates PURCHASE vouchers for partial fills.
+ * Post-processing step that consolidates trade vouchers for partial fills.
  *
- * Zerodha often splits a single buy order into multiple trades when it is filled
- * in parts at the same price (e.g. 100 shares split into 33 + 33 + 34). These
- * appear as separate PURCHASE vouchers in the Tally import, cluttering the
- * ledger. This module merges vouchers that share the same date, stock ledger,
- * and rate into a single voucher entry.
+ * Zerodha often splits a single order into multiple trades when it is filled
+ * in parts at the same price (e.g. 100 shares at 2500 executed as 33 + 33 + 34
+ * line items on the contract note). These appear as separate vouchers in the
+ * Tally import, cluttering the ledger. This module merges vouchers that share
+ * the same (date, scrip, rate, side) into a single voucher entry.
  *
- * SELL vouchers are intentionally left unchanged — sell trades have a different
- * cost-lot matching story and the user has indicated they should stay separate.
+ * Both BUY and SELL sides are merged. `side` is part of the merge key so a
+ * same-date same-rate buy and sell never collapse into one voucher — the two
+ * are distinct events for cost-basis tracking even if the rate happens to
+ * match.
  */
 
 import Decimal from 'decimal.js';
@@ -19,116 +21,172 @@ import type { BuiltVoucherDraft } from '@/lib/engine/voucher-builder';
 
 export type PurchaseMergeMode = 'same_rate' | 'daily_summary';
 
+type TradeSide = 'buy' | 'sell';
+
+// ---------------------------------------------------------------------------
+// Trade-side detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Determine whether a voucher represents a buy trade, a sell trade, or is a
+ * non-trade voucher (receipt, payment, contra, etc.) that must pass through
+ * the merger unchanged.
+ *
+ * Detection logic:
+ *   - VoucherType.PURCHASE  → buy  (trader mode)
+ *   - VoucherType.SALES     → sell (trader mode)
+ *   - VoucherType.JOURNAL   → check narrative: "Purchase of …" → buy,
+ *                             "Sale of …" → sell, anything else → null
+ *
+ * Keeping this logic in one place means the grouping and line-inspection
+ * passes below can share the same side classifier.
+ */
+function detectTradeSide(v: BuiltVoucherDraft): TradeSide | null {
+  if (v.voucher_type === VoucherType.PURCHASE) return 'buy';
+  if (v.voucher_type === VoucherType.SALES) return 'sell';
+  if (v.voucher_type === VoucherType.JOURNAL) {
+    const narrative = v.narrative ?? '';
+    if (narrative.startsWith('Purchase of')) return 'buy';
+    if (narrative.startsWith('Sale of')) return 'sell';
+  }
+  return null;
+}
+
+/**
+ * Return the stock ledger line (the line carrying quantity + rate for the
+ * traded security), regardless of which side of the voucher it sits on.
+ *
+ * Investor/trader BUY vouchers carry the stock line on DR (the asset being
+ * acquired). Investor/trader SELL vouchers carry it on CR (the asset being
+ * cleared from the books at cost basis). Knowing the side ahead of time is
+ * what lets us support both registers in one merger.
+ */
+function findStockLine(
+  v: BuiltVoucherDraft,
+  side: TradeSide,
+): VoucherLine | undefined {
+  const expectedDrCr: 'DR' | 'CR' = side === 'buy' ? 'DR' : 'CR';
+  return v.lines.find((l) => l.dr_cr === expectedDrCr && l.quantity !== null);
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Merge PURCHASE vouchers that represent partial fills of the same buy order.
+ * Merge trade vouchers that represent partial fills of the same order.
  *
- * Two PURCHASE vouchers are eligible for merging when they share:
+ * Two vouchers are eligible for merging when they share:
  *   - `voucher_date`
- *   - stock DR ledger name (identifies the security)
- *   - per-unit `rate` on the stock DR line
+ *   - stock ledger name (identifies the security)
+ *   - per-unit `rate` on the stock line
+ *   - trade side (BUY or SELL)
  *
- * The "stock DR line" is the line where `dr_cr === 'DR'` and `quantity !== null`
- * (the investment/stock-in-trade ledger line). All other lines (broker CR,
- * charge DRs) are merged by ledger name + direction, summing amounts.
+ * All same-ledger-name + same-dr/cr-direction lines are summed across the
+ * group; for the stock line, quantities are summed and the effective rate is
+ * recomputed as amount/qty to absorb any rounding drift.
  *
- * SELL, JOURNAL, RECEIPT, PAYMENT, and CONTRA vouchers pass through unchanged.
+ * RECEIPT, PAYMENT, and CONTRA vouchers pass through unchanged.
  */
-export function mergeSameRatePurchaseVouchers(
+export function mergeSameRateTradeVouchers(
   vouchers: BuiltVoucherDraft[],
 ): BuiltVoucherDraft[] {
-  const purchases: BuiltVoucherDraft[] = [];
+  const trades: Array<{ voucher: BuiltVoucherDraft; side: TradeSide }> = [];
   const others: BuiltVoucherDraft[] = [];
 
   for (const v of vouchers) {
-    // Merge both PURCHASE (trader mode) and JOURNAL buy (investor mode) vouchers
-    if (v.voucher_type === VoucherType.PURCHASE ||
-        (v.voucher_type === VoucherType.JOURNAL && v.narrative?.startsWith('Purchase of'))) {
-      purchases.push(v);
+    const side = detectTradeSide(v);
+    if (side !== null) {
+      trades.push({ voucher: v, side });
     } else {
       others.push(v);
     }
   }
 
-  // Group purchases by merge key: date | stock-DR-ledger-name | rate
-  const groups = new Map<string, BuiltVoucherDraft[]>();
+  // Group trades by merge key: date | stock-ledger-name | rate | side.
+  // Including `side` prevents a same-date same-rate buy+sell from collapsing
+  // into one voucher — those are distinct events for cost-basis tracking.
+  const groups = new Map<string, Array<{ voucher: BuiltVoucherDraft; side: TradeSide }>>();
   const ungrouped: BuiltVoucherDraft[] = [];
 
-  for (const v of purchases) {
-    const stockDrLine = v.lines.find((l) => l.dr_cr === 'DR' && l.quantity !== null);
-    if (!stockDrLine) {
-      // No stock DR line — cannot determine a merge key; keep as-is.
-      ungrouped.push(v);
+  for (const entry of trades) {
+    const stockLine = findStockLine(entry.voucher, entry.side);
+    if (!stockLine) {
+      // No stock line (shouldn't happen for real trades, but guard anyway)
+      ungrouped.push(entry.voucher);
       continue;
     }
-    const key = `${v.voucher_date}|${stockDrLine.ledger_name}|${stockDrLine.rate ?? '0'}`;
+    const key = `${entry.voucher.voucher_date}|${stockLine.ledger_name}|${stockLine.rate ?? '0'}|${entry.side}`;
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(v);
+    groups.get(key)!.push(entry);
   }
 
-  const mergedPurchases: BuiltVoucherDraft[] = [...ungrouped];
+  const mergedTrades: BuiltVoucherDraft[] = [...ungrouped];
 
   for (const group of groups.values()) {
     if (group.length === 1) {
-      mergedPurchases.push(group[0]);
+      mergedTrades.push(group[0].voucher);
       continue;
     }
 
-    mergedPurchases.push(mergeGroup(group));
+    mergedTrades.push(mergeGroup(group.map((e) => e.voucher), group[0].side));
   }
 
   // Preserve chronological ordering across all voucher types
-  return [...mergedPurchases, ...others].sort((a, b) =>
+  return [...mergedTrades, ...others].sort((a, b) =>
     a.voucher_date.localeCompare(b.voucher_date),
   );
 }
 
+/** Backward-compat alias — older call sites may still import the old name. */
+export const mergeSameRatePurchaseVouchers = mergeSameRateTradeVouchers;
+
 export function mergeDailySummaryPurchaseVouchers(
   vouchers: BuiltVoucherDraft[],
 ): BuiltVoucherDraft[] {
-  const purchases: BuiltVoucherDraft[] = [];
+  const trades: Array<{ voucher: BuiltVoucherDraft; side: TradeSide }> = [];
   const others: BuiltVoucherDraft[] = [];
 
   for (const v of vouchers) {
-    // Merge both PURCHASE (trader mode) and JOURNAL buy (investor mode) vouchers
-    if (v.voucher_type === VoucherType.PURCHASE ||
-        (v.voucher_type === VoucherType.JOURNAL && v.narrative?.startsWith('Purchase of'))) {
-      purchases.push(v);
+    const side = detectTradeSide(v);
+    if (side !== null) {
+      trades.push({ voucher: v, side });
     } else {
       others.push(v);
     }
   }
 
-  const groups = new Map<string, BuiltVoucherDraft[]>();
+  const groups = new Map<string, Array<{ voucher: BuiltVoucherDraft; side: TradeSide }>>();
   const ungrouped: BuiltVoucherDraft[] = [];
 
-  for (const v of purchases) {
-    const stockDrLine = v.lines.find((l) => l.dr_cr === 'DR' && l.quantity !== null);
-    if (!stockDrLine) {
-      ungrouped.push(v);
+  for (const entry of trades) {
+    const stockLine = findStockLine(entry.voucher, entry.side);
+    if (!stockLine) {
+      ungrouped.push(entry.voucher);
       continue;
     }
 
-    const key = `${v.voucher_date}|${stockDrLine.ledger_name}`;
+    // Daily-summary mode ignores rate but still keys on side so buys and
+    // sells don't get merged into a single weighted-average voucher.
+    const key = `${entry.voucher.voucher_date}|${stockLine.ledger_name}|${entry.side}`;
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(v);
+    groups.get(key)!.push(entry);
   }
 
-  const mergedPurchases: BuiltVoucherDraft[] = [...ungrouped];
+  const mergedTrades: BuiltVoucherDraft[] = [...ungrouped];
 
   for (const group of groups.values()) {
     if (group.length === 1) {
-      mergedPurchases.push(group[0]);
+      mergedTrades.push(group[0].voucher);
       continue;
     }
 
-    mergedPurchases.push(mergeGroup(group, 'daily_summary'));
+    mergedTrades.push(
+      mergeGroup(group.map((e) => e.voucher), group[0].side, 'daily_summary'),
+    );
   }
 
-  return [...mergedPurchases, ...others].sort((a, b) =>
+  return [...mergedTrades, ...others].sort((a, b) =>
     a.voucher_date.localeCompare(b.voucher_date),
   );
 }
@@ -141,7 +199,7 @@ export function mergePurchaseVouchers(
     return mergeDailySummaryPurchaseVouchers(vouchers);
   }
 
-  return mergeSameRatePurchaseVouchers(vouchers);
+  return mergeSameRateTradeVouchers(vouchers);
 }
 
 /**
@@ -180,12 +238,14 @@ export function disambiguateVoucherNumbers(
 
 function mergeGroup(
   group: BuiltVoucherDraft[],
+  side: TradeSide,
   mode: PurchaseMergeMode = 'same_rate',
 ): BuiltVoucherDraft {
   const base = group[0];
 
   // Accumulate lines: key = "ledger_name|dr_cr"
-  // For the stock DR line, also accumulate quantity.
+  // For stock lines (buy: DR with qty, sell: CR with qty), also accumulate
+  // quantity so the merged voucher reflects total fills.
   const lineMap = new Map<
     string,
     { line: VoucherLine; totalAmount: Decimal; totalQty: Decimal | null }
@@ -214,10 +274,13 @@ function mergeGroup(
   const mergedLines: VoucherLine[] = [];
   let lineNo = 1;
   for (const { line, totalAmount, totalQty } of lineMap.values()) {
-    const isStockLine = line.dr_cr === 'DR' && line.quantity !== null;
+    const isStockLine = line.quantity !== null;
+    // Rate is unsigned (it represents price per unit). Use absolute values
+    // so a sell stock line with negative canonical quantity produces a
+    // positive merged rate rather than flipping sign.
     const nextRate =
       isStockLine && totalQty !== null && !totalQty.isZero()
-        ? totalAmount.div(totalQty).toFixed(2)
+        ? totalAmount.abs().div(totalQty.abs()).toFixed(2)
         : line.rate;
 
     mergedLines.push({
@@ -240,22 +303,73 @@ function mergeGroup(
     .reduce((sum, l) => sum.add(new Decimal(l.amount)), new Decimal(0))
     .toFixed(2);
 
-  // Build a descriptive narrative from the stock DR line of the base voucher
-  const stockDrLine = mergedLines.find((l) => l.dr_cr === 'DR' && l.quantity !== null);
-  const narrative =
-    stockDrLine && stockDrLine.quantity !== null && stockDrLine.rate !== null
-      ? `Purchase of ${stockDrLine.ledger_name} @ ${stockDrLine.rate} × ${stockDrLine.quantity} units (${group.length} ${mode === 'daily_summary' ? 'trades' : 'fills'})`
-      : base.narrative;
+  const narrative = buildMergedTradeNarrative(mergedLines, side, group.length, mode);
 
   return {
     ...base,
     total_debit: totalDebit,
     total_credit: totalCredit,
     draft_status: VoucherStatus.DRAFT,
-    narrative,
+    narrative: narrative ?? base.narrative,
     // Preserve the base external reference so merged vouchers keep the contract note number
     external_reference: base.external_reference,
     source_event_ids: group.flatMap((v) => v.source_event_ids),
     lines: mergedLines,
   };
+}
+
+/**
+ * Build a narrative for a merged trade voucher from the merged lines.
+ *
+ * Investor-mode trade vouchers (after voucher-builder Fix 1+2) no longer
+ * carry individual brokerage / GST / stamp DR lines — those amounts are
+ * absorbed into the asset line on a buy and into the net broker line on a
+ * sell. So we cannot reconstruct the per-charge breakdown from the merged
+ * lines. What we CAN reconstruct:
+ *
+ *   - total quantity and effective rate on the stock line
+ *   - STT total (always posted as its own DR line when non-zero)
+ *
+ * That's enough for an auditable one-liner:
+ *   "Purchase of RELIANCE @ 2502.04 × 20 units | STT 5.00 (non-deductible) [merged 2 fills]"
+ *   "Sale of RELIANCE @ 2600.00 × 20 units | STT 5.20 (non-deductible) [merged 2 fills]"
+ *
+ * The user can drill into the voucher lines for the exact split.
+ */
+function buildMergedTradeNarrative(
+  lines: VoucherLine[],
+  side: TradeSide,
+  mergedCount: number,
+  mode: PurchaseMergeMode,
+): string | null {
+  const sideLabel = side === 'buy' ? 'Purchase of' : 'Sale of';
+  const stockDrCr: 'DR' | 'CR' = side === 'buy' ? 'DR' : 'CR';
+  const stockLine = lines.find((l) => l.dr_cr === stockDrCr && l.quantity !== null);
+  if (!stockLine || stockLine.rate === null || stockLine.quantity === null) {
+    return null;
+  }
+
+  // Extract the scrip symbol from the stock ledger name. Ledger names follow
+  // the pattern "<prefix> - SYMBOL" (e.g. "Investment in Equity Shares - RELIANCE",
+  // "Shares-in-Trade - TCS"). Fall back to the whole name if the split fails.
+  const ledgerParts = stockLine.ledger_name.split(' - ');
+  const symbol = ledgerParts.length > 1 ? ledgerParts[ledgerParts.length - 1] : stockLine.ledger_name;
+
+  // STT is posted as its own DR line on both buy and sell vouchers in
+  // investor mode. Detect it by ledger-name match so overridden Tally-profile
+  // STT ledger names still resolve correctly.
+  const sttLine = lines.find(
+    (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
+  );
+
+  const parts = [`${sideLabel} ${symbol} @ ${stockLine.rate} × ${stockLine.quantity} units`];
+  if (sttLine) {
+    const sttAmount = new Decimal(sttLine.amount);
+    if (!sttAmount.isZero()) {
+      parts.push(`STT ${sttAmount.toFixed(2)} (non-deductible)`);
+    }
+  }
+  const fillsLabel = mode === 'daily_summary' ? 'trades' : 'fills';
+  parts.push(`[merged ${mergedCount} ${fillsLabel}]`);
+  return parts.join(' | ');
 }
