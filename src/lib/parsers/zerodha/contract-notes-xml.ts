@@ -34,6 +34,7 @@ import type {
   ZerodhaContractNoteCharges,
   ContractNoteParseResult,
 } from './types';
+import { normalizeChargeSignConvention } from './contract-notes';
 
 export const PARSER_VERSION = '1.0.0';
 
@@ -236,7 +237,7 @@ export function parseContractNotesXml(
       }
     }
 
-    const chargesRow: ZerodhaContractNoteCharges = {
+    const chargesRow: ZerodhaContractNoteCharges = normalizeChargeSignConvention({
       contract_note_no: contractNoteNo,
       trade_date: tradeDate,
       settlement_no: '',
@@ -251,7 +252,7 @@ export function parseContractNotesXml(
       sebi_fees: acc.sebi_fees,
       stamp_duty: acc.stamp_duty,
       net_amount: acc.net_amount,
-    };
+    });
 
     charges.push(chargesRow);
   }

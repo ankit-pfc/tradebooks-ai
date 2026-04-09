@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as XLSX from 'xlsx';
-import { parseContractNotes, buildColumnMap } from './contract-notes';
+import {
+  parseContractNotes,
+  buildColumnMap,
+  normalizeChargeSignConvention,
+} from './contract-notes';
+import type { ZerodhaContractNoteCharges } from './types';
 
 const DATA_DIR = path.resolve(
   process.env.HOME!,
@@ -332,6 +337,30 @@ describe('parseContractNotes', () => {
 
     expect(t1.buy_sell).toBe('B');
     expect(t2.buy_sell).toBe('B');
+
+    // FY21-22 layout stores the NET TOTAL charges column signed from the
+    // broker's perspective: every cost row is negative. The parser must
+    // normalize those to positive magnitudes so the voucher builder can
+    // capitalize them into the asset DR instead of absorbing them as
+    // rebates. See normalizeChargeSignConvention().
+    //
+    // Note: the FY21-22 GST rows use verbose labels ("Central GST",
+    // "State GST", "Integrated GST") that the current charge-field
+    // lookup does not match — it searches by the "cgst"/"sgst"/"igst"
+    // prefixes. That's a separate labelling gap; here we only assert the
+    // fields the lookup does find, which is enough to verify the sign
+    // convention normalization.
+    expect(result.charges).toHaveLength(1);
+    const c = result.charges[0];
+    expect(parseFloat(c.brokerage)).toBe(0.01);
+    expect(parseFloat(c.stt)).toBe(32);
+    expect(parseFloat(c.exchange_charges)).toBe(1);
+    expect(parseFloat(c.sebi_fees)).toBe(0.02);
+    expect(parseFloat(c.stamp_duty)).toBe(5);
+    // pay_in_pay_out and net_amount are cash-flow markers — the parser
+    // leaves them signed as they were in the XLSX.
+    expect(parseFloat(c.pay_in_pay_out)).toBe(-31560);
+    expect(parseFloat(c.net_amount)).toBe(-31598.21);
   });
 
   it('handles alternate header names gracefully', () => {
@@ -354,6 +383,116 @@ describe('parseContractNotes', () => {
     expect(result.trades[0].buy_sell).toBe('B');
     expect(result.trades[0].quantity).toBe('10');
     expect(result.trades[0].exchange).toBe('NSE');
+  });
+});
+
+describe('normalizeChargeSignConvention', () => {
+  const baseCharges = (
+    overrides: Partial<ZerodhaContractNoteCharges> = {},
+  ): ZerodhaContractNoteCharges => ({
+    contract_note_no: 'CN-TEST',
+    trade_date: '2024-01-15',
+    settlement_no: 'S-1',
+    pay_in_pay_out: '-25000',
+    brokerage: '0',
+    exchange_charges: '0',
+    clearing_charges: '0',
+    cgst: '0',
+    sgst: '0',
+    igst: '0',
+    stt: '0',
+    sebi_fees: '0',
+    stamp_duty: '0',
+    net_amount: '-25038.21',
+    ...overrides,
+  });
+
+  it('flips all cost fields when the signed sum is negative (FY21-22 convention)', () => {
+    const input = baseCharges({
+      brokerage: '-0.01',
+      stt: '-32',
+      exchange_charges: '-1',
+      igst: '-0.18',
+      sebi_fees: '-0.02',
+      stamp_duty: '-5',
+    });
+
+    const out = normalizeChargeSignConvention(input);
+
+    expect(parseFloat(out.brokerage)).toBe(0.01);
+    expect(parseFloat(out.stt)).toBe(32);
+    expect(parseFloat(out.exchange_charges)).toBe(1);
+    expect(parseFloat(out.igst)).toBe(0.18);
+    expect(parseFloat(out.sebi_fees)).toBe(0.02);
+    expect(parseFloat(out.stamp_duty)).toBe(5);
+    // pay_in_pay_out / net_amount untouched — cash-flow markers, not costs
+    expect(parseFloat(out.pay_in_pay_out)).toBe(-25000);
+    expect(parseFloat(out.net_amount)).toBe(-25038.21);
+  });
+
+  it('leaves positive charges untouched (FY22-23+ convention)', () => {
+    const input = baseCharges({
+      brokerage: '10.00',
+      stt: '25.00',
+      exchange_charges: '5.00',
+      cgst: '0.90',
+      sgst: '0.90',
+      sebi_fees: '0.25',
+      stamp_duty: '3.75',
+    });
+
+    const out = normalizeChargeSignConvention(input);
+
+    expect(out).toEqual(input);
+  });
+
+  it('preserves a single genuine rebate when the overall sum is still positive', () => {
+    // FY22-23+ CN with one small negative exchange-charge rebate (-0.59).
+    // The sign-aware voucher builder path (commit f369194e) handles this
+    // as a real refund — we must NOT flip it.
+    const input = baseCharges({
+      brokerage: '10.00',
+      stt: '25.00',
+      exchange_charges: '-0.59',
+      cgst: '0.90',
+      sgst: '0.90',
+      stamp_duty: '3.75',
+    });
+
+    const out = normalizeChargeSignConvention(input);
+
+    expect(parseFloat(out.exchange_charges)).toBe(-0.59);
+    expect(parseFloat(out.brokerage)).toBe(10);
+    expect(parseFloat(out.stt)).toBe(25);
+  });
+
+  it('is a no-op when every cost field is zero', () => {
+    const input = baseCharges();
+    const out = normalizeChargeSignConvention(input);
+    expect(out).toEqual(input);
+  });
+
+  it('flips the right set of fields even when some are zero', () => {
+    // Delivery trades: brokerage 0, GST 0, but exchange/sebi/stamp still
+    // charged. FY21-22 convention shows the non-zero fields as negative.
+    const input = baseCharges({
+      brokerage: '0',
+      stt: '-15.80',
+      exchange_charges: '-0.50',
+      sebi_fees: '-0.01',
+      stamp_duty: '-2.37',
+      igst: '0',
+      cgst: '0',
+      sgst: '0',
+    });
+
+    const out = normalizeChargeSignConvention(input);
+
+    expect(parseFloat(out.brokerage)).toBe(0);
+    expect(parseFloat(out.stt)).toBe(15.8);
+    expect(parseFloat(out.exchange_charges)).toBe(0.5);
+    expect(parseFloat(out.sebi_fees)).toBe(0.01);
+    expect(parseFloat(out.stamp_duty)).toBe(2.37);
   });
 });
 

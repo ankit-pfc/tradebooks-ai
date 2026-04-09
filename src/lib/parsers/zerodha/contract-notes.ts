@@ -58,6 +58,67 @@ function num(value: string): string {
   }
 }
 
+/**
+ * Normalize the sign convention of individual charge fields on a parsed
+ * contract note.
+ *
+ * Zerodha ships contract notes in two different sign conventions for the
+ * charges section:
+ *
+ *   - **FY22-23+ ("positive-cost")**: individual charge rows store positive
+ *     magnitudes; the client pays these. A single small row is occasionally
+ *     negative — a genuine rebate (e.g. -0.59 exchange-charge refund) that
+ *     the sign-aware voucher builder handles correctly.
+ *
+ *   - **FY21-22 ("deduction")**: the entire NET TOTAL column is signed from
+ *     the broker's perspective, so every charge row is stored as a negative
+ *     number (costs appear as outflows from the client balance). The
+ *     magnitudes are correct but the signs must be flipped so downstream
+ *     code sees costs as positive.
+ *
+ * Detection: sum the nine individual cost fields as parsed. A non-negative
+ * sum means we're in the FY22-23+ convention and any residual negatives are
+ * real rebates — leave them alone. A negative sum means we're in the
+ * FY21-22 convention and every cost field must have its sign flipped.
+ *
+ * `pay_in_pay_out` and `net_amount` are cash-flow markers (signed in both
+ * conventions from the client's perspective) and are not touched here.
+ *
+ * @internal Exported for test coverage and cross-parser reuse.
+ */
+export function normalizeChargeSignConvention(
+  charges: ZerodhaContractNoteCharges,
+): ZerodhaContractNoteCharges {
+  const costFields = [
+    'brokerage',
+    'exchange_charges',
+    'clearing_charges',
+    'cgst',
+    'sgst',
+    'igst',
+    'stt',
+    'sebi_fees',
+    'stamp_duty',
+  ] as const;
+
+  const signedSum = costFields.reduce(
+    (sum, key) => sum.add(new Decimal(charges[key] || '0')),
+    new Decimal(0),
+  );
+
+  if (signedSum.gte(0)) return charges;
+
+  // FY21-22 deduction convention: flip every non-zero individual cost field
+  const flipped: ZerodhaContractNoteCharges = { ...charges };
+  for (const key of costFields) {
+    const parsed = new Decimal(charges[key] || '0');
+    if (!parsed.isZero()) {
+      flipped[key] = parsed.neg().toString();
+    }
+  }
+  return flipped;
+}
+
 /** Collapse whitespace and strip spaces around '/' so "pay in / pay out" matches "pay in/pay out". */
 function normalizeLabel(s: string): string {
   return s
@@ -417,7 +478,7 @@ function parseSheet(rows: string[][]): SheetParseResult {
       return '0';
     };
 
-    charges = {
+    charges = normalizeChargeSignConvention({
       contract_note_no: contractNoteNo,
       trade_date: tradeDate,
       settlement_no: settlementNo,
@@ -432,7 +493,7 @@ function parseSheet(rows: string[][]): SheetParseResult {
       sebi_fees: getChargeVal('sebi turnover fees'),
       stamp_duty: getChargeVal('stamp duty'),
       net_amount: getChargeVal('net amount receivable'),
-    };
+    });
   }
 
   return { trades, charges, diagnostic };
