@@ -160,6 +160,120 @@ function appendChargeLine(
   return startLineNo + 1;
 }
 
+/**
+ * Split the charge events on a trade into two buckets:
+ *   - `disallowed`: STT — Indian income-tax treats STT on investor trades
+ *     as a non-deductible, non-capitalizable expense under Sec 48, so it
+ *     must be posted as its own ledger line (not rolled into cost basis /
+ *     sale consideration).
+ *   - `capitalizable`: everything else — brokerage, exchange & clearing,
+ *     SEBI turnover fees, stamp duty, GST on brokerage, IPFT. These get
+ *     baked into the asset ledger on a buy and deducted from the sale
+ *     consideration on a sell, matching the ITR-2 "full value of
+ *     consideration net of expenditure wholly and exclusively incurred
+ *     in connection with transfer" definition.
+ */
+interface SplitCharges {
+  capitalizable: CanonicalEvent[];
+  disallowed: CanonicalEvent[];
+  capitalizableTotal: Decimal;
+  disallowedTotal: Decimal;
+  totalCharges: Decimal;
+}
+
+function splitInvestorCharges(chargeEvents: CanonicalEvent[]): SplitCharges {
+  const capitalizable: CanonicalEvent[] = [];
+  const disallowed: CanonicalEvent[] = [];
+  let capitalizableTotal = new Decimal(0);
+  let disallowedTotal = new Decimal(0);
+
+  for (const ce of chargeEvents) {
+    const amt = new Decimal(ce.charge_amount);
+    if (ce.event_type === EventType.STT) {
+      disallowed.push(ce);
+      disallowedTotal = disallowedTotal.add(amt);
+    } else {
+      capitalizable.push(ce);
+      capitalizableTotal = capitalizableTotal.add(amt);
+    }
+  }
+
+  return {
+    capitalizable,
+    disallowed,
+    capitalizableTotal,
+    disallowedTotal,
+    totalCharges: capitalizableTotal.add(disallowedTotal),
+  };
+}
+
+/** Human-readable label for a charge event, used in trade narrations. */
+const CHARGE_NARRATION_LABELS: Partial<Record<EventType, string>> = {
+  [EventType.BROKERAGE]: 'brokerage',
+  [EventType.STT]: 'STT',
+  [EventType.EXCHANGE_CHARGE]: 'exchange',
+  [EventType.SEBI_CHARGE]: 'SEBI',
+  [EventType.GST_ON_CHARGES]: 'GST',
+  [EventType.STAMP_DUTY]: 'stamp',
+  [EventType.DP_CHARGE]: 'DP',
+};
+
+/**
+ * Build a compact one-line charge breakdown for a trade narration.
+ *
+ * Format:
+ *   "Purchase of RELIANCE @ 2500 × 10 units | brokerage 20.00, GST 3.60, stamp 0.40, exch 0.10 | STT 2.50 (non-deductible)"
+ *
+ * The "Purchase of" / "Sale of" prefix is preserved from the previous
+ * narrative format so downstream consumers that match on narrative
+ * prefix (voucher-merger, tests) keep working.
+ *
+ * Only non-zero charges are listed. If the trade has no charges at all,
+ * only the prefix is returned. STT is always separated by a ` | STT …
+ * (non-deductible)` suffix — this mirrors the voucher-line split and
+ * gives the user a clear audit trail of what was capitalized vs what
+ * was posted as a standalone disallowed expense.
+ *
+ * Negative charges (exchange-charge rebates, STT refunds) are rendered
+ * with their sign so the narration reflects what actually happened.
+ */
+export function buildTradeNarrative(
+  side: 'buy' | 'sell',
+  symbol: string,
+  quantity: Decimal,
+  rate: string,
+  chargeEvents: CanonicalEvent[],
+): string {
+  const sideLabel = side === 'buy' ? 'Purchase of' : 'Sale of';
+  const prefix = `${sideLabel} ${symbol} @ ${rate} × ${quantity.toFixed()} units`;
+  if (chargeEvents.length === 0) {
+    return prefix;
+  }
+
+  const capitalizableParts: string[] = [];
+  let sttAmount: Decimal | null = null;
+
+  for (const ce of chargeEvents) {
+    const amt = new Decimal(ce.charge_amount);
+    if (amt.isZero()) continue;
+    if (ce.event_type === EventType.STT) {
+      sttAmount = (sttAmount ?? new Decimal(0)).add(amt);
+      continue;
+    }
+    const label = CHARGE_NARRATION_LABELS[ce.event_type] ?? ce.charge_type ?? 'other';
+    capitalizableParts.push(`${label} ${amt.toFixed(2)}`);
+  }
+
+  const parts = [prefix];
+  if (capitalizableParts.length > 0) {
+    parts.push(capitalizableParts.join(', '));
+  }
+  if (sttAmount !== null && !sttAmount.isZero()) {
+    parts.push(`STT ${sttAmount.toFixed(2)} (non-deductible)`);
+  }
+  return parts.join(' | ');
+}
+
 export function deriveEffectiveProfile(
   profile: AccountingProfile,
   event: CanonicalEvent,
@@ -361,12 +475,20 @@ function isChargeEvent(e: CanonicalEvent): boolean {
 /**
  * Build a purchase voucher for a BUY_TRADE event.
  *
- * Investor mode (CAPITALIZE charges):
- *   DR  Investment in Equity Shares - {script}   (gross + all charges)
- *   CR  Zerodha Broking                           (total payable)
+ * Investor mode (Capital Account / ITR-2 methodology):
+ *   DR  Investment in Equity Shares - {script}   (gross + capitalizable charges)
+ *   DR  Securities Transaction Tax                (only if STT > 0 — STT is a
+ *                                                  non-deductible, non-
+ *                                                  capitalizable expense per
+ *                                                  Sec 48, so it is posted on
+ *                                                  its own ledger line rather
+ *                                                  than rolled into cost basis)
+ *   CR  Zerodha Broking                           (total out-of-pocket =
+ *                                                  gross + ALL charges)
+ *   Narration lists each charge.
  *
- * Investor mode (EXPENSE charges) / Trader mode:
- *   DR  Investment/Shares-in-Trade - {script}     (gross amount)
+ * Trader mode (EXPENSE charges):
+ *   DR  Shares-in-Trade - {script}                (gross amount)
  *   DR  Brokerage / STT / …                       (each charge separately)
  *   CR  Zerodha Broking                           (gross + all charges)
  */
@@ -379,13 +501,18 @@ export function buildBuyVoucher(
   const effectiveProfile = deriveEffectiveProfile(profile, event);
   const draftId = crypto.randomUUID();
   const symbol = symbolFromEvent(event);
-  const capitalize = shouldCapitalizeBuyCharges(effectiveProfile);
-  // Negative charges (e.g. small Zerodha exchange-charge rebates on real
-  // contract notes) are supported via sign-aware posting in the non-capitalize
-  // path below, and are absorbed into the capitalized asset line in the
-  // capitalize path. No need to reject them.
-
+  // Investor mode always consolidates non-STT charges into the asset ledger
+  // (user directive: single transaction entry with charges in narration).
+  // Trader mode retains the expense-breakdown path — per-charge ledgers are
+  // still needed for P&L analysis on business-income trades.
   const isInvestor = effectiveProfile.mode === AccountingMode.INVESTOR;
+  const useCapitalizeBuy =
+    isInvestor || shouldCapitalizeBuyCharges(effectiveProfile);
+  // Negative charges (e.g. small Zerodha exchange-charge rebates on real
+  // contract notes) are supported via sign-aware posting in the trader
+  // EXPENSE path below, and are absorbed into the capitalized asset line
+  // in the investor path. No need to reject them.
+
   const assetLedger = tallyProfile
     ? resolveInvestmentLedger(tallyProfile, symbol).name
     : isInvestor
@@ -393,10 +520,7 @@ export function buildBuyVoucher(
       : L.stockInTradeLedger(symbol).name;
 
   const grossAmount = new Decimal(event.gross_amount);
-  const totalCharges = chargeEvents.reduce(
-    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
-    new Decimal(0),
-  );
+  const split = splitInvestorCharges(chargeEvents);
 
   const lines: VoucherLine[] = [];
   let lineNo = 1;
@@ -405,9 +529,33 @@ export function buildBuyVoucher(
   // same-day and only the gain/loss matters.
   const skipInventory = isSpeculativeTrade(event);
 
-  if (capitalize) {
-    // Single DR line: asset absorbs the total inclusive of charges.
-    const capitalizedAmount = grossAmount.add(totalCharges);
+  if (useCapitalizeBuy && isInvestor) {
+    // Investor path: single DR on the investment ledger absorbing
+    // every non-STT charge. STT is posted as its own DR line so it
+    // remains visible as a non-deductible expense in Tally.
+    const capitalizedAmount = grossAmount.add(split.capitalizableTotal);
+    const capitalizedQty = new Decimal(event.quantity).abs();
+    const effectiveRate = capitalizedAmount.div(capitalizedQty).toDecimalPlaces(2).toFixed(2);
+    lines.push(
+      makeLine(draftId, lineNo++, assetLedger, capitalizedAmount, 'DR', skipInventory ? {} : {
+        security_id: event.security_id,
+        quantity: event.quantity,
+        rate: effectiveRate,
+        stock_item_name: stockItemNameForEvent(event),
+      }),
+    );
+
+    if (!split.disallowedTotal.isZero()) {
+      const sttLedger = tallyProfile
+        ? resolveChargeLedger(tallyProfile, EventType.STT).name
+        : CHARGE_LEDGER_NAMES[EventType.STT] ?? L.STT.name;
+      lineNo = appendChargeLine(lines, draftId, lineNo, sttLedger, split.disallowedTotal);
+    }
+  } else if (useCapitalizeBuy) {
+    // Legacy CAPITALIZE path for non-investor profiles (kept for tests and
+    // trader configurations that explicitly opt in via charge_treatment).
+    // Folds ALL charges including STT into the asset ledger.
+    const capitalizedAmount = grossAmount.add(split.totalCharges);
     const capitalizedQty = new Decimal(event.quantity).abs();
     const effectiveRate = capitalizedAmount.div(capitalizedQty).toDecimalPlaces(2).toFixed(2);
     lines.push(
@@ -419,7 +567,7 @@ export function buildBuyVoucher(
       }),
     );
   } else {
-    // DR: asset at gross
+    // Trader EXPENSE path: asset at gross, each charge as its own DR.
     lines.push(
       makeLine(draftId, lineNo++, assetLedger, grossAmount, 'DR', skipInventory ? {} : {
         security_id: event.security_id,
@@ -444,7 +592,7 @@ export function buildBuyVoucher(
   // rebate), the broker payable is correctly reduced; the signed math keeps
   // the voucher balanced against the per-charge DR/CR lines above.
   const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
-  const totalPayable = grossAmount.add(totalCharges);
+  const totalPayable = grossAmount.add(split.totalCharges);
   lines.push(makeLine(draftId, lineNo++, brokerName, totalPayable, 'CR'));
 
   const draft: BuiltVoucherDraft = {
@@ -472,7 +620,13 @@ export function buildBuyVoucher(
       ? `${event.contract_note_ref}/${symbol}`
       : event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
-      `Purchase of ${symbol} @ ${event.rate} × ${new Decimal(event.quantity).abs().toFixed()} units`,
+      buildTradeNarrative(
+        'buy',
+        symbol,
+        new Decimal(event.quantity).abs(),
+        event.rate,
+        chargeEvents,
+      ),
       event,
     ),
     total_debit: '0',
@@ -531,17 +685,25 @@ export function buildSellVoucher(
   // posted as CR refund lines in both investor and trader paths below.
 
   const grossAmount = new Decimal(event.gross_amount);
-  const totalCharges = chargeEvents.reduce(
-    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
-    new Decimal(0),
-  );
+  const split = splitInvestorCharges(chargeEvents);
+  const totalCharges = split.totalCharges;
   const totalCostBasis = costDisposals.reduce(
     (sum, d) => sum.add(new Decimal(d.total_cost)),
     new Decimal(0),
   );
-  // Use the exact residual against the rounded cost basis so the voucher
-  // stays balanced even when per-lot rounded disposals introduce a 0.01 drift.
-  const totalGainLoss = grossAmount.sub(totalCostBasis);
+  // Under ITR-2, the "full value of consideration" is the gross sale value
+  // MINUS expenditure wholly and exclusively incurred in connection with the
+  // transfer (brokerage, exchange, stamp duty, GST on those, SEBI fees).
+  // STT is explicitly excluded from Sec 48 deductions — it is neither
+  // deductible from consideration nor capitalizable into cost basis. So the
+  // sale consideration that flows to STCG/LTCG is (gross − non-STT charges),
+  // and STT is posted as its own DR line on the voucher.
+  const saleConsideration = grossAmount.sub(split.capitalizableTotal);
+  // Investor capital gain/loss is computed from saleConsideration (post-
+  // charge-deduction view) so the ledger amount matches what the taxpayer
+  // will actually report on ITR-2 Schedule CG. Trader mode doesn't post a
+  // direct gain/loss line — P&L is derived from TradingSales − CostOfShares.
+  const investorGainLoss = saleConsideration.sub(totalCostBasis);
   const skipInventory = isSpeculativeTrade(event);
   // Uncovered disposal: cost-lots engine emits a zero-cost disposal when
   // sell quantity exceeds the open lots (see cost-lots.ts _disposeFifo /
@@ -558,18 +720,23 @@ export function buildSellVoucher(
       : L.investmentLedger(symbol).name;
     const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
 
-    // DR: Broker for the gross sale proceeds (net of charges — broker settles net)
+    // DR: Broker for the NET cash receivable (gross − every charge,
+    // including STT). This is what actually hits the trading account on
+    // settlement — Zerodha credits the user net of all charges.
     const netProceeds = grossAmount.sub(totalCharges);
     lines.push(makeLine(draftId, lineNo++, brokerName, netProceeds, 'DR'));
 
-    // DR: charge ledgers (expensed separately) — negative charges become
-    // CR refund lines on the same expense ledger.
-    for (const ce of chargeEvents) {
-      const chargeLedger = tallyProfile
-        ? resolveChargeLedger(tallyProfile, ce.event_type).name
-        : CHARGE_LEDGER_NAMES[ce.event_type] ?? L.MISC_CHARGES.name;
-      const chargeAmt = new Decimal(ce.charge_amount);
-      lineNo = appendChargeLine(lines, draftId, lineNo, chargeLedger, chargeAmt);
+    // DR: STT posted as its own non-deductible expense line. All other
+    // charges (brokerage, exchange, SEBI, stamp, GST) are absorbed into
+    // saleConsideration — they do NOT get their own DR lines on the
+    // investor-mode sell voucher. This is the user-visible "single
+    // transaction entry with charges in narration" requirement, with the
+    // sole exception of STT (kept separate because Sec 48 disallows it).
+    if (!split.disallowedTotal.isZero()) {
+      const sttLedger = tallyProfile
+        ? resolveChargeLedger(tallyProfile, EventType.STT).name
+        : CHARGE_LEDGER_NAMES[EventType.STT] ?? L.STT.name;
+      lineNo = appendChargeLine(lines, draftId, lineNo, sttLedger, split.disallowedTotal);
     }
 
     // CR: Investment account at cost basis.
@@ -593,17 +760,18 @@ export function buildSellVoucher(
       );
     }
 
-    // CR or DR: Gain / Loss at GROSS (before sell charges).
+    // CR or DR: Capital gain / loss.
     //
-    // Sell charges are already posted as separate DR lines above, so they
-    // reduce P&L through their own expense ledgers. Using gross gain here
-    // keeps the voucher balanced:
-    //   Total DR = netProceeds + Σcharges = grossAmount
-    //   Total CR = costBasis  + grossGainLoss = grossAmount  ✓
+    // Computed from saleConsideration (gross − non-STT charges) so the
+    // ledger amount matches ITR-2's Schedule CG reporting. STT is a
+    // disallowed expense and is excluded from the consideration figure
+    // by construction (it lives on its own DR line above).
     //
-    // If netGainLoss (gross − charges) were used instead, the voucher would
-    // be short by Σcharges on the CR side, breaking double-entry balance.
-    const isGain = totalGainLoss.greaterThanOrEqualTo(0);
+    // Balance check:
+    //   DR broker (gross − all) + DR STT (stt) = gross − non-STT = saleConsideration
+    //   CR investment (costBasis) + CR gain (saleConsideration − costBasis) = saleConsideration ✓
+    const investorIsGain = investorGainLoss.greaterThanOrEqualTo(0);
+    const isGain = investorIsGain;
     // Investment-classified trades (CNC) must never route to the speculation
     // ledger even when holding period is 0 (same-day buy+sell).  Treat as
     // short-term capital gain/loss instead. classifyGain treats 0 as
@@ -620,9 +788,9 @@ export function buildSellVoucher(
         tallyProfile, symbol, effectiveHoldingDays, isGain,
       ).name;
       if (isGain) {
-        lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss, 'CR'));
+        lines.push(makeLine(draftId, lineNo++, gainLossLedger, investorGainLoss, 'CR'));
       } else {
-        lines.push(makeLine(draftId, lineNo++, gainLossLedger, totalGainLoss.abs(), 'DR'));
+        lines.push(makeLine(draftId, lineNo++, gainLossLedger, investorGainLoss.abs(), 'DR'));
       }
     } else {
       const isSpeculation = effectiveHoldingDays === 0;
@@ -631,16 +799,16 @@ export function buildSellVoucher(
         // Route to speculation gain/loss ledger
         const specLedger = isGain ? L.SPECULATIVE_PROFIT.name : L.SPECULATIVE_LOSS.name;
         if (isGain) {
-          lines.push(makeLine(draftId, lineNo++, specLedger, totalGainLoss, 'CR'));
+          lines.push(makeLine(draftId, lineNo++, specLedger, investorGainLoss, 'CR'));
         } else {
-          lines.push(makeLine(draftId, lineNo++, specLedger, totalGainLoss.abs(), 'DR'));
+          lines.push(makeLine(draftId, lineNo++, specLedger, investorGainLoss.abs(), 'DR'));
         }
       } else if (isGain) {
         const gainLedger = isLongTerm ? L.LTCG_PROFIT.name : L.STCG_PROFIT.name;
-        lines.push(makeLine(draftId, lineNo++, gainLedger, totalGainLoss, 'CR'));
+        lines.push(makeLine(draftId, lineNo++, gainLedger, investorGainLoss, 'CR'));
       } else {
         const lossLedger = isLongTerm ? L.LTCG_LOSS.name : L.STCG_LOSS.name;
-        lines.push(makeLine(draftId, lineNo++, lossLedger, totalGainLoss.abs(), 'DR'));
+        lines.push(makeLine(draftId, lineNo++, lossLedger, investorGainLoss.abs(), 'DR'));
       }
     }
   } else {
@@ -714,7 +882,7 @@ export function buildSellVoucher(
       ? `${event.contract_note_ref}/${symbol}`
       : event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
-      `Sale of ${symbol} @ ${event.rate} × ${qty.toFixed()} units`,
+      buildTradeNarrative('sell', symbol, qty, event.rate, chargeEvents),
       event,
     ),
     total_debit: '0',

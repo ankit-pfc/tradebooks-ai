@@ -38,7 +38,7 @@
       "stock_item": "INFY-SH",
       "cost_basis": "1001.49",
       "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 100 × 10 units"
+      "narration": "Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08"
     },
     {
       "voucher_number": "ORD-1",
@@ -58,7 +58,7 @@
       "stock_item": "INFY-SH",
       "cost_basis": "451.04",
       "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 90 × 5 units"
+      "narration": "Purchase of INFY @ 90 × 5 units | brokerage 0.10, exchange 0.29, stamp 0.61, GST 0.04"
     },
     {
       "voucher_number": "ORD-3",
@@ -78,7 +78,7 @@
       "stock_item": "INFY-SH",
       "cost_basis": "500.75",
       "gain_loss": "0.00",
-      "narration": "Sale of INFY @ 95 × 5 units"
+      "narration": "Sale of INFY @ 95 × 5 units | brokerage 0.10, exchange 0.30, SEBI 0.01, GST 0.04"
     },
     {
       "voucher_number": "ORD-4",

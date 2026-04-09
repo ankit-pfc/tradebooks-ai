@@ -31,24 +31,45 @@ function findLine(lines: { ledger_name: string; dr_cr: string }[], partial: stri
 // buildBuyVoucher
 // ---------------------------------------------------------------------------
 describe('buildBuyVoucher — investor HYBRID', () => {
-  it('capitalises charges into single DR line', () => {
+  it('capitalises non-STT charges into the asset DR line and posts STT separately', () => {
     const event = makeBuyEvent({ quantity: '10', rate: '2500', gross_amount: '25000.00' });
     const charges = [makeChargeEvent(EventType.STT, '2.50'), makeChargeEvent(EventType.BROKERAGE, '20.00')];
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, charges);
 
-    // Single DR = gross + charges = 25000 + 22.50 = 25022.50
-    const drLine = voucher.lines.find(l => l.dr_cr === 'DR')!;
-    expect(drLine.amount).toBe('25022.50');
-    expect(drLine.ledger_name).toContain('Investment in Equity Shares');
+    // Investment DR = gross + non-STT charges = 25000 + 20 = 25020.00
+    // (STT is excluded from cost basis per Sec 48 and posted on its own line.)
+    const assetDr = findLine(voucher.lines, 'Investment in Equity Shares', 'DR');
+    expect(assetDr?.amount).toBe('25020.00');
+
+    // STT posted as a standalone non-deductible DR line.
+    const sttDr = findLine(voucher.lines, 'Securities Transaction Tax', 'DR');
+    expect(sttDr?.amount).toBe('2.50');
   });
 
-  it('credits broker for total payable', () => {
+  it('credits broker for total payable (gross + ALL charges incl. STT)', () => {
     const event = makeBuyEvent({ quantity: '10', rate: '2500', gross_amount: '25000.00' });
     const charges = [makeChargeEvent(EventType.STT, '2.50')];
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, charges);
 
+    // Broker CR = gross + capitalizable + STT = 25000 + 0 + 2.50 = 25002.50
+    // Broker payable is the full out-of-pocket amount.
     const crLine = voucher.lines.find(l => l.dr_cr === 'CR')!;
     expect(crLine.amount).toBe('25002.50');
+  });
+
+  it('narration lists charge breakdown with STT as non-deductible', () => {
+    const event = makeBuyEvent({ quantity: '10', rate: '2500', gross_amount: '25000.00' });
+    const charges = [
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.GST_ON_CHARGES, '3.60'),
+      makeChargeEvent(EventType.STT, '2.50'),
+    ];
+    const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, charges);
+
+    expect(voucher.narrative).toContain('Purchase of RELIANCE');
+    expect(voucher.narrative).toContain('brokerage 20.00');
+    expect(voucher.narrative).toContain('GST 3.60');
+    expect(voucher.narrative).toContain('STT 2.50 (non-deductible)');
   });
 
   it('voucher is balanced and uses JOURNAL type (inventory via ISINVENTORYAFFECTED on ledger master)', () => {
@@ -290,8 +311,13 @@ describe('buildSellVoucher — investor', () => {
     expect(crAsset?.amount).toBe('25000.00');
   });
 
-  it('voucher is balanced WITH charges', () => {
-    // gross=26000, cost=25000, gain=1000, charges=60.36
+  it('voucher is balanced WITH charges (non-STT absorbed into saleConsideration)', () => {
+    // gross=26000, cost=25000, charges: STT 25, BROK 20, GST 15.36.
+    // Non-STT charges (35.36) reduce saleConsideration → 25964.64.
+    // Investor gain = 25964.64 - 25000 = 964.64.
+    // Balance:
+    //   DR broker (gross − all = 25939.64) + DR STT (25) = 25964.64
+    //   CR investment (25000) + CR gain (964.64)          = 25964.64
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const charges = [
       makeChargeEvent(EventType.STT, '25.00'),
@@ -300,20 +326,76 @@ describe('buildSellVoucher — investor', () => {
     ];
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
     expect(voucher.total_debit).toBe(voucher.total_credit);
-    expect(voucher.total_debit).toBe('26000.00');
+    expect(voucher.total_debit).toBe('25964.64');
   });
 
-  it('capital gain ledger shows gross gain (before charges)', () => {
+  it('does not post brokerage / GST / exchange as separate ledger lines on investor sells', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [
+      makeChargeEvent(EventType.STT, '25.00'),
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.GST_ON_CHARGES, '15.36'),
+      makeChargeEvent(EventType.EXCHANGE_CHARGE, '1.50'),
+    ];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
+
+    // Non-STT charges are absorbed into the broker/net-cash arithmetic and
+    // must NOT appear as separate expense DR lines.
+    expect(findLine(voucher.lines, 'Brokerage', 'DR')).toBeUndefined();
+    expect(findLine(voucher.lines, 'GST', 'DR')).toBeUndefined();
+    expect(findLine(voucher.lines, 'Exchange', 'DR')).toBeUndefined();
+
+    // STT is the lone exception — posted on its own non-deductible DR line.
+    const sttDr = findLine(voucher.lines, 'Securities Transaction Tax', 'DR');
+    expect(sttDr?.amount).toBe('25.00');
+  });
+
+  it('capital gain uses saleConsideration (gross − non-STT charges), STT excluded', () => {
+    // gross=26000, cost=25000, STT=50 (no other charges).
+    // capitalizable=0 → saleConsideration=26000 → investorGain=1000.
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const charges = [makeChargeEvent(EventType.STT, '50.00')];
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
 
     const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
-    // Gross gain = 1000.00, NOT net of charges (950.00)
     expect(gainLine?.amount).toBe('1000.00');
   });
 
+  it('capital gain reduced by non-STT charges (saleConsideration basis)', () => {
+    // gross=26000, cost=25000, brokerage=20, GST=3.60, STT=25.
+    // capitalizable=23.60 → saleConsideration=25976.40 → investorGain=976.40.
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [
+      makeChargeEvent(EventType.BROKERAGE, '20.00'),
+      makeChargeEvent(EventType.GST_ON_CHARGES, '3.60'),
+      makeChargeEvent(EventType.STT, '25.00'),
+    ];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
+
+    const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
+    expect(gainLine?.amount).toBe('976.40');
+  });
+
+  it('handles zero-STT sells (segment with no STT)', () => {
+    // Some segments (debt) have no STT at all.
+    // gross=26000, cost=25000, brokerage=20 only.
+    // capitalizable=20 → saleConsideration=25980 → investorGain=980.
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const charges = [makeChargeEvent(EventType.BROKERAGE, '20.00')];
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
+
+    expect(findLine(voucher.lines, 'Securities Transaction Tax', 'DR')).toBeUndefined();
+    const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
+    expect(gainLine?.amount).toBe('980.00');
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+  });
+
   it('loss case is balanced WITH charges', () => {
+    // gross=26000, cost=27000, STT=25, BROK=20.
+    // capitalizable=20 → saleConsideration=25980 → investorLoss=-1020.
+    // Balance:
+    //   DR broker (25955) + DR STT (25) + DR loss (1020) = 27000
+    //   CR investment (27000)                            = 27000
     const lossDisposals = [{
       lot_id: 'lot-1',
       acquisition_date: '2024-06-01',
@@ -326,13 +408,20 @@ describe('buildSellVoucher — investor', () => {
     const charges = [makeChargeEvent(EventType.STT, '25.00'), makeChargeEvent(EventType.BROKERAGE, '20.00')];
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, lossDisposals, 100);
     expect(voucher.total_debit).toBe(voucher.total_credit);
+
+    const lossLine = findLine(voucher.lines, 'Short Term Capital Loss on Sale of Shares', 'DR');
+    expect(lossLine?.amount).toBe('1020.00');
   });
 
-  it('posts a negative sell-side charge as a CR refund and stays balanced', () => {
-    // Sell-side regression for the same FY 24-25 Zerodha CN behavior:
-    // a -0.59 exchange-charge rebate must produce a CR on the EXCHANGE
-    // CHARGES expense ledger and the broker line gets the corresponding
-    // boost (broker pays you the rebate as part of settlement).
+  it('absorbs a negative sell-side charge into saleConsideration (rebate lowers deductible charge)', () => {
+    // Real FY 24-25 Zerodha CNs occasionally emit a -0.59 exchange-charge
+    // rebate. In investor mode after Fix 1+2 the rebate no longer shows as a
+    // separate CR line — it reduces capitalizable charges (a rebate is a
+    // NEGATIVE deduction), lifting saleConsideration and the capital gain.
+    // gross=26000, STT=25, exch=-0.59. capitalizable=-0.59.
+    // saleConsideration = 26000 - (-0.59) = 26000.59. investorGain = 1000.59.
+    //   DR broker (26000 - 24.41 = 25975.59) + DR STT (25) = 26000.59
+    //   CR investment (25000) + CR gain (1000.59)          = 26000.59
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const charges = [
       makeChargeEvent(EventType.STT, '25.00'),
@@ -340,11 +429,16 @@ describe('buildSellVoucher — investor', () => {
     ];
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, charges, costDisposals, 100);
 
-    const exchangeRefund = voucher.lines.find(
-      (l) => l.ledger_name.includes('Exchange') && l.dr_cr === 'CR',
-    );
-    expect(exchangeRefund?.amount).toBe('0.59');
+    // The rebate is absorbed into the voucher arithmetic — no separate
+    // EXCHANGE CHARGES line exists in investor mode.
+    const exchangeLine = voucher.lines.find((l) => l.ledger_name.includes('Exchange'));
+    expect(exchangeLine).toBeUndefined();
+
+    // Voucher must still balance, and the gain ledger reflects the lift.
     expect(voucher.total_debit).toBe(voucher.total_credit);
+    expect(voucher.total_debit).toBe('26000.59');
+    const gainLine = findLine(voucher.lines, 'Short Term Capital Gain on Sale of Shares', 'CR');
+    expect(gainLine?.amount).toBe('1000.59');
   });
 });
 
@@ -579,26 +673,32 @@ describe('buildCorporateActionVoucher', () => {
 // Bug 3 — Capitalized BUY RATE must use effective cost-per-unit
 // ---------------------------------------------------------------------------
 describe('buildBuyVoucher — capitalize RATE reflects all-in cost', () => {
-  it('RATE = (gross + charges) / qty, not just gross/qty', () => {
-    // 10 shares @ 2500 = 25000 gross; charges = 500; effective = 25500/10 = 2550.00
+  it('RATE = (gross + non-STT charges) / qty, not just gross/qty', () => {
+    // 10 shares @ 2500 = 25000 gross; non-STT charges = 300; effective = 25300/10 = 2530.00
+    // STT (200) is excluded from capitalization per Sec 48 — it's a non-deductible expense.
     const event = makeBuyEvent({ quantity: '10', rate: '2500.00', gross_amount: '25000.00' });
     const charges = [makeChargeEvent(EventType.STT, '200.00'), makeChargeEvent(EventType.BROKERAGE, '300.00')];
     const capitalizeProfile = { ...INVESTOR_DEFAULT, charge_treatment: ChargeTreatment.CAPITALIZE };
     const voucher = buildBuyVoucher(event, capitalizeProfile, charges);
 
-    const drLine = voucher.lines.find(l => l.dr_cr === 'DR')!;
-    expect(drLine.amount).toBe('25500.00');   // gross + charges
-    expect(drLine.rate).toBe('2550.00');       // (25500) / 10
-    expect(drLine.quantity).toBe('10');
+    // Asset line capitalizes gross + brokerage, excluding STT
+    const drAsset = voucher.lines.find(l => l.dr_cr === 'DR' && l.quantity !== null)!;
+    expect(drAsset.amount).toBe('25300.00');   // gross + non-STT charges
+    expect(drAsset.rate).toBe('2530.00');       // (25300) / 10
+    expect(drAsset.quantity).toBe('10');
+
+    // STT is posted as its own DR line, not folded into the asset
+    const sttLine = voucher.lines.find(l => l.dr_cr === 'DR' && l.ledger_name === 'Securities Transaction Tax');
+    expect(sttLine?.amount).toBe('200.00');
   });
 
-  it('RATE differs from event.rate when charges are present', () => {
+  it('RATE differs from event.rate when non-STT charges are present', () => {
     const event = makeBuyEvent({ quantity: '5', rate: '1000.00', gross_amount: '5000.00' });
-    const charges = [makeChargeEvent(EventType.STT, '250.00')];
+    const charges = [makeChargeEvent(EventType.BROKERAGE, '250.00')];
     const capitalizeProfile = { ...INVESTOR_DEFAULT, charge_treatment: ChargeTreatment.CAPITALIZE };
     const voucher = buildBuyVoucher(event, capitalizeProfile, charges);
 
-    const drLine = voucher.lines.find(l => l.dr_cr === 'DR')!;
+    const drLine = voucher.lines.find(l => l.dr_cr === 'DR' && l.quantity !== null)!;
     // effective = (5000 + 250) / 5 = 1050.00
     expect(drLine.rate).toBe('1050.00');
     expect(drLine.rate).not.toBe(event.rate);
@@ -1127,9 +1227,13 @@ describe('buildVouchers — mixed batch per-trade profile branching', () => {
     expect(findLine(cncSell.lines, 'Investment in Equity Shares', 'CR')).toBeDefined();
     expect(cncSell.lines.some((line) => line.ledger_name.includes('Speculative'))).toBe(false);
 
-    // MIS (speculative) now uses investor/journal structure with inventory
-    expect(findLine(misBuy.lines, 'Investment in Equity Shares', 'DR')).toBeDefined();
-    expect(findLine(misBuy.lines, 'Brokerage', 'DR')?.amount).toBe('8.00');
+    // MIS (speculative) now uses investor/journal structure with inventory.
+    // Non-STT charges (brokerage) are capitalized into the asset line, not
+    // posted as a separate DR — gross 1600 + brokerage 8 = 1608.
+    const misAssetLine = findLine(misBuy.lines, 'Investment in Equity Shares', 'DR');
+    expect(misAssetLine).toBeDefined();
+    expect(misAssetLine?.amount).toBe('1608.00');
+    expect(findLine(misBuy.lines, 'Brokerage', 'DR')).toBeUndefined();
 
     // MIS sell uses investor structure: no Trading Sales / Cost of Shares Sold
     expect(misSell.voucher_type).toBe(VoucherType.JOURNAL);

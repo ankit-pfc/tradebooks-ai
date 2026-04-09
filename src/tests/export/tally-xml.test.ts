@@ -160,7 +160,11 @@ describe('generateVouchersXml', () => {
     const xml = generateVouchersXml([voucher], 'Co');
     expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
     expect(xml).toContain('<ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>');
-    expect(xml).toContain('-10 SH');  // qty with UOM
+    // ACTUALQTY/BILLEDQTY are always absolute — stock-out direction comes
+    // from the parent ledger's CR, not from a negative qty. Tally double-
+    // negates negative CR quantities and INCREASES holdings on sale.
+    expect(xml).toContain('10 SH');  // qty with UOM (always positive)
+    expect(xml).not.toMatch(/<(ACTUALQTY|BILLEDQTY)>-/);
   });
 
   it('handles empty vouchers array', () => {
