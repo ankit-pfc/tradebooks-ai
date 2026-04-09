@@ -222,24 +222,28 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(buyVoucher!.voucher_type).toBe('JOURNAL');
   });
 
-  it('buy voucher uses Invoice Voucher View (inventory via rendered invoice flow)', () => {
+  it('buy voucher uses Accounting Voucher View (investor mode — Journal only)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
+    // Investor-mode trade vouchers render as Journal with Accounting
+    // Voucher View — never Invoice Voucher View. Stock flows via the F12
+    // ISINVENTORYAFFECTED flag on the investment ledger master.
+    expect((buyV as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
+    expect((buyV as Record<string, unknown>)['@_VCHTYPE']).toBe('Journal');
   });
 
-  it('buy voucher emits ISINVOICE=Yes', () => {
+  it('buy voucher does not emit ISINVOICE (investor mode — Journal only)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     );
     expect(buyV).toBeDefined();
-    expect((buyV as Record<string, unknown>).ISINVOICE).toBe('Yes');
+    expect((buyV as Record<string, unknown>).ISINVOICE).toBeUndefined();
   });
 
   it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with HDFC-SH', () => {
@@ -492,7 +496,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
     expect(specLine).toBeDefined();
   });
 
-  it('RELIANCE delivery buy HAS INVENTORYALLOCATIONS.LIST on an Invoice Voucher View trade voucher (control)', () => {
+  it('RELIANCE delivery buy HAS INVENTORYALLOCATIONS.LIST on an Accounting Voucher View Journal (control)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const relianceBuy = vouchers.find(v =>
@@ -500,7 +504,10 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
       String((v as Record<string, unknown>).NARRATION ?? '').includes('Purchase'),
     )!;
     expect(relianceBuy).toBeDefined();
-    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Invoice Voucher View');
+    // Investor-mode delivery trades render as Journal with Accounting
+    // Voucher View while still carrying inventory via the F12 flag.
+    expect((relianceBuy as Record<string, unknown>)['@_OBJVIEW']).toBe('Accounting Voucher View');
+    expect((relianceBuy as Record<string, unknown>)['@_VCHTYPE']).toBe('Journal');
 
     const lines = getVoucherLines(relianceBuy);
     const lineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0);
@@ -1206,7 +1213,7 @@ describe('Regression: no trades are dropped between input and generated XML', ()
 
   const result = runFullPipeline(csv);
 
-  it('every delivery buy/sell appears exactly once in generated XML as Purchase/Sales vouchers', () => {
+  it('every delivery buy/sell appears exactly once in generated XML as Journal vouchers', () => {
     const vouchers = getVouchers(parseXml(result.transactionsXml));
 
     const tradeVouchers = vouchers.filter(v => {
@@ -1218,27 +1225,12 @@ describe('Regression: no trades are dropped between input and generated XML', ()
     // reclassified to speculative but emitted as separate journal vouchers).
     expect(tradeVouchers).toHaveLength(7);
 
-    // Delivery trade vouchers are rendered as Purchase/Sales invoices; intraday
-    // control vouchers with no inventory remain Journal/accounting vouchers.
+    // Investor mode: every trade voucher — whether delivery (with inventory)
+    // or intraday (without) — lands in the Journal register.
     for (const v of tradeVouchers) {
-      const entries = (v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as
-        | Record<string, unknown>
-        | Record<string, unknown>[]
-        | undefined;
-      const entryList = Array.isArray(entries) ? entries : entries ? [entries] : [];
-      const hasInventory = entryList.some((entry) => {
-        const allocs = entry['INVENTORYALLOCATIONS.LIST'] as Record<string, unknown> | Record<string, unknown>[] | undefined;
-        return Array.isArray(allocs) ? allocs.length > 0 : Boolean(allocs);
-      });
-      if (hasInventory) {
-        expect(['Purchase', 'Sales']).toContain(String(v['@_VCHTYPE']));
-        expect(v['@_OBJVIEW']).toBe('Invoice Voucher View');
-        expect(v.ISINVOICE).toBe('Yes');
-      } else {
-        expect(v['@_VCHTYPE']).toBe('Journal');
-        expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
-        expect(v.ISINVOICE).toBeUndefined();
-      }
+      expect(v['@_VCHTYPE']).toBe('Journal');
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.ISINVOICE).toBeUndefined();
     }
 
     // Every symbol from input sells must appear as a Sale narrative in output.

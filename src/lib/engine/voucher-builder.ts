@@ -200,7 +200,17 @@ function withTradeReviewNarrative(narrative: string, event: CanonicalEvent): str
   return narrative;
 }
 
-function invoiceIntentForTrade(event: CanonicalEvent): InvoiceIntent {
+function invoiceIntentForTrade(
+  event: CanonicalEvent,
+  profile: AccountingProfile,
+): InvoiceIntent {
+  // Investor mode always emits Journal vouchers in Tally. We intentionally
+  // leave invoice_intent as NONE so the XML serializer does not flip the
+  // voucher to VCHTYPE="Sales"/"Purchase". Stock movement is carried by
+  // the F12 ISINVENTORYAFFECTED flag on the investment ledger master.
+  if (profile.mode === AccountingMode.INVESTOR) {
+    return InvoiceIntent.NONE;
+  }
   switch (event.event_type) {
     case EventType.BUY_TRADE:
       return InvoiceIntent.PURCHASE;
@@ -375,8 +385,13 @@ export function buildBuyVoucher(
     // flag "Use Inventory Allocations for Ledgers" enabled — emitted as
     // ISINVENTORYAFFECTED=Yes on the ledger master. See bug-report PDF
     // pages 5-6.
+    //
+    // Investor mode deliberately leaves invoice_intent as NONE so the Tally
+    // XML serializer does not flip VCHTYPE to "Purchase"/"Sales". Investor
+    // trades must land in the Journal register, not Sales/Purchase register,
+    // to match the Capital Account / ITR-2 methodology.
     voucher_type: VoucherType.JOURNAL,
-    invoice_intent: invoiceIntentForTrade(event),
+    invoice_intent: invoiceIntentForTrade(event, effectiveProfile),
     voucher_date: event.event_date,
     // Voucher number = CN number / security symbol. Unique per (CN, security)
     // so multi-script CNs don't collide on Tally import while still carrying
@@ -614,8 +629,13 @@ export function buildSellVoucher(
     // All trade vouchers are Journal vouchers. Inventory flows through via
     // the F12 "Use Inventory Allocations for Ledgers" flag on the investment
     // ledger master (ISINVENTORYAFFECTED=Yes). See bug-report PDF pages 5-6.
+    //
+    // Investor mode deliberately leaves invoice_intent as NONE so the Tally
+    // XML serializer does not flip VCHTYPE to "Purchase"/"Sales". Investor
+    // trades must land in the Journal register, not Sales/Purchase register,
+    // to match the Capital Account / ITR-2 methodology.
     voucher_type: VoucherType.JOURNAL,
-    invoice_intent: invoiceIntentForTrade(event),
+    invoice_intent: invoiceIntentForTrade(event, effectiveProfile),
     voucher_date: event.event_date,
     // Voucher number = CN number / security symbol. See buildBuyVoucher for
     // the rationale and disambiguation strategy.

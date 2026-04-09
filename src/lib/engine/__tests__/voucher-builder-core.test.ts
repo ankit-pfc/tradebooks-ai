@@ -14,7 +14,7 @@ import {
 import { INVESTOR_DEFAULT, TRADER_DEFAULT } from '../accounting-policy';
 import { ChargeTreatment } from '../../types/accounting';
 import { EventType } from '../../types/events';
-import { VoucherType } from '../../types/vouchers';
+import { InvoiceIntent, VoucherType } from '../../types/vouchers';
 import { CostLotTracker } from '../cost-lots';
 import { TradeClassification, TradeClassificationStrategy } from '../trade-classifier';
 import { buildCanonicalEvents, pairContractNoteData } from '../canonical-events';
@@ -54,6 +54,10 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     const voucher = buildBuyVoucher(event, INVESTOR_DEFAULT, []);
     expect(voucher.total_debit).toBe(voucher.total_credit);
     expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
+    // Investor mode must not tag trades with an invoice intent — the XML
+    // serializer would otherwise flip VCHTYPE to "Purchase" and route the
+    // voucher to Tally's Purchase register instead of the Journal register.
+    expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
   });
 
   it('absorbs negative contract-note charges into the capitalized asset (HYBRID/CAPITALIZE path)', () => {
@@ -240,6 +244,9 @@ describe('buildSellVoucher — investor', () => {
     expect(gainLine).toBeDefined();
     expect(voucher.voucher_type).toBe(VoucherType.JOURNAL);
     expect(voucher.total_debit).toBe(voucher.total_credit);
+    // Investor-mode sells must not carry SALES intent — see buildBuyVoucher
+    // comment for rationale (Journal register, not Sales register).
+    expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
   });
 
   it('books LTCG for long-term gain (>365 days)', () => {
@@ -690,7 +697,9 @@ describe('buildVouchers — negative charge regression fixture', () => {
 
     // The buy voucher for INFY should capitalize gross + brokerage + rebate
     // = 100 + 0 + (-0.59) = 99.41 — matching the contract note's pay_in.
-    const buyVoucher = vouchers.find((v) => v.invoice_intent === 'PURCHASE');
+    // Investor-mode trade vouchers are Journal with invoice_intent=NONE,
+    // so match by narrative instead.
+    const buyVoucher = vouchers.find((v) => v.narrative?.startsWith('Purchase of'));
     expect(buyVoucher).toBeDefined();
     const assetDr = buyVoucher!.lines.find(
       (l) => l.dr_cr === 'DR' && l.ledger_name.includes('Investment in Equity Shares'),

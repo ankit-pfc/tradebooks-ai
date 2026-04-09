@@ -546,20 +546,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
     </DESC>
     <DATA>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240401</DATE>
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
           <VOUCHERNUMBER>CN-SIMPLE-BUY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1001.49</AMOUNT>
@@ -575,7 +574,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>1001.49</AMOUNT>
@@ -583,20 +582,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240401</DATE>
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
           <VOUCHERNUMBER>ORD-1</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1000.00</AMOUNT>
@@ -612,7 +610,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>1000.00</AMOUNT>
@@ -620,20 +618,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-451.04</AMOUNT>
@@ -649,7 +646,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>451.04</AMOUNT>
@@ -657,20 +654,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
           <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-450.00</AMOUNT>
@@ -686,7 +682,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>450.00</AMOUNT>
@@ -694,14 +690,13 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -776,14 +771,13 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
           <VOUCHERNUMBER>ORD-4</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -1400,20 +1394,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
     </DESC>
     <DATA>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-451.04</AMOUNT>
@@ -1429,7 +1422,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>451.04</AMOUNT>
@@ -1437,20 +1430,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 90 × 5 units</NARRATION>
           <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-450.00</AMOUNT>
@@ -1466,7 +1458,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>450.00</AMOUNT>
@@ -1474,14 +1466,13 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -1556,14 +1547,13 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240403</DATE>
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Sale of INFY @ 95 × 5 units</NARRATION>
           <VOUCHERNUMBER>ORD-4</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -2085,20 +2075,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
     </DESC>
     <DATA>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240401</DATE>
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
           <VOUCHERNUMBER>CN-SIMPLE-BUY/INFY</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1001.49</AMOUNT>
@@ -2114,7 +2103,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>1001.49</AMOUNT>
@@ -2122,20 +2111,19 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </VOUCHER>
       </TALLYMESSAGE>
       <TALLYMESSAGE xmlns:UDF="TallyUDF">
-        <VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+        <VOUCHER VCHTYPE="Journal" ACTION="Create" OBJVIEW="Accounting Voucher View">
           <DATE>20240401</DATE>
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
-          <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-          <ISINVOICE>Yes</ISINVOICE>
+          <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
           <VOUCHERNUMBER>ORD-1</VOUCHERNUMBER>
-          <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
-          <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
             <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>Yes</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>No</ISPARTYLEDGER>
+            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1000.00</AMOUNT>
@@ -2151,7 +2139,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
             <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
             <ISLASTDEEMEDPOSITIVE>No</ISLASTDEEMEDPOSITIVE>
-            <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+            <ISPARTYLEDGER>No</ISPARTYLEDGER>
             <LEDGERFROMITEM>No</LEDGERFROMITEM>
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>1000.00</AMOUNT>

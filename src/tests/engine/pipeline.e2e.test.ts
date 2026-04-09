@@ -38,9 +38,12 @@ describe('tradebook pipeline e2e', () => {
         const xml = generateVouchersXml(vouchers, 'Demo Company');
         expect(xml).toContain('<ENVELOPE>');
         expect(xml).toContain('<VOUCHER');
-        expect(xml).toContain('VCHTYPE="Purchase"');
-        expect(xml).toContain('VCHTYPE="Sales"');
-        expect(xml).toContain('Invoice Voucher View');
+        // Investor mode: all trade vouchers land in the Journal register.
+        expect(xml).toContain('VCHTYPE="Journal"');
+        expect(xml).not.toContain('VCHTYPE="Purchase"');
+        expect(xml).not.toContain('VCHTYPE="Sales"');
+        expect(xml).toContain('Accounting Voucher View');
+        expect(xml).not.toContain('Invoice Voucher View');
         expect(xml).toContain('INFY');
     });
 });

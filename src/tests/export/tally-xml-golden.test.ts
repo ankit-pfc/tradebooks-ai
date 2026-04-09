@@ -146,16 +146,14 @@ describe.skipIf(!FILE_EXISTS)('Golden file: Zerodha Tradebook → Tally XML', ()
     expect(voucherMsgs.length).toBeGreaterThan(0);
     for (const msg of voucherMsgs) {
       const v = msg.VOUCHER as Record<string, unknown>;
-      const entries = asArray((v['LEDGERENTRIES.LIST'] ?? v['ALLLEDGERENTRIES.LIST']) as Record<string, unknown>[]);
-      const hasInventory = entries.some((entry) => entry['INVENTORYALLOCATIONS.LIST']);
       expect(v['@_VCHTYPE']).toBeTruthy();
       expect(v['@_ACTION']).toBe('Create');
-      expect(v['@_OBJVIEW']).toBe(hasInventory ? 'Invoice Voucher View' : 'Accounting Voucher View');
-      if (hasInventory) {
-        expect(v.ISINVOICE).toBe('Yes');
-      } else {
-        expect(v.ISINVOICE).toBeUndefined();
-      }
+      // Investor mode: every voucher (trade or non-trade) uses Accounting
+      // Voucher View. Stock movement on trade vouchers flows via the F12
+      // ISINVENTORYAFFECTED flag on the investment ledger master, not via
+      // Invoice Voucher View.
+      expect(v['@_OBJVIEW']).toBe('Accounting Voucher View');
+      expect(v.ISINVOICE).toBeUndefined();
       expect(v.PERSISTEDVIEW).toBe(v['@_OBJVIEW']);
       expect(v.DATE).toBeTruthy();
       expect(v.EFFECTIVEDATE).toBeTruthy();

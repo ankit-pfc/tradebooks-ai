@@ -139,7 +139,7 @@ function runPipeline() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('XML contract note pipeline — investor mode delivery trades render as Purchase/Sales XML', () => {
+describe('XML contract note pipeline — investor mode delivery trades render as Journal XML', () => {
   it('parses the XML and produces both BUY_TRADE and SELL_TRADE events', () => {
     const { events } = runPipeline();
     const trades = events.filter((e) =>
@@ -189,12 +189,15 @@ describe('XML contract note pipeline — investor mode delivery trades render as
     expect(sellVoucher.total_debit).toBe(sellVoucher.total_credit);
   });
 
-  it('transactionsXml contains Purchase/Sales voucher entries for delivery trades', () => {
+  it('transactionsXml contains only Journal voucher entries for investor delivery trades', () => {
     const { transactionsXml } = runPipeline();
-    expect(transactionsXml).toContain('VCHTYPE="Purchase"');
-    expect(transactionsXml).toContain('VCHTYPE="Sales"');
+    // Investor-mode trades must land in the Journal register, never the
+    // Sales/Purchase register. Capital Account / ITR-2 methodology.
     expect(transactionsXml).toContain('VCHTYPE="Journal"');
-    expect(transactionsXml).toContain('Invoice Voucher View');
+    expect(transactionsXml).not.toContain('VCHTYPE="Purchase"');
+    expect(transactionsXml).not.toContain('VCHTYPE="Sales"');
+    expect(transactionsXml).not.toContain('Invoice Voucher View');
+    expect(transactionsXml).toContain('Accounting Voucher View');
   });
 });
 
@@ -254,13 +257,14 @@ describe('XML contract note pipeline — Bug 2: same-rate partial fills are merg
     }
   });
 
-  it('transactionsXml has Purchase/Sales voucher nodes for investor delivery trades', () => {
+  it('transactionsXml has only Journal voucher nodes for investor delivery trades', () => {
     const { transactionsXml } = runPipeline();
     const purchaseMatches = transactionsXml.match(/VCHTYPE="Purchase"/gi) ?? [];
     const salesMatches = transactionsXml.match(/VCHTYPE="Sales"/gi) ?? [];
     const journalMatches = transactionsXml.match(/VCHTYPE="Journal"/gi) ?? [];
-    expect(purchaseMatches.length).toBeGreaterThanOrEqual(1);
-    expect(salesMatches.length).toBeGreaterThanOrEqual(1);
+    // Investor mode: every trade voucher lands in the Journal register.
+    expect(purchaseMatches.length).toBe(0);
+    expect(salesMatches.length).toBe(0);
     expect(journalMatches.length).toBeGreaterThanOrEqual(1);
   });
 });

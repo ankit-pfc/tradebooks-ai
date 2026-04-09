@@ -1,14 +1,21 @@
 /**
  * Regression tests for generateVouchersXml — specifically the OBJVIEW /
- * ISINVOICE branching that depends on voucher_type and trade narrative.
- * Delivery trade drafts are still produced as Journal vouchers by the
- * engine, but the exporter now renders them as Tally-native Purchase/Sales
- * invoices when they carry stock lines and a purchase/sale narrative.
+ * ISINVOICE branching that depends on voucher_type and invoice_intent.
+ *
+ * Investor-mode trade vouchers are produced as Journal with
+ * invoice_intent=NONE, so in the investor pipeline these rendering paths
+ * are only reachable from trader mode (which still tags trades with a
+ * Purchase/Sales intent) or from explicit VoucherType.PURCHASE/SALES
+ * callers. These tests exercise the serializer's raw branching capability
+ * by passing InvoiceIntent explicitly.
  */
 
 import { describe, it, expect } from 'vitest';
 import { generateVouchersXml, type VoucherDraftWithLines } from '../tally-xml';
 import { InvoiceIntent, VoucherStatus, VoucherType } from '../../types/vouchers';
+import { buildBuyVoucher, buildSellVoucher } from '../../engine/voucher-builder';
+import { INVESTOR_DEFAULT } from '../../engine/accounting-policy';
+import { makeBuyEvent, makeSellEvent } from '../../../tests/helpers/factories';
 
 function makeVoucher(
   voucher_type: VoucherType,
@@ -151,5 +158,73 @@ describe('generateVouchersXml — purchase/sales invoice rendering', () => {
       expect(xml).not.toContain('Invoice Voucher View');
       expect(xml).not.toContain('<ISINVOICE>');
     }
+  });
+});
+
+describe('generateVouchersXml — investor pipeline emits JV only', () => {
+  // End-to-end load-bearing test: build real investor-mode buy and sell
+  // vouchers via the engine, serialize them, and confirm the Tally XML
+  // lands them in the Journal register — never Sales/Purchase — while
+  // still carrying inventory allocations for stock movement.
+  it('investor buy + sell vouchers serialize as Journal with INVENTORYALLOCATIONS intact', () => {
+    const buyEvent = makeBuyEvent({
+      quantity: '10',
+      rate: '2500.00',
+      gross_amount: '25000.00',
+      trade_product: 'CNC',
+    });
+    const buyVoucher = buildBuyVoucher(buyEvent, INVESTOR_DEFAULT, []);
+
+    const sellEvent = makeSellEvent({
+      quantity: '-10',
+      rate: '2600.00',
+      gross_amount: '26000.00',
+      trade_product: 'CNC',
+    });
+    const costDisposals = [
+      {
+        lot_id: 'lot-1',
+        acquisition_date: '2024-06-01',
+        quantity_sold: '10',
+        unit_cost: '2500.000000',
+        total_cost: '25000.00',
+        gain_or_loss: '1000.00',
+      },
+    ];
+    const sellVoucher = buildSellVoucher(
+      sellEvent,
+      INVESTOR_DEFAULT,
+      [],
+      costDisposals,
+      100,
+    );
+
+    // Contract: investor trade vouchers carry no invoice intent.
+    expect(buyVoucher.invoice_intent).toBe(InvoiceIntent.NONE);
+    expect(sellVoucher.invoice_intent).toBe(InvoiceIntent.NONE);
+
+    const xml = generateVouchersXml(
+      [buyVoucher, sellVoucher] as unknown as VoucherDraftWithLines[],
+      'Test Co',
+    );
+
+    // Must land in Journal register.
+    expect(xml).toContain('VCHTYPE="Journal"');
+    expect(xml).toContain('<VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>');
+    expect(xml).toContain('OBJVIEW="Accounting Voucher View"');
+    expect(xml).toContain('<PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>');
+
+    // Must NOT land in Sales/Purchase register.
+    expect(xml).not.toContain('VCHTYPE="Sales"');
+    expect(xml).not.toContain('VCHTYPE="Purchase"');
+    expect(xml).not.toContain('<VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>');
+    expect(xml).not.toContain('<VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>');
+    expect(xml).not.toContain('Invoice Voucher View');
+    expect(xml).not.toContain('<ISINVOICE>');
+
+    // Stock movement must still be carried via inventory allocations.
+    expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
+    expect(xml).toContain('<ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>');
   });
 });
