@@ -667,7 +667,8 @@ describe('Scenario 4b: CN-sourced intraday end-to-end (B1+B2+B3)', () => {
     expect(intraday).toHaveLength(1);
     const iv = intraday[0];
     expect(iv.voucher_type).toBe('JOURNAL');
-    expect(iv.lines).toHaveLength(2);
+    // 3 lines: broker DR, STT DR, intraday CR (STT is posted separately).
+    expect(iv.lines).toHaveLength(3);
 
     // Lines are plain accounting lines only — no stock metadata.
     for (const l of iv.lines) {
@@ -685,38 +686,41 @@ describe('Scenario 4b: CN-sourced intraday end-to-end (B1+B2+B3)', () => {
     expect(intradayLine).toBeDefined();
   });
 
-  it('B3: all sell-side charges — INCLUDING STT — are absorbed into netPnL; no standalone STT summary voucher is emitted for the CN', () => {
-    // Under the investor-mode intraday consolidation rule, Sec 43(5)
-    // speculative business income treats STT as a deductible expense. The
-    // consolidated voucher absorbs ALL charges (brokerage, GST, exchange,
-    // SEBI, stamp, and STT) into a single netPnL figure. This is
-    // intentionally different from the delivery (Sec 48) path where STT
-    // must remain a visible non-deductible line. The STT summary voucher
-    // must therefore NOT carry the 60.00 STT from this intraday-only CN.
+  it('B3: STT is posted as separate DR on intraday voucher; non-STT charges are absorbed into netPnL', () => {
+    // Under the updated intraday consolidation rule, STT is posted as its
+    // own DR line (same treatment as delivery mode) so it's visible in Tally.
+    // All other charges (brokerage, GST, exchange, SEBI, stamp) are still
+    // absorbed into netPnL. The STT summary voucher must not carry intraday
+    // STT — it lives on the consolidated intraday voucher itself.
     const intraday = vouchers.find((v) =>
       v.narrative?.includes('HDFC') && v.narrative?.includes('intraday'),
     )!;
 
-    // The consolidated voucher has exactly 2 lines — broker + intraday
-    // ledger — and no separate charge DR lines of any kind.
-    const chargeLines = intraday.lines.filter((l) =>
+    // Non-STT charge DR lines should NOT appear (they are absorbed into netPnL).
+    const nonSttChargeLines = intraday.lines.filter((l) =>
       l.ledger_name.toLowerCase().includes('brokerage') ||
       l.ledger_name.toLowerCase().includes('exchange') ||
       l.ledger_name.toLowerCase().includes('gst') ||
       l.ledger_name.toLowerCase().includes('sebi') ||
-      l.ledger_name.toLowerCase().includes('stamp') ||
-      /securities transaction tax|^stt\b/i.test(l.ledger_name),
+      l.ledger_name.toLowerCase().includes('stamp'),
     );
-    expect(chargeLines).toHaveLength(0);
+    expect(nonSttChargeLines).toHaveLength(0);
 
-    // STT summary voucher must not exist (or must be 0) for an
-    // intraday-only CN — all STT was already folded into netPnL.
-    const sttVoucher = vouchers.find((v) =>
+    // STT IS posted as its own DR line on the consolidated intraday voucher.
+    const sttLine = intraday.lines.find((l) =>
+      l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
+    );
+    expect(sttLine).toBeDefined();
+
+    // The separate STT summary voucher (used for delivery trades) must NOT
+    // carry intraday STT — it was already posted on the intraday voucher.
+    const sttSummaryVoucher = vouchers.find((v) =>
+      v !== intraday &&
       v.lines.some(
         (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
       ),
     );
-    expect(sttVoucher).toBeUndefined();
+    expect(sttSummaryVoucher).toBeUndefined();
   });
 });
 

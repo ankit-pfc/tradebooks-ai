@@ -18,7 +18,7 @@
   ],
   "voucher_summaries": [
     {
-      "voucher_number": "CN-SIMPLE-BUY/INFY",
+      "voucher_number": "CN-SIMPLE-BUY",
       "voucher_type": "JOURNAL",
       "total_debit": "1001.49",
       "total_credit": "1001.49",

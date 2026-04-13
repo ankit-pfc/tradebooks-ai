@@ -1635,9 +1635,11 @@ describe('buildIntradayConsolidatedVoucher', () => {
     });
   }
 
-  it('gain: emits one Journal with DR broker / CR intraday ledger and no stock-item lines', () => {
-    // buy 50 @ 100 (gross 5000), sell 50 @ 110 (gross 5500), charges 50.
-    // netPnL = 5500 - 5000 - 50 = +450 → gain.
+  it('gain: emits Journal with DR broker, DR STT, CR intraday ledger (STT separate)', () => {
+    // buy 50 @ 100 (gross 5000), sell 50 @ 110 (gross 5500).
+    // Non-STT charges = 25 (brokerage 20 + GST 5). STT = 25.
+    // netPnL = 5500 - 5000 - 25 = +475 → gain (excludes STT).
+    // Broker impact = 5500 - 5000 - 50 = 450 (net of ALL charges).
     const buy = makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' });
     const sell = makeIntradaySell({ quantity: '-50', rate: '110', gross_amount: '5500.00' });
     const charges = [
@@ -1650,15 +1652,17 @@ describe('buildIntradayConsolidatedVoucher', () => {
     const v = voucher!;
     expect(v.voucher_type).toBe(VoucherType.JOURNAL);
     expect(v.invoice_intent).toBe(InvoiceIntent.NONE);
-    expect(v.lines).toHaveLength(2);
+    // 3 lines: DR broker (450), DR STT (25), CR intraday (475).
+    expect(v.lines).toHaveLength(3);
 
-    // Gain case: DR broker, CR intraday ledger.
     const brokerDr = findLine(v.lines, 'Zerodha Broking', 'DR');
+    const sttDr = findLine(v.lines, 'Securities Transaction Tax', 'DR');
     const intradayCr = findLine(v.lines, 'Intraday Gain on Sale of Shares', 'CR');
     expect(brokerDr?.amount).toBe('450.00');
-    expect(intradayCr?.amount).toBe('450.00');
+    expect(sttDr?.amount).toBe('25.00');
+    expect(intradayCr?.amount).toBe('475.00');
 
-    // Voucher is balanced.
+    // Voucher is balanced: 450 + 25 = 475.
     expect(v.total_debit).toBe(v.total_credit);
 
     // Plain accounting lines: no inventory metadata anywhere.
@@ -1669,21 +1673,21 @@ describe('buildIntradayConsolidatedVoucher', () => {
       expect(line.stock_item_name).toBeNull();
     }
 
-    // Narration matches the user's requested wording.
     expect(v.narrative).toBe('50 shares intraday gain in GRAPHITE');
 
-    // Voucher number uses {cn_ref}/{symbol} so multi-scrip CNs don't collide.
-    expect(v.external_reference).toBe('CN-FY22-7/GRAPHITE');
+    // Voucher number = bare CN ref (no /SYMBOL suffix).
+    expect(v.external_reference).toBe('CN-FY22-7');
 
-    // source_event_ids references every trade + charge event that was folded in.
     expect(v.source_event_ids).toContain(buy.event_id);
     expect(v.source_event_ids).toContain(sell.event_id);
     for (const c of charges) expect(v.source_event_ids).toContain(c.event_id);
   });
 
-  it('loss: emits one Journal with DR intraday ledger / CR broker (reversed)', () => {
-    // buy 50 @ 110 (gross 5500), sell 50 @ 100 (gross 5000), charges 50.
-    // netPnL = 5000 - 5500 - 50 = -550 → loss.
+  it('loss: emits Journal with DR intraday, DR STT, CR broker (STT separate)', () => {
+    // buy 50 @ 110 (gross 5500), sell 50 @ 100 (gross 5000).
+    // Non-STT charges = 25. STT = 25.
+    // netPnL = 5000 - 5500 - 25 = -525 → loss (excludes STT).
+    // Broker impact = 5000 - 5500 - 50 = -550.
     const buy = makeIntradayBuy({ quantity: '50', rate: '110', gross_amount: '5500.00' });
     const sell = makeIntradaySell({ quantity: '-50', rate: '100', gross_amount: '5000.00' });
     const charges = [
@@ -1695,12 +1699,12 @@ describe('buildIntradayConsolidatedVoucher', () => {
     expect(voucher).not.toBeNull();
     const v = voucher!;
 
-    // Loss case: DR intraday ledger, CR broker. The single CA_SPECULATION_GAIN
-    // ledger nets gains and losses on one Tally ledger, so a loss simply
-    // posts a DR to the same name.
+    // Loss case: DR intraday (525), DR STT (25), CR broker (550).
     const intradayDr = findLine(v.lines, 'Intraday Gain on Sale of Shares', 'DR');
+    const sttDr = findLine(v.lines, 'Securities Transaction Tax', 'DR');
     const brokerCr = findLine(v.lines, 'Zerodha Broking', 'CR');
-    expect(intradayDr?.amount).toBe('550.00');
+    expect(intradayDr?.amount).toBe('525.00');
+    expect(sttDr?.amount).toBe('25.00');
     expect(brokerCr?.amount).toBe('550.00');
 
     expect(v.narrative).toBe('50 shares intraday loss in GRAPHITE');
@@ -1708,8 +1712,10 @@ describe('buildIntradayConsolidatedVoucher', () => {
 
   it('multi-fill buy + single-fill sell: sums gross correctly before computing netPnL', () => {
     // 30 @ 100 + 20 @ 102 buys = 3000 + 2040 = 5040 gross buy.
-    // Single 50 @ 110 sell = 5500 gross sell. Charges 40.
-    // netPnL = 5500 - 5040 - 40 = +420.
+    // Single 50 @ 110 sell = 5500 gross sell.
+    // Non-STT charges = 20 (brokerage 15 + GST 5). STT = 20.
+    // netPnL = 5500 - 5040 - 20 = +440 (excludes STT).
+    // Broker impact = 5500 - 5040 - 40 = 420.
     const buy1 = makeIntradayBuy({ quantity: '30', rate: '100', gross_amount: '3000.00' });
     const buy2 = makeIntradayBuy({ quantity: '20', rate: '102', gross_amount: '2040.00' });
     const sell = makeIntradaySell({ quantity: '-50', rate: '110', gross_amount: '5500.00' });
@@ -1722,14 +1728,21 @@ describe('buildIntradayConsolidatedVoucher', () => {
     expect(voucher).not.toBeNull();
     const v = voucher!;
     const brokerDr = findLine(v.lines, 'Zerodha Broking', 'DR');
+    const sttDr = findLine(v.lines, 'Securities Transaction Tax', 'DR');
+    const intradayCr = findLine(v.lines, 'Intraday Gain on Sale of Shares', 'CR');
     expect(brokerDr?.amount).toBe('420.00');
-    // Quantity in narration is the sum of absolute buy quantities.
+    expect(sttDr?.amount).toBe('20.00');
+    expect(intradayCr?.amount).toBe('440.00');
     expect(v.narrative).toBe('50 shares intraday gain in GRAPHITE');
   });
 
-  it('zero-net (gain exactly equals charges) returns null and emits nothing', () => {
-    // buy 50 @ 100, sell 50 @ 101 (gross 5050). Charges 50.
-    // netPnL = 5050 - 5000 - 50 = 0 → null, no voucher.
+  it('zero broker impact but non-zero gain: STT and intraday ledger still posted', () => {
+    // buy 50 @ 100, sell 50 @ 101 (gross 5050).
+    // Non-STT charges = 25. STT = 25.
+    // netPnL = 5050 - 5000 - 25 = +25 (gain, excludes STT).
+    // Broker impact = 5050 - 5000 - 50 = 0 (gain exactly cancels ALL charges).
+    // The broker line is omitted (zero amount), but the P&L and STT lines
+    // are still emitted so the user sees the STT expense and intraday gain.
     const buy = makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' });
     const sell = makeIntradaySell({ quantity: '-50', rate: '101', gross_amount: '5050.00' });
     const charges = [
@@ -1738,6 +1751,22 @@ describe('buildIntradayConsolidatedVoucher', () => {
       makeIntradayCharge(EventType.GST_ON_CHARGES, '5.00'),
     ];
     const voucher = buildIntradayConsolidatedVoucher([buy], [sell], charges, INVESTOR_DEFAULT);
+    expect(voucher).not.toBeNull();
+    const v = voucher!;
+    // 2 lines: DR STT (25), CR intraday (25). Broker = 0 → omitted.
+    expect(v.lines).toHaveLength(2);
+    const sttDr = findLine(v.lines, 'Securities Transaction Tax', 'DR');
+    const intradayCr = findLine(v.lines, 'Intraday Gain on Sale of Shares', 'CR');
+    expect(sttDr?.amount).toBe('25.00');
+    expect(intradayCr?.amount).toBe('25.00');
+    expect(v.total_debit).toBe(v.total_credit);
+  });
+
+  it('truly zero-net (no charges at all, gross equals) returns null', () => {
+    // buy 50 @ 100, sell 50 @ 100. No charges. netPnL = 0. Broker = 0. STT = 0.
+    const buy = makeIntradayBuy({ quantity: '50', rate: '100', gross_amount: '5000.00' });
+    const sell = makeIntradaySell({ quantity: '-50', rate: '100', gross_amount: '5000.00' });
+    const voucher = buildIntradayConsolidatedVoucher([buy], [sell], [], INVESTOR_DEFAULT);
     expect(voucher).toBeNull();
   });
 
