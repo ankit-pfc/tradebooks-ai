@@ -344,12 +344,9 @@ describe('parseContractNotes', () => {
     // capitalize them into the asset DR instead of absorbing them as
     // rebates. See normalizeChargeSignConvention().
     //
-    // Note: the FY21-22 GST rows use verbose labels ("Central GST",
-    // "State GST", "Integrated GST") that the current charge-field
-    // lookup does not match — it searches by the "cgst"/"sgst"/"igst"
-    // prefixes. That's a separate labelling gap; here we only assert the
-    // fields the lookup does find, which is enough to verify the sign
-    // convention normalization.
+    // FY21-22 GST rows use verbose labels ("Central GST", "State GST",
+    // "Integrated GST") — the multi-prefix fallback in getChargeValMulti
+    // handles both the short ("igst") and long ("integrated gst") forms.
     expect(result.charges).toHaveLength(1);
     const c = result.charges[0];
     expect(parseFloat(c.brokerage)).toBe(0.01);
@@ -357,10 +354,74 @@ describe('parseContractNotes', () => {
     expect(parseFloat(c.exchange_charges)).toBe(1);
     expect(parseFloat(c.sebi_fees)).toBe(0.02);
     expect(parseFloat(c.stamp_duty)).toBe(5);
+    // GST labels: "Central GST" and "Integrated GST" are now matched
+    // by the fallback prefix search.
+    expect(parseFloat(c.igst)).toBe(0.18);
+    expect(parseFloat(c.cgst)).toBe(0);
+    expect(parseFloat(c.sgst)).toBe(0);
     // pay_in_pay_out and net_amount are cash-flow markers — the parser
     // leaves them signed as they were in the XLSX.
     expect(parseFloat(c.pay_in_pay_out)).toBe(-31560);
     expect(parseFloat(c.net_amount)).toBe(-31598.21);
+  });
+
+  it('parses FY21-22 "Brokerage" label (older format without "Taxable Value of Supply")', () => {
+    // Real FY21-22 CNs use "Brokerage" as the charge row label, not
+    // "Taxable Value of Supply". The multi-prefix fallback must find it.
+    const fy2122Header = [
+      'Order No.', 'Order Time.', 'Trade No.', 'Trade Time',
+      'Security/Contract Description', 'Buy(B) / Sell(S)',
+      'Quantity', 'Gross Rate / Trade Price Per Unit (Rs)',
+      'Brokerage per Unit (Rs)', 'Net Rate per Unit (Rs)',
+      'Closing Rate per Unit (Only for Derivatives) (Rs)',
+      'Net Total (Before Levies) (Rs)', 'Remarks', 'ISIN',
+    ];
+
+    const sheet: string[][] = [
+      ['CONTRACT NOTE CUM TAX INVOICE'],
+      [], [], [], [],
+      ['CONTRACT NOTE NO: ', '', '', 'CNT-21/22-9730138'],
+      ['Trade Date:', '', '', '20-04-2021', '', '', '', 'Settlement No.', '', '2021073'],
+      [], [], [], [], [], [], [], [], [], [], [], [],
+      fy2122Header,
+      ['NSE-EQ - Z'],
+      ['1100000003176422', '09:49:21', '25902391', '09:49:40', 'HDFC', 'buy',
+        '25', '2490.0', '', '2490.0', '0', '-62250', '', 'INE001A01036'],
+      ['1100000003216486', '09:49:59', '25908682', '09:49:59', 'HDFC', 'buy',
+        '5', '2489.6', '', '2489.6', '0', '-12448', '', 'INE001A01036'],
+      ['1100000015880507', '15:21:48', '29893694', '15:21:48', 'HDFC', 'sell',
+        '30', '2415.45', '', '2415.45', '0', '72463.5', '', 'INE001A01036'],
+      [],
+      // Charges section with old-style labels
+      ['', '', '', '', '', '', '', '', 'NSE-EQ', '', '', '', 'NET TOTAL'],
+      ['PAY IN / PAY OUT OBLIGATION', '', '', '', '', '', '', '', '-2234.5', '', '', '', '-2234.5'],
+      ['Brokerage', '', '', '', '', '', '', '', '-42.41', '', '', '', '-42.41'],
+      ['Securities Transaction Tax', '', '', '', '', '', '', '', '-18', '', '', '', '-18'],
+      ['Exchange Transaction Charges', '', '', '', '', '', '', '', '-5.08', '', '', '', '-5.08'],
+      ['Clearing Charges', '', '', '', '', '', '', '', '0', '', '', '', '0'],
+      ['Integrated GST  (@18% of Brokerage, SEBI and Transaction Charges)', '', '', '', '', '', '', '', '-8.55', '', '', '', '-8.55'],
+      ['Central GST  (@9% of Brokerage and Transaction Charges)', '', '', '', '', '', '', '', '0', '', '', '', '0'],
+      ['State GST  (@9% of Brokerage and Transaction Charges)', '', '', '', '', '', '', '', '0', '', '', '', '0'],
+      ['SEBI Turnover Fees', '', '', '', '', '', '', '', '-0.07', '', '', '', '-0.07'],
+      ['Stamp Duty', '', '', '', '', '', '', '', '-2', '', '', '', '-2'],
+      ['Net amount receivable/(payable by client)', '', '', '', '', '', '', '', '', '', '', '', '-2310.61'],
+    ];
+
+    const buf = buildTestXlsx({ '20-04-2021': sheet });
+    const result = parseContractNotes(buf, 'fy2122-hdfc.xlsx');
+
+    expect(result.trades).toHaveLength(3);
+    expect(result.charges).toHaveLength(1);
+    const c = result.charges[0];
+
+    // "Brokerage" label matched by the fallback prefix
+    expect(parseFloat(c.brokerage)).toBe(42.41);
+    // "Integrated GST  (@18%...)" matched by "integrated gst" fallback
+    expect(parseFloat(c.igst)).toBe(8.55);
+    expect(parseFloat(c.stt)).toBe(18);
+    expect(parseFloat(c.exchange_charges)).toBe(5.08);
+    expect(parseFloat(c.sebi_fees)).toBe(0.07);
+    expect(parseFloat(c.stamp_duty)).toBe(2);
   });
 
   it('handles alternate header names gracefully', () => {

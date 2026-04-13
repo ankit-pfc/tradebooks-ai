@@ -1662,11 +1662,10 @@ export function buildVouchers(
       (sum, e) => sum.add(new Decimal(e.quantity).abs()),
       new Decimal(0),
     );
-    // Defensive: reclassifyIntradayTrades only flips fully-matched groups,
-    // so buyQty should already equal sellQty here. If it doesn't, the
-    // classification is inconsistent — skip the group rather than emit a
-    // malformed voucher. The subsequent main-loop pass will pick up the
-    // individual trades via the normal buy/sell path.
+    // Defensive: reclassifyIntradayTrades ensures SPECULATIVE trades have
+    // balanced buy/sell quantities (both for full netoffs and the intraday
+    // portion of partial netoffs). If they don't match, the classification
+    // is inconsistent — skip and let the main loop handle the trades.
     if (!buyQty.equals(sellQty)) continue;
 
     // Collect all charge events for every trade in the group. Reuse the

@@ -478,17 +478,29 @@ function parseSheet(rows: string[][]): SheetParseResult {
       return '0';
     };
 
+    // Try multiple label prefixes — FY22-23+ CNs use different row labels
+    // than FY21-22 (e.g. "Taxable Value of Supply" vs "Brokerage",
+    // "IGST" vs "Integrated GST"). Try the newer label first, fall back
+    // to the older one.
+    const getChargeValMulti = (...prefixes: string[]): string => {
+      for (const prefix of prefixes) {
+        const val = getChargeVal(prefix);
+        if (val !== '0') return val;
+      }
+      return '0';
+    };
+
     charges = normalizeChargeSignConvention({
       contract_note_no: contractNoteNo,
       trade_date: tradeDate,
       settlement_no: settlementNo,
       pay_in_pay_out: getChargeVal('pay in/pay out'),
-      brokerage: getChargeVal('taxable value of supply'),
+      brokerage: getChargeValMulti('taxable value of supply', 'brokerage'),
       exchange_charges: getChargeVal('exchange transaction charges'),
       clearing_charges: getChargeVal('clearing charges'),
-      cgst: getChargeVal('cgst'),
-      sgst: getChargeVal('sgst'),
-      igst: getChargeVal('igst'),
+      cgst: getChargeValMulti('cgst', 'central gst'),
+      sgst: getChargeValMulti('sgst', 'state gst'),
+      igst: getChargeValMulti('igst', 'integrated gst'),
       stt: getChargeVal('securities transaction tax'),
       sebi_fees: getChargeVal('sebi turnover fees'),
       stamp_duty: getChargeVal('stamp duty'),

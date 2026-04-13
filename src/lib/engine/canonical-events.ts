@@ -1010,23 +1010,28 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
 }
 
 /**
- * Group BUY/SELL trade events by (security_id, event_date). For groups where
- * total buy quantity exactly equals total sell quantity (full intraday
- * netoff), reclassify all trade events in the group as SPECULATIVE_BUSINESS
- * so the voucher builder treats them as intraday — Journal voucher, no
- * inventory line, gain/loss to the speculation ledger.
+ * Group BUY/SELL trade events by (security_id, event_date) and detect
+ * same-day intraday round-trips. Handles BOTH full netoffs (buyQty ==
+ * sellQty → all trades are intraday) and partial netoffs (buyQty !=
+ * sellQty → min(buy,sell) shares are intraday, the remainder is delivery).
  *
- * Charge events tied to those trades inherit the new classification too,
- * because they were assigned the trade's classification at creation time.
+ * For partial netoffs, events from the smaller side are entirely intraday.
+ * Events from the larger side are consumed in FIFO order up to
+ * `intradayQty = min(buyQty, sellQty)`. If the boundary trade straddles
+ * the split, it is cloned into two events: one SPECULATIVE (intraday
+ * portion) and one PROFILE_DRIVEN (delivery portion), with proportionally
+ * split charge events.
  *
- * NOTE: Partial-netoff days (e.g. 20 buys + 15 sells = 15 intraday + 5
- * delivery) are NOT split. The current implementation leaves all events in
- * such groups untouched, so they flow through as delivery. This is rare in
- * the user's data and the right fix requires per-share splitting which is
- * deferred. Filed as a TODO for B1-followup.
+ * Charge events tied to reclassified trades inherit SPECULATIVE_BUSINESS.
+ * For full netoffs, charges are matched broadly by (security_id, event_date).
+ * For partial netoffs, charges are matched precisely by external_ref to
+ * avoid misattributing delivery charges to the intraday voucher.
+ *
+ * ONLY reclassifies PROFILE_DRIVEN trades (CN-sourced equity rows without
+ * a product code). Explicit CNC/MIS/NRML classifications are respected.
  */
 export function reclassifyIntradayTrades(events: CanonicalEvent[]): CanonicalEvent[] {
-  // Build groups: key = `${security_id}|${event_date}`, value = trade event indexes
+  // 1. Group trade events by (security_id, event_date)
   const groups = new Map<string, number[]>();
   for (let i = 0; i < events.length; i++) {
     const e = events[i];
@@ -1037,23 +1042,29 @@ export function reclassifyIntradayTrades(events: CanonicalEvent[]): CanonicalEve
     groups.get(key)!.push(i);
   }
 
-  // For each group, decide if it's a full intraday netoff. ONLY reclassify
-  // trades whose existing classification is PROFILE_DRIVEN (i.e. CN-sourced
-  // equity rows where the broker did not provide a product code). Trades
-  // with explicit product codes — CNC (INVESTMENT), NRML
-  // (NON_SPECULATIVE_BUSINESS), MIS (SPECULATIVE_BUSINESS already) — were
-  // tagged at the broker by the user with intent and must be respected.
-  // An explicit CNC trade that happens to net off same-day is still a
-  // delivery trade for tax purposes; it carries forward and the user pays
-  // STCG. Unclassified CN rows (no product column) DO flip to intraday —
-  // the investor-mode strategy runs this pass before applyAssumeAllEqInvestment
-  // specifically so the Graphite-07/04/21 case lands on the intraday voucher
-  // path instead of being flipped to INVESTMENT first.
-  const intradayTradeIndexes = new Set<number>();
-  for (const indexes of groups.values()) {
-    if (indexes.length < 2) continue; // need at least one buy + one sell
-    // Skip the whole group if any trade in it has an explicit non-PROFILE_DRIVEN
-    // classification — mixed-product days are out of scope for auto-detection.
+  // 2. Index charge events by (security_id, event_date, external_ref) for
+  //    precise lookup during partial-netoff charge splitting.
+  const chargesByExtRef = new Map<string, number[]>();
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE) continue;
+    if (!e.external_ref || !e.security_id) continue;
+    const ck = `${e.security_id}|${e.event_date}|${e.external_ref}`;
+    if (!chargesByExtRef.has(ck)) chargesByExtRef.set(ck, []);
+    chargesByExtRef.get(ck)!.push(i);
+  }
+
+  // 3. Analyze each group — build a replacement map.
+  //    replacements: original index → array of replacement events.
+  //    Unmapped indexes pass through unchanged.
+  const replacements = new Map<number, CanonicalEvent[]>();
+  const fullNetoffKeys = new Set<string>(); // broad charge reclassification
+  const handledChargeIndexes = new Set<number>(); // prevent double-handling
+
+  for (const [key, indexes] of groups) {
+    if (indexes.length < 2) continue;
+
+    // Only reclassify PROFILE_DRIVEN groups (no explicit product codes).
     const allProfileDriven = indexes.every(
       (idx) => events[idx].trade_classification === TradeClassification.PROFILE_DRIVEN,
     );
@@ -1075,35 +1086,206 @@ export function reclassifyIntradayTrades(events: CanonicalEvent[]): CanonicalEve
       }
     }
     if (!hasBuy || !hasSell) continue;
-    if (!buyQty.equals(sellQty)) continue; // partial netoff — leave alone
-    for (const idx of indexes) intradayTradeIndexes.add(idx);
+
+    if (buyQty.equals(sellQty)) {
+      // --- FULL NETOFF: all trades in the group are intraday ---
+      for (const idx of indexes) {
+        replacements.set(idx, [
+          { ...events[idx], trade_classification: TradeClassification.SPECULATIVE_BUSINESS },
+        ]);
+      }
+      fullNetoffKeys.add(key);
+    } else {
+      // --- PARTIAL NETOFF: split intraday vs delivery ---
+      const intradayQty = Decimal.min(buyQty, sellQty);
+      const buyIndexes = indexes.filter((i) => events[i].event_type === EventType.BUY_TRADE);
+      const sellIndexes = indexes.filter((i) => events[i].event_type === EventType.SELL_TRADE);
+
+      const isBuySideSmaller = buyQty.lte(sellQty);
+      const smallerSide = isBuySideSmaller ? buyIndexes : sellIndexes;
+      const largerSide = isBuySideSmaller ? sellIndexes : buyIndexes;
+
+      // Smaller side is entirely intraday.
+      for (const idx of smallerSide) {
+        replacements.set(idx, [
+          { ...events[idx], trade_classification: TradeClassification.SPECULATIVE_BUSINESS },
+        ]);
+        _reclassifyChargesForTrade(events[idx], events, chargesByExtRef, replacements, handledChargeIndexes);
+      }
+
+      // Consume from larger side in array order until intradayQty is filled.
+      let remaining = intradayQty;
+      for (const idx of largerSide) {
+        if (remaining.isZero()) break;
+
+        const e = events[idx];
+        const qty = new Decimal(e.quantity).abs();
+
+        if (remaining.gte(qty)) {
+          // Fully consumed — entire trade is intraday.
+          replacements.set(idx, [
+            { ...events[idx], trade_classification: TradeClassification.SPECULATIVE_BUSINESS },
+          ]);
+          _reclassifyChargesForTrade(e, events, chargesByExtRef, replacements, handledChargeIndexes);
+          remaining = remaining.sub(qty);
+        } else {
+          // Boundary trade — split into intraday + delivery portions.
+          _splitTradeAndCharges(
+            idx, remaining, qty.sub(remaining),
+            events, chargesByExtRef, replacements, handledChargeIndexes,
+          );
+          remaining = new Decimal(0);
+        }
+      }
+    }
   }
 
-  if (intradayTradeIndexes.size === 0) return events;
+  if (replacements.size === 0 && fullNetoffKeys.size === 0) return events;
 
-  // Also reclassify charge events whose source_row_ids are anchored on a
-  // reclassified trade. We approximate by matching on (security_id, event_date)
-  // — every charge event in the same security/date group as a reclassified
-  // trade should also flip.
-  const intradayKeys = new Set<string>();
-  for (const idx of intradayTradeIndexes) {
-    const e = events[idx];
-    intradayKeys.add(`${e.security_id}|${e.event_date}`);
+  // 4. Full-netoff charge reclassification (broad security_id|event_date match).
+  //    This is the original behavior: for full netoffs every charge event in the
+  //    same (security, date) group flips to SPECULATIVE. For partial netoffs the
+  //    charge reclassification was already handled precisely by external_ref above.
+  if (fullNetoffKeys.size > 0) {
+    for (let i = 0; i < events.length; i++) {
+      if (replacements.has(i) || handledChargeIndexes.has(i)) continue;
+      const e = events[i];
+      if (e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE) continue;
+      if (!e.security_id) continue;
+      const dk = `${e.security_id}|${e.event_date}`;
+      if (fullNetoffKeys.has(dk)) {
+        replacements.set(i, [
+          { ...e, trade_classification: TradeClassification.SPECULATIVE_BUSINESS },
+        ]);
+      }
+    }
   }
 
-  return events.map((e, i) => {
-    if (intradayTradeIndexes.has(i)) {
-      return { ...e, trade_classification: TradeClassification.SPECULATIVE_BUSINESS };
+  // 5. Build result array.
+  const result: CanonicalEvent[] = [];
+  for (let i = 0; i < events.length; i++) {
+    const rep = replacements.get(i);
+    if (rep) {
+      result.push(...rep);
+    } else {
+      result.push(events[i]);
     }
-    // Charge events anchored to an intraday trade
-    if (
-      e.event_type !== EventType.BUY_TRADE &&
-      e.event_type !== EventType.SELL_TRADE &&
-      e.security_id &&
-      intradayKeys.has(`${e.security_id}|${e.event_date}`)
-    ) {
-      return { ...e, trade_classification: TradeClassification.SPECULATIVE_BUSINESS };
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Partial-netoff helpers (internal to reclassifyIntradayTrades)
+// ---------------------------------------------------------------------------
+
+/**
+ * Reclassify all charge events linked to `trade` (by external_ref) as
+ * SPECULATIVE_BUSINESS. Used for non-split intraday trades in partial netoffs.
+ */
+function _reclassifyChargesForTrade(
+  trade: CanonicalEvent,
+  events: CanonicalEvent[],
+  chargesByExtRef: ReadonlyMap<string, number[]>,
+  replacements: Map<number, CanonicalEvent[]>,
+  handledChargeIndexes: Set<number>,
+): void {
+  if (!trade.external_ref || !trade.security_id) return;
+  const ck = `${trade.security_id}|${trade.event_date}|${trade.external_ref}`;
+  const chargeIndexes = chargesByExtRef.get(ck) ?? [];
+  for (const ci of chargeIndexes) {
+    if (handledChargeIndexes.has(ci)) continue;
+    handledChargeIndexes.add(ci);
+    replacements.set(ci, [
+      { ...events[ci], trade_classification: TradeClassification.SPECULATIVE_BUSINESS },
+    ]);
+  }
+}
+
+/**
+ * Split a boundary trade event (and its associated charges) into an intraday
+ * portion (SPECULATIVE_BUSINESS) and a delivery portion (PROFILE_DRIVEN).
+ *
+ * The intraday half keeps the original `external_ref` so the voucher builder's
+ * chargeIndex lookup finds its charges. The delivery half gets a `:delivery`
+ * suffix. Charges are split proportionally by qty ratio; the delivery portion
+ * absorbs rounding remainders so the sum is preserved.
+ */
+function _splitTradeAndCharges(
+  tradeIndex: number,
+  intradayQty: Decimal,
+  deliveryQty: Decimal,
+  events: CanonicalEvent[],
+  chargesByExtRef: ReadonlyMap<string, number[]>,
+  replacements: Map<number, CanonicalEvent[]>,
+  handledChargeIndexes: Set<number>,
+): void {
+  const e = events[tradeIndex];
+  const rate = new Decimal(e.rate);
+  const totalQty = intradayQty.add(deliveryQty);
+  const sign = e.event_type === EventType.BUY_TRADE ? 1 : -1;
+
+  // Split gross amounts so they sum exactly to the original.
+  const intradayGross = rate.mul(intradayQty).toDecimalPlaces(2);
+  const deliveryGross = new Decimal(e.gross_amount).sub(intradayGross);
+
+  const intradayEvent: CanonicalEvent = {
+    ...e,
+    event_id: crypto.randomUUID(),
+    trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+    quantity: intradayQty.mul(sign).toFixed(),
+    gross_amount: intradayGross.toFixed(2),
+    event_hash: buildHash(e.event_hash, 'intraday-split', intradayQty.toFixed()),
+  };
+
+  const deliveryEvent: CanonicalEvent = {
+    ...e,
+    event_id: crypto.randomUUID(),
+    trade_classification: TradeClassification.PROFILE_DRIVEN,
+    quantity: deliveryQty.mul(sign).toFixed(),
+    gross_amount: deliveryGross.toFixed(2),
+    external_ref: e.external_ref ? `${e.external_ref}:delivery` : null,
+    event_hash: buildHash(e.event_hash, 'delivery-split', deliveryQty.toFixed()),
+  };
+
+  replacements.set(tradeIndex, [intradayEvent, deliveryEvent]);
+
+  // Split associated charge events proportionally.
+  if (!e.external_ref || !e.security_id) return;
+  const ck = `${e.security_id}|${e.event_date}|${e.external_ref}`;
+  const chargeIndexes = chargesByExtRef.get(ck) ?? [];
+  const ratio = intradayQty.div(totalQty);
+
+  for (const ci of chargeIndexes) {
+    if (handledChargeIndexes.has(ci)) continue;
+    handledChargeIndexes.add(ci);
+
+    const ce = events[ci];
+    const originalAmount = new Decimal(ce.charge_amount);
+    const intradayAmount = originalAmount.mul(ratio).toDecimalPlaces(2);
+    const deliveryAmount = originalAmount.sub(intradayAmount); // absorbs remainder
+
+    const splitCharges: CanonicalEvent[] = [];
+    if (!intradayAmount.isZero()) {
+      splitCharges.push({
+        ...ce,
+        event_id: crypto.randomUUID(),
+        trade_classification: TradeClassification.SPECULATIVE_BUSINESS,
+        charge_amount: intradayAmount.toFixed(2),
+        event_hash: buildHash(ce.event_hash, 'intraday-split', intradayAmount.toFixed(2)),
+      });
     }
-    return e;
-  });
+    if (!deliveryAmount.isZero()) {
+      splitCharges.push({
+        ...ce,
+        event_id: crypto.randomUUID(),
+        trade_classification: TradeClassification.PROFILE_DRIVEN,
+        charge_amount: deliveryAmount.toFixed(2),
+        external_ref: e.external_ref ? `${e.external_ref}:delivery` : ce.external_ref,
+        event_hash: buildHash(ce.event_hash, 'delivery-split', deliveryAmount.toFixed(2)),
+      });
+    }
+    if (splitCharges.length > 0) {
+      replacements.set(ci, splitCharges);
+    }
+  }
 }

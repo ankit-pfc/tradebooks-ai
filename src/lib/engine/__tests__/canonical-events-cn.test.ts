@@ -982,3 +982,304 @@ describe('buildCanonicalEvents — investor-mode intraday detection ordering', (
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Partial netoff tests — reclassifyIntradayTrades splits partial round-trips
+// into an intraday portion (SPECULATIVE_BUSINESS) and a delivery remainder
+// (PROFILE_DRIVEN → INVESTMENT).
+// ---------------------------------------------------------------------------
+describe('reclassifyIntradayTrades — partial netoff support', () => {
+  // Shared event scaffold
+  function makeTradeEvent(
+    id: string,
+    type: 'buy' | 'sell',
+    qty: string,
+    rate: string,
+    extRef: string | null = null,
+  ): import('../../types/events').CanonicalEvent {
+    const absQty = Math.abs(Number(qty));
+    const grossAmount = (absQty * Number(rate)).toFixed(2);
+    return {
+      event_id: id,
+      import_batch_id: 'b',
+      event_type: type === 'buy' ? EventType.BUY_TRADE : EventType.SELL_TRADE,
+      trade_classification: TradeClassification.PROFILE_DRIVEN,
+      trade_product: undefined,
+      event_date: '2021-07-07',
+      settlement_date: null,
+      security_id: 'ISIN:INE338I01027',
+      security_symbol: 'MOTILALOFS',
+      quantity: type === 'buy' ? qty : `-${qty}`,
+      rate,
+      gross_amount: grossAmount,
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: 'f',
+      source_row_ids: [id],
+      contract_note_ref: 'CN-001',
+      external_ref: extRef ?? id,
+      event_hash: `h-${id}`,
+    };
+  }
+
+  function makeCharge(
+    id: string,
+    type: EventType,
+    amount: string,
+    extRef: string,
+  ): import('../../types/events').CanonicalEvent {
+    return {
+      event_id: id,
+      import_batch_id: 'b',
+      event_type: type,
+      trade_classification: TradeClassification.PROFILE_DRIVEN,
+      trade_product: undefined,
+      event_date: '2021-07-07',
+      settlement_date: null,
+      security_id: 'ISIN:INE338I01027',
+      quantity: '0',
+      rate: '0',
+      gross_amount: '0',
+      charge_type: type.toString(),
+      charge_amount: amount,
+      source_file_id: 'f',
+      source_row_ids: [id],
+      contract_note_ref: 'CN-001',
+      external_ref: extRef,
+      event_hash: `h-${id}`,
+    };
+  }
+
+  it('splits partial netoff: buy=88, sell=108 → 88 intraday + 20 delivery (MOTILALOFS case)', () => {
+    // MOTILALOFS 07-07-2021: buy 88 shares, sell 108 shares
+    // Expected: 88 intraday (min of buy/sell), 20 delivery sells
+    const buy = makeTradeEvent('B1', 'buy', '88', '921.00');
+    const s1 = makeTradeEvent('S1', 'sell', '80', '932.00');
+    const s2 = makeTradeEvent('S2', 'sell', '8', '936.00');
+    const s3 = makeTradeEvent('S3', 'sell', '20', '938.00');
+
+    const result = reclassifyIntradayTrades([buy, s1, s2, s3]);
+
+    // Buy side (88 shares) is the smaller side — all SPECULATIVE
+    const buyEvents = result.filter((e) => e.event_type === EventType.BUY_TRADE);
+    expect(buyEvents).toHaveLength(1);
+    expect(buyEvents[0].trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+
+    // Sell side: 88 consumed from 108, leaving 20 as delivery
+    const sellEvents = result.filter((e) => e.event_type === EventType.SELL_TRADE);
+    const intradaySells = sellEvents.filter(
+      (e) => e.trade_classification === TradeClassification.SPECULATIVE_BUSINESS,
+    );
+    const deliverySells = sellEvents.filter(
+      (e) => e.trade_classification === TradeClassification.PROFILE_DRIVEN,
+    );
+
+    // Intraday sell qty should equal buy qty (88)
+    const intradaySellQty = intradaySells.reduce(
+      (sum, e) => sum + Math.abs(Number(e.quantity)),
+      0,
+    );
+    expect(intradaySellQty).toBe(88);
+
+    // Delivery sell qty should be the remainder (20)
+    const deliverySellQty = deliverySells.reduce(
+      (sum, e) => sum + Math.abs(Number(e.quantity)),
+      0,
+    );
+    expect(deliverySellQty).toBe(20);
+  });
+
+  it('splits partial netoff without boundary split: buy=10, sell=30 → 10 intraday + 20 delivery (NAUKRI case)', () => {
+    // NAUKRI 24-08-2021: buy 10, sell 30 → 10 intraday, 20 delivery sells
+    const buy = makeTradeEvent('B1', 'buy', '10', '5619.20');
+    const s1 = makeTradeEvent('S1', 'sell', '8', '5687.45');
+    const s2 = makeTradeEvent('S2', 'sell', '4', '5687.45');
+    const s3 = makeTradeEvent('S3', 'sell', '8', '5687.40');
+    const s4 = makeTradeEvent('S4', 'sell', '10', '5698.00');
+
+    const result = reclassifyIntradayTrades([buy, s1, s2, s3, s4]);
+
+    const buyEvents = result.filter((e) => e.event_type === EventType.BUY_TRADE);
+    expect(buyEvents).toHaveLength(1);
+    expect(buyEvents[0].trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+
+    const intradaySells = result.filter(
+      (e) =>
+        e.event_type === EventType.SELL_TRADE &&
+        e.trade_classification === TradeClassification.SPECULATIVE_BUSINESS,
+    );
+    const intradaySellQty = intradaySells.reduce(
+      (sum, e) => sum + Math.abs(Number(e.quantity)),
+      0,
+    );
+    // Only 10 shares of sells should be intraday (matching the 10 buys)
+    expect(intradaySellQty).toBe(10);
+
+    // S1 (8) consumed, S2 (4) needs split: 2 intraday + 2 delivery
+    const deliverySells = result.filter(
+      (e) =>
+        e.event_type === EventType.SELL_TRADE &&
+        e.trade_classification === TradeClassification.PROFILE_DRIVEN,
+    );
+    const deliverySellQty = deliverySells.reduce(
+      (sum, e) => sum + Math.abs(Number(e.quantity)),
+      0,
+    );
+    expect(deliverySellQty).toBe(20);
+  });
+
+  it('correctly splits a boundary trade event with proportional charges', () => {
+    // Simple case: buy 5, sell 10 → 5 intraday, 5 delivery
+    // The sell of 10 must be split: 5 SPECULATIVE + 5 PROFILE_DRIVEN
+    const buy = makeTradeEvent('B1', 'buy', '5', '100.00', 'B1');
+    const sell = makeTradeEvent('S1', 'sell', '10', '110.00', 'S1');
+    // Charge tied to the sell trade (by external_ref)
+    const brokerage = makeCharge('C1', EventType.BROKERAGE, '10.00', 'S1');
+
+    const result = reclassifyIntradayTrades([buy, sell, brokerage]);
+
+    // Buy: all SPECULATIVE
+    const buys = result.filter((e) => e.event_type === EventType.BUY_TRADE);
+    expect(buys).toHaveLength(1);
+    expect(buys[0].trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+    expect(buys[0].quantity).toBe('5');
+
+    // Sell: split into 5 SPECULATIVE + 5 PROFILE_DRIVEN
+    const sells = result.filter((e) => e.event_type === EventType.SELL_TRADE);
+    expect(sells).toHaveLength(2);
+
+    const intradaySell = sells.find(
+      (e) => e.trade_classification === TradeClassification.SPECULATIVE_BUSINESS,
+    )!;
+    expect(Math.abs(Number(intradaySell.quantity))).toBe(5);
+    expect(intradaySell.gross_amount).toBe('550.00'); // 5 × 110
+
+    const deliverySell = sells.find(
+      (e) => e.trade_classification === TradeClassification.PROFILE_DRIVEN,
+    )!;
+    expect(Math.abs(Number(deliverySell.quantity))).toBe(5);
+    expect(deliverySell.gross_amount).toBe('550.00'); // 5 × 110
+    expect(deliverySell.external_ref).toBe('S1:delivery');
+
+    // Brokerage: split proportionally (5/10 = 50%)
+    const chargeEvents = result.filter(
+      (e) =>
+        e.event_type !== EventType.BUY_TRADE && e.event_type !== EventType.SELL_TRADE,
+    );
+    expect(chargeEvents).toHaveLength(2);
+
+    const intradayCharge = chargeEvents.find(
+      (e) => e.trade_classification === TradeClassification.SPECULATIVE_BUSINESS,
+    )!;
+    expect(intradayCharge.charge_amount).toBe('5.00'); // 10 × 5/10
+
+    const deliveryCharge = chargeEvents.find(
+      (e) => e.trade_classification === TradeClassification.PROFILE_DRIVEN,
+    )!;
+    expect(deliveryCharge.charge_amount).toBe('5.00');
+    expect(deliveryCharge.external_ref).toBe('S1:delivery');
+  });
+
+  it('full netoff still works correctly (regression guard)', () => {
+    // Full netoff should still work: buy 50, sell 50 → all SPECULATIVE
+    const buy = makeTradeEvent('B1', 'buy', '50', '587.50');
+    const sell = makeTradeEvent('S1', 'sell', '50', '649.00');
+
+    const result = reclassifyIntradayTrades([buy, sell]);
+    expect(result).toHaveLength(2);
+    for (const e of result) {
+      expect(e.trade_classification).toBe(TradeClassification.SPECULATIVE_BUSINESS);
+    }
+  });
+
+  it('one-sided groups (only buys or only sells) are untouched', () => {
+    const buy1 = makeTradeEvent('B1', 'buy', '10', '100');
+    const buy2 = makeTradeEvent('B2', 'buy', '20', '100');
+    const result = reclassifyIntradayTrades([buy1, buy2]);
+    expect(result).toHaveLength(2);
+    for (const e of result) {
+      expect(e.trade_classification).toBe(TradeClassification.PROFILE_DRIVEN);
+    }
+  });
+
+  it('partial netoff through buildCanonicalEvents: MOTILALOFS buy=88 sell=108 produces intraday events', () => {
+    // Integration test: CN with partial netoff flows through the full pipeline
+    const events = buildCanonicalEvents({
+      contractNoteSheets: [
+        {
+          charges: makeCnCharges({
+            trade_date: '07-07-2021',
+            brokerage: '50.00',
+            stt: '20.00',
+          }),
+          trades: [
+            makeCnTrade({
+              trade_no: 'B1',
+              buy_sell: 'B',
+              quantity: '88',
+              gross_rate: '921.00',
+              security_description: 'MOTILALOFS/INE338I01027',
+            }),
+            makeCnTrade({
+              trade_no: 'S1',
+              buy_sell: 'S',
+              quantity: '80',
+              gross_rate: '932.00',
+              security_description: 'MOTILALOFS/INE338I01027',
+            }),
+            makeCnTrade({
+              trade_no: 'S2',
+              buy_sell: 'S',
+              quantity: '8',
+              gross_rate: '936.00',
+              security_description: 'MOTILALOFS/INE338I01027',
+            }),
+            makeCnTrade({
+              trade_no: 'S3',
+              buy_sell: 'S',
+              quantity: '20',
+              gross_rate: '938.00',
+              security_description: 'MOTILALOFS/INE338I01027',
+            }),
+          ],
+        },
+      ],
+      batchId: 'b',
+      fileIds: { contractNote: 'f' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+
+    const specTrades = tradeEvents.filter(
+      (e) => e.trade_classification === TradeClassification.SPECULATIVE_BUSINESS,
+    );
+    const investTrades = tradeEvents.filter(
+      (e) => e.trade_classification === TradeClassification.INVESTMENT,
+    );
+
+    // Intraday: 88 buy + 88 sell = balanced
+    const specBuyQty = specTrades
+      .filter((e) => e.event_type === EventType.BUY_TRADE)
+      .reduce((sum, e) => sum + Math.abs(Number(e.quantity)), 0);
+    const specSellQty = specTrades
+      .filter((e) => e.event_type === EventType.SELL_TRADE)
+      .reduce((sum, e) => sum + Math.abs(Number(e.quantity)), 0);
+    expect(specBuyQty).toBe(88);
+    expect(specSellQty).toBe(88);
+
+    // Delivery: remaining 20 sells
+    const investSellQty = investTrades
+      .filter((e) => e.event_type === EventType.SELL_TRADE)
+      .reduce((sum, e) => sum + Math.abs(Number(e.quantity)), 0);
+    expect(investSellQty).toBe(20);
+
+    // No PROFILE_DRIVEN trades should remain after full pipeline
+    const profileDriven = tradeEvents.filter(
+      (e) => e.trade_classification === TradeClassification.PROFILE_DRIVEN,
+    );
+    expect(profileDriven).toHaveLength(0);
+  });
+});
