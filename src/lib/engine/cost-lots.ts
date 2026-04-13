@@ -109,6 +109,11 @@ export class CostLotTracker {
       original_quantity: qty.toFixed(),
       effective_unit_cost: effectiveUnitCost.toFixed(6), // 6dp for precision
       acquisition_date: event.event_date,
+      // remaining_total_cost tracks the undisposed cost at 2dp precision.
+      // On partial disposals it is decremented; on final consumption of a
+      // lot the remaining value is used directly, preventing cumulative
+      // rounding drift from unit_cost × qty recalculation.
+      remaining_total_cost: totalCost.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2),
     };
 
     if (!this.lots.has(event.security_id)) {
@@ -215,6 +220,10 @@ export class CostLotTracker {
       lot.open_quantity = openQty.mul(multiplier).toFixed();
       lot.original_quantity = origQty.mul(multiplier).toFixed();
       lot.effective_unit_cost = unitCost.div(divisor).toFixed(6);
+      // Recompute remaining_total_cost from adjusted values
+      lot.remaining_total_cost = new Decimal(lot.open_quantity)
+        .mul(new Decimal(lot.effective_unit_cost))
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
 
       if (!params.preserveAcquisitionDate && params.actionDate) {
         lot.acquisition_date = params.actionDate;
@@ -267,10 +276,21 @@ export class CostLotTracker {
     const tracker = new CostLotTracker();
     for (const [securityId, lots] of Object.entries(data.lots)) {
       const normalizedSecurityId = normalizeLegacySecurityId(securityId);
-      const normalizedLots = lots.map((lot) => ({
-        ...lot,
-        security_id: normalizeLegacySecurityId(lot.security_id),
-      }));
+      const normalizedLots = lots.map((lot) => {
+        const normalized = {
+          ...lot,
+          security_id: normalizeLegacySecurityId(lot.security_id),
+        };
+        // Back-compat: lots serialized before remaining_total_cost was added
+        // need it derived from effective_unit_cost × open_quantity.
+        if (normalized.remaining_total_cost === undefined || normalized.remaining_total_cost === null) {
+          const openQty = new Decimal(normalized.open_quantity);
+          const unitCost = new Decimal(normalized.effective_unit_cost);
+          normalized.remaining_total_cost = openQty.mul(unitCost)
+            .toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
+        }
+        return normalized;
+      });
       const existingLots = tracker.lots.get(normalizedSecurityId) ?? [];
       tracker.lots.set(normalizedSecurityId, [...existingLots, ...normalizedLots]);
     }
@@ -320,7 +340,19 @@ export class CostLotTracker {
 
       const consumed = Decimal.min(lotOpen, remaining);
       const unitCost = new Decimal(lot.effective_unit_cost);
-      const totalCost = consumed.mul(unitCost);
+      // Fallback for lots without remaining_total_cost (pre-migration data)
+      const lotRemaining = lot.remaining_total_cost
+        ? new Decimal(lot.remaining_total_cost)
+        : lotOpen.mul(unitCost).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+      // When consuming the final units of a lot, use the tracked remaining
+      // cost instead of recalculating from unit_cost × quantity. This
+      // prevents the cumulative ₹0.01 rounding drift that occurs when a
+      // lot is split across multiple sell events.
+      const isFullConsumption = consumed.equals(lotOpen);
+      const totalCost = isFullConsumption
+        ? lotRemaining
+        : consumed.mul(unitCost).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
       const proceeds = consumed.mul(sellRate);
       const gainOrLoss = proceeds.sub(totalCost);
 
@@ -333,8 +365,9 @@ export class CostLotTracker {
         gain_or_loss: gainOrLoss.toFixed(2),
       });
 
-      // Reduce open quantity on the lot
+      // Reduce open quantity and remaining cost on the lot
       lot.open_quantity = lotOpen.sub(consumed).toFixed();
+      lot.remaining_total_cost = lotRemaining.sub(totalCost).toFixed(2);
       remaining = remaining.sub(consumed);
     }
 
@@ -407,7 +440,16 @@ export class CostLotTracker {
       if (remaining.isZero()) break;
       const lotOpen = new Decimal(lot.open_quantity);
       const consumed = Decimal.min(lotOpen, remaining);
+      const unitCost = new Decimal(lot.effective_unit_cost);
+      const lotRemaining = lot.remaining_total_cost
+        ? new Decimal(lot.remaining_total_cost)
+        : lotOpen.mul(unitCost).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+      const isFullConsumption = consumed.equals(lotOpen);
+      const consumedCost = isFullConsumption
+        ? lotRemaining
+        : consumed.mul(unitCost).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
       lot.open_quantity = lotOpen.sub(consumed).toFixed();
+      lot.remaining_total_cost = lotRemaining.sub(consumedCost).toFixed(2);
       remaining = remaining.sub(consumed);
     }
 

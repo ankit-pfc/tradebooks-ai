@@ -18,10 +18,10 @@
   ],
   "voucher_summaries": [
     {
-      "voucher_number": "CN-SAME-DAY/INFY",
+      "voucher_number": "CN-SAME-DAY",
       "voucher_type": "JOURNAL",
-      "total_debit": "23.06",
-      "total_credit": "23.06",
+      "total_debit": "23.51",
+      "total_credit": "23.51",
       "stock_item": null,
       "cost_basis": "0.00",
       "gain_loss": "0.00",

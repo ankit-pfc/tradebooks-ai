@@ -134,4 +134,15 @@ export interface CostLot {
   effective_unit_cost: string;
   /** Date the shares were acquired ("YYYY-MM-DD"). */
   acquisition_date: string;
+  /**
+   * Remaining total cost for this lot at 2dp precision, decremented on each
+   * partial disposal. When the final units of a lot are consumed, this value
+   * is used as the disposal cost instead of recalculating from unit_cost ×
+   * quantity — preventing cumulative ₹0.01 rounding drift.
+   *
+   * Optional for backwards-compat with serialized lots created before this
+   * field was added — CostLotTracker.fromJSON and _disposeFifo compute it
+   * from effective_unit_cost × open_quantity when absent.
+   */
+  remaining_total_cost?: string;
 }

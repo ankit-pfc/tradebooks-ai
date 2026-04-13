@@ -339,10 +339,44 @@ export function generateMastersXml(
     langList.ele('LANGUAGEID').txt(' 1033');
   }
 
-  // Emit STOCKITEM masters so Tally does not need to auto-create them.
-  // This is required for versions of Tally that do not auto-create stock items
-  // when referenced in INVENTORYENTRIES.LIST inside vouchers.
+  // Emit UNIT and STOCKITEM masters. UNIT masters are emitted FIRST so
+  // that BASEUNITS references on STOCKITEM masters resolve correctly in
+  // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
+    // --- UNIT masters (emit first) ---
+    const UNIT_FORMAL_NAMES: Record<string, string> = {
+      'SH': 'Shares',
+      'Nos': 'Numbers',
+    };
+    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'Nos'))].sort();
+    for (const unitName of unitNames) {
+      const msg = requestData.ele('TALLYMESSAGE', {
+        'xmlns:UDF': 'TallyUDF',
+      });
+
+      const unitEle = msg.ele('UNIT', {
+        NAME: unitName,
+        RESERVEDNAME: '',
+        ACTION: 'Create',
+      });
+
+      unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
+      unitEle.ele('ISSIMPLEUNIT').txt('Yes');
+      // ORIGINALNAME must be empty for simple units — setting it to the
+      // unit's own name causes Tally to interpret it as a base-unit
+      // reference, resulting in [Missing_Master_Name] for the Symbol field.
+      unitEle.ele('ORIGINALNAME').txt('');
+      unitEle.ele('DECIMALPLACES').txt('0');
+      if (UNIT_FORMAL_NAMES[unitName]) {
+        unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName]);
+      }
+
+      const langList = unitEle.ele('LANGUAGENAME.LIST');
+      langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);
+      langList.ele('LANGUAGEID').txt(' 1033');
+    }
+
+    // --- STOCKITEM masters ---
     for (const item of stockItems) {
       const msg = requestData.ele('TALLYMESSAGE', {
         'xmlns:UDF': 'TallyUDF',
@@ -363,28 +397,6 @@ export function generateMastersXml(
 
       const langList = itemEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(item.name);
-      langList.ele('LANGUAGEID').txt(' 1033');
-    }
-
-    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'Nos'))].sort();
-    for (const unitName of unitNames) {
-      const msg = requestData.ele('TALLYMESSAGE', {
-        'xmlns:UDF': 'TallyUDF',
-      });
-
-      const unitEle = msg.ele('UNIT', {
-        NAME: unitName,
-        RESERVEDNAME: '',
-        ACTION: 'Create',
-      });
-
-      unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
-      unitEle.ele('ISSIMPLEUNIT').txt('Yes');
-      unitEle.ele('ORIGINALNAME').txt(unitName);
-      unitEle.ele('DECIMALPLACES').txt('0');
-
-      const langList = unitEle.ele('LANGUAGENAME.LIST');
-      langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);
       langList.ele('LANGUAGEID').txt(' 1033');
     }
   }

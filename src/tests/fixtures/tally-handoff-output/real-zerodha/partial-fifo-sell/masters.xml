@@ -529,6 +529,23 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME/>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <FORMALNAME>Shares</FORMALNAME>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>INFY-SH</NAME>
@@ -541,22 +558,6 @@
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </STOCKITEM>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>SH</NAME>
-            </NAME.LIST>
-            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>SH</ORIGINALNAME>
-            <DECIMALPLACES>0</DECIMALPLACES>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </UNIT>
         </TALLYMESSAGE>
       </REQUESTDATA>
     </IMPORTDATA>

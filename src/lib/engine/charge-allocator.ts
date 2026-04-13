@@ -129,13 +129,39 @@ export function allocateCharges(
   // these). When all per-unit rates are zero but the aggregate brokerage is non-zero
   // (XML contract notes only have aggregate totals), fall back to proportional split
   // by trade value so the charge is still distributed correctly.
+  //
+  // Per-unit path applies the same remainder-correction as proportionalSplit:
+  // round each trade's brokerage to 2dp, then assign the last trade the
+  // aggregate minus the running sum — this prevents tiny brokerages (e.g.
+  // ₹0.004/trade × 3 trades = ₹0.01 aggregate) from rounding away entirely.
   const perUnitBrokerages = trades.map((t) =>
     dec(t.brokerage_per_unit).mul(dec(t.quantity)).abs(),
   );
   const totalPerUnit = perUnitBrokerages.reduce((s, b) => s.add(b), new Decimal(0));
-  const brokerageSplits = !totalPerUnit.isZero()
-    ? perUnitBrokerages
-    : proportionalSplit(dec(charges.brokerage), tradeValues);
+  let brokerageSplits: Decimal[];
+  if (!totalPerUnit.isZero()) {
+    // Use totalPerUnit as the remainder base (not charges.brokerage) since
+    // the per-unit path trusts per-trade rates from the XLSX, not the CN
+    // aggregate. This ensures small amounts (e.g. 0.004 × 3 = 0.012 → sum
+    // rounds to 0.01) don't disappear when every individual trade rounds
+    // to 0.00.
+    const aggregate = totalPerUnit;
+    const rounded: Decimal[] = [];
+    let running = new Decimal(0);
+    for (let i = 0; i < perUnitBrokerages.length; i++) {
+      if (i === perUnitBrokerages.length - 1) {
+        // Last trade absorbs remainder so the sum exactly equals the aggregate
+        rounded.push(aggregate.sub(running));
+      } else {
+        const r = perUnitBrokerages[i].toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+        rounded.push(r);
+        running = running.add(r);
+      }
+    }
+    brokerageSplits = rounded;
+  } else {
+    brokerageSplits = proportionalSplit(dec(charges.brokerage), tradeValues);
+  }
 
   // 3. Build allocations
   return trades.map((trade, i) => {

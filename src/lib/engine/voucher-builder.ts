@@ -611,14 +611,10 @@ export function buildBuyVoucher(
     voucher_type: VoucherType.JOURNAL,
     invoice_intent: invoiceIntentForTrade(event, effectiveProfile),
     voucher_date: event.event_date,
-    // Voucher number = CN number / security symbol. Unique per (CN, security)
-    // so multi-script CNs don't collide on Tally import while still carrying
-    // the CN number for re-import duplicate detection. Same-symbol multi-rate
-    // fills within one CN get a numeric suffix applied later by
-    // disambiguateVoucherNumbers (post-merge step).
-    external_reference: event.contract_note_ref
-      ? `${event.contract_note_ref}/${symbol}`
-      : event.external_ref ?? null,
+    // Voucher number = bare contract note reference. Multi-scrip and
+    // same-symbol multi-rate fills within one CN get a numeric suffix
+    // applied later by disambiguateVoucherNumbers (post-merge step).
+    external_reference: event.contract_note_ref ?? event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
       buildTradeNarrative(
         'buy',
@@ -876,11 +872,8 @@ export function buildSellVoucher(
     voucher_type: VoucherType.JOURNAL,
     invoice_intent: invoiceIntentForTrade(event, effectiveProfile),
     voucher_date: event.event_date,
-    // Voucher number = CN number / security symbol. See buildBuyVoucher for
-    // the rationale and disambiguation strategy.
-    external_reference: event.contract_note_ref
-      ? `${event.contract_note_ref}/${symbol}`
-      : event.external_ref ?? null,
+    // Voucher number = bare contract note reference. See buildBuyVoucher.
+    external_reference: event.contract_note_ref ?? event.external_ref ?? null,
     narrative: withTradeReviewNarrative(
       buildTradeNarrative('sell', symbol, qty, event.rate, chargeEvents),
       event,
@@ -962,19 +955,25 @@ export function buildIntradayConsolidatedVoucher(
     (sum, e) => sum.add(new Decimal(e.gross_amount)),
     new Decimal(0),
   );
-  const totalCharges = chargeEvents.reduce(
-    (sum, ce) => sum.add(new Decimal(ce.charge_amount)),
-    new Decimal(0),
-  );
 
-  // netPnL = money actually landing in Zerodha after the round-trip
-  //         = gross_sell - gross_buy - all charges (incl. STT)
-  const netPnL = grossSell.sub(grossBuy).sub(totalCharges);
+  // Split charges: STT is posted as its own DR line (same treatment as
+  // delivery-mode buy/sell vouchers) so the user can see it separately.
+  // All other charges (brokerage, exchange, GST, SEBI, stamp) reduce the
+  // net P&L — they are deductible expenses under Sec 43(5) speculative
+  // business income.
+  const split = splitInvestorCharges(chargeEvents);
+
+  // netPnL = gross_sell - gross_buy - non-STT charges.
+  // STT is excluded from the P&L figure and posted as a separate DR line.
+  const netPnL = grossSell.sub(grossBuy).sub(split.capitalizableTotal);
   const rounded = netPnL.toDecimalPlaces(2);
 
-  // Zero-net (gain exactly cancels charges): skip the voucher entirely.
-  // Zerodha's ledger is unchanged, so there's nothing to book.
-  if (rounded.isZero()) {
+  // The broker account sees the net of ALL charges including STT — that's
+  // the actual cash impact on the trading account.
+  const brokerImpact = grossSell.sub(grossBuy).sub(split.totalCharges).toDecimalPlaces(2);
+
+  // If both rounded netPnL and broker impact are zero, skip the voucher.
+  if (rounded.isZero() && brokerImpact.isZero() && split.disallowedTotal.isZero()) {
     return null;
   }
 
@@ -991,21 +990,46 @@ export function buildIntradayConsolidatedVoucher(
     : L.CA_SPECULATION_GAIN.name;
 
   const isGain = rounded.isPositive();
-  const absAmount = rounded.abs();
+  const absNetPnL = rounded.abs();
+  const absBroker = brokerImpact.abs();
 
-  const lines: VoucherLine[] = isGain
-    ? [
-        // Gain: broker account grows, intraday income grows (CR).
-        makeLine(draftId, 1, brokerName, absAmount, 'DR'),
-        makeLine(draftId, 2, intradayLedger, absAmount, 'CR'),
-      ]
-    : [
-        // Loss: broker account shrinks, intraday income shrinks (DR to the
-        // same single net ledger — gains and losses share one Tally ledger
-        // and net on it, see CA_SPECULATION_GAIN comment in ledger-names.ts).
-        makeLine(draftId, 1, intradayLedger, absAmount, 'DR'),
-        makeLine(draftId, 2, brokerName, absAmount, 'CR'),
-      ];
+  // Build voucher lines. The broker line reflects the actual cash movement
+  // (net of ALL charges including STT), the P&L line reflects the economic
+  // gain/loss (net of non-STT charges only), and STT bridges the gap.
+  //
+  // Balance check (gain case):
+  //   DR broker (gross − all)  +  DR STT (stt)  =  gross − non-STT = netPnL
+  //   CR intradayLedger (netPnL)                 =  netPnL          ✓
+  const lines: VoucherLine[] = [];
+  let lineNo = 1;
+  const sttLedger = !split.disallowedTotal.isZero()
+    ? (tallyProfile
+        ? resolveChargeLedger(tallyProfile, EventType.STT).name
+        : CHARGE_LEDGER_NAMES[EventType.STT] ?? L.STT.name)
+    : null;
+
+  if (isGain) {
+    // Gain: broker grows (DR), STT expense (DR), intraday income (CR).
+    // Skip zero-amount lines (e.g. broker = 0 when gain exactly equals STT).
+    if (!absBroker.isZero()) {
+      lines.push(makeLine(draftId, lineNo++, brokerName, absBroker, 'DR'));
+    }
+    if (sttLedger) {
+      lineNo = appendChargeLine(lines, draftId, lineNo, sttLedger, split.disallowedTotal);
+    }
+    lines.push(makeLine(draftId, lineNo++, intradayLedger, absNetPnL, 'CR'));
+  } else {
+    // Loss: intraday income shrinks (DR), STT expense (DR), broker shrinks (CR).
+    if (!absNetPnL.isZero()) {
+      lines.push(makeLine(draftId, lineNo++, intradayLedger, absNetPnL, 'DR'));
+    }
+    if (sttLedger) {
+      lineNo = appendChargeLine(lines, draftId, lineNo, sttLedger, split.disallowedTotal);
+    }
+    if (!absBroker.isZero()) {
+      lines.push(makeLine(draftId, lineNo++, brokerName, absBroker, 'CR'));
+    }
+  }
 
   const narration = `${qty.toFixed()} shares intraday ${isGain ? 'gain' : 'loss'} in ${symbol}`;
 
@@ -1018,12 +1042,9 @@ export function buildIntradayConsolidatedVoucher(
     voucher_type: VoucherType.JOURNAL,
     invoice_intent: invoiceIntentForTrade(representative, effectiveProfile),
     voucher_date: representative.event_date,
-    // Per-scrip suffix keeps multi-scrip intraday CNs from colliding and
-    // matches the delivery-voucher numbering pattern so disambiguation
-    // works uniformly downstream.
-    external_reference: representative.contract_note_ref
-      ? `${representative.contract_note_ref}/${symbol}`
-      : representative.external_ref ?? null,
+    // Bare contract note reference — matches delivery-voucher numbering.
+    // disambiguateVoucherNumbers handles multi-scrip collisions downstream.
+    external_reference: representative.contract_note_ref ?? representative.external_ref ?? null,
     narrative: narration,
     total_debit: '0',
     total_credit: '0',
