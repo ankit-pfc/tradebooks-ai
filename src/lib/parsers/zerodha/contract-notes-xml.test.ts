@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseContractNotesXml } from './contract-notes-xml';
+import { isPipelineValidationError } from '../../errors/pipeline-validation';
 
 const XML_FILE = path.resolve(
   __dirname,
@@ -10,8 +11,17 @@ const XML_FILE = path.resolve(
 );
 const HAS_LOCAL_DATA = fs.existsSync(XML_FILE);
 
+interface MinimalXmlOpts {
+  segmentId?: string;
+  type?: string;
+  quantity?: string;
+}
+
 /** Minimal valid XML contract note with one sell trade. */
-function makeMinimalXml(instrumentId: string, segmentId = 'NSE-EQ'): Buffer {
+function makeMinimalXml(
+  instrumentId: string,
+  { segmentId = 'NSE-EQ', type = 'S', quantity = '-3' }: MinimalXmlOpts = {},
+): Buffer {
   return Buffer.from(
     `<contract_note version="0.1">
   <contracts>
@@ -23,8 +33,8 @@ function makeMinimalXml(instrumentId: string, segmentId = 'NSE-EQ'): Buffer {
           <id>TR001</id>
           <order_id>ORD001</order_id>
           <timestamp>10:00:00</timestamp>
-          <type>S</type>
-          <quantity>-3</quantity>
+          <type>${type}</type>
+          <quantity>${quantity}</quantity>
           <average_price>19200.00</average_price>
           <value>-57600.00</value>
         </trade>
@@ -85,6 +95,41 @@ describe('parseContractNotesXml', () => {
       'test.xml',
     );
     expect(result.trades[0].security_description).toBe('BOSCHLTD - EQ / INE323A01026');
+  });
+
+  it('throws typed validation error when type and quantity sign are both unavailable', () => {
+    try {
+      parseContractNotesXml(
+        makeMinimalXml('NSE:BOSCHLTD - EQ / INE323A01026', { type: '', quantity: '' }),
+        'test.xml',
+      );
+      throw new Error('Expected invalid trade type validation error');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_INVALID_TRADE_TYPE');
+      }
+    }
+  });
+
+  it('infers sell when type is missing and quantity is negative', () => {
+    const result = parseContractNotesXml(
+      makeMinimalXml('NSE:BOSCHLTD - EQ / INE323A01026', { type: '', quantity: '-3' }),
+      'test.xml',
+    );
+
+    expect(result.trades[0].buy_sell).toBe('S');
+    expect(result.trades[0].quantity).toBe('3');
+  });
+
+  it('infers buy when type is missing and quantity is positive', () => {
+    const result = parseContractNotesXml(
+      makeMinimalXml('NSE:BOSCHLTD - EQ / INE323A01026', { type: '', quantity: '3' }),
+      'test.xml',
+    );
+
+    expect(result.trades[0].buy_sell).toBe('B');
+    expect(result.trades[0].quantity).toBe('3');
   });
 });
 

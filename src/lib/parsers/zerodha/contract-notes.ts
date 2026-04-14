@@ -76,10 +76,12 @@ function num(value: string): string {
  *     magnitudes are correct but the signs must be flipped so downstream
  *     code sees costs as positive.
  *
- * Detection: sum the nine individual cost fields as parsed. A non-negative
- * sum means we're in the FY22-23+ convention and any residual negatives are
- * real rebates — leave them alone. A negative sum means we're in the
- * FY21-22 convention and every cost field must have its sign flipped.
+ * Detection: sum the nine individual cost fields as parsed. For unambiguous
+ * notes, a non-negative sum means we're in the FY22-23+ convention and any
+ * residual negatives are real rebates — leave them alone. A negative sum means
+ * we're in the FY21-22 convention and every cost field must have its sign
+ * flipped. When one large field overwhelms the sum while most non-zero cost
+ * rows point the other way, warn and follow the majority of row signs instead.
  *
  * `pay_in_pay_out` and `net_amount` are cash-flow markers (signed in both
  * conventions from the client's perspective) and are not touched here.
@@ -105,8 +107,38 @@ export function normalizeChargeSignConvention(
     (sum, key) => sum.add(new Decimal(charges[key] || '0')),
     new Decimal(0),
   );
+  const signCounts = costFields.reduce(
+    (counts, key) => {
+      const parsed = new Decimal(charges[key] || '0');
+      if (parsed.lt(0)) counts.negative += 1;
+      if (parsed.gt(0)) counts.positive += 1;
+      return counts;
+    },
+    { negative: 0, positive: 0 },
+  );
 
-  if (signedSum.gte(0)) return charges;
+  const sumIndicatesDeduction = signedSum.lt(0);
+  const majorityIndicatesDeduction =
+    signCounts.negative > signCounts.positive
+      ? true
+      : signCounts.positive > signCounts.negative
+        ? false
+        : sumIndicatesDeduction;
+  const useDeductionConvention = majorityIndicatesDeduction;
+
+  if (majorityIndicatesDeduction !== sumIndicatesDeduction) {
+    console.warn(
+      [
+        'Ambiguous Zerodha contract note charge signs; using majority-rule normalization.',
+        `contract_note_no=${charges.contract_note_no}`,
+        `signed_sum=${signedSum.toString()}`,
+        `negative_fields=${signCounts.negative}`,
+        `positive_fields=${signCounts.positive}`,
+      ].join(' '),
+    );
+  }
+
+  if (!useDeductionConvention) return charges;
 
   // FY21-22 deduction convention: flip every non-zero individual cost field
   const flipped: ZerodhaContractNoteCharges = { ...charges };

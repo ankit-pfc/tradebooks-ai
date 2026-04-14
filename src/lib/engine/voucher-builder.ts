@@ -1858,23 +1858,10 @@ export function buildVouchers(
         break;
 
       case EventType.AUCTION_ADJUSTMENT: {
-        let auctionDisposals: CostDisposal[] = [];
-        try {
-          auctionDisposals = costTracker.disposeLots(
-            { ...event, event_type: EventType.SELL_TRADE } as CanonicalEvent,
-            profile.cost_basis_method as 'FIFO' | 'WEIGHTED_AVERAGE',
-          );
-        } catch {
-          const qty = new Decimal(event.quantity).abs();
-          auctionDisposals = [{
-            lot_id: 'UNKNOWN',
-            acquisition_date: event.event_date,
-            quantity_sold: qty.isZero() ? '1' : qty.toFixed(),
-            unit_cost: '0',
-            total_cost: '0',
-            gain_or_loss: new Decimal(event.gross_amount).toFixed(2),
-          }];
-        }
+        const auctionDisposals = costTracker.disposeLots(
+          { ...event, event_type: EventType.SELL_TRADE } as CanonicalEvent,
+          profile.cost_basis_method as 'FIFO' | 'WEIGHTED_AVERAGE',
+        );
         vouchers.push(buildAuctionAdjustmentVoucher(event, auctionDisposals, tallyProfile));
         break;
       }

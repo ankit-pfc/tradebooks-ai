@@ -90,6 +90,16 @@ const PIPELINE_OUTPUT = {
   chargeSource: 'none' as const,
 };
 
+const SAMPLE_CORPORATE_ACTIONS = [
+  {
+    action_type: 'BONUS' as const,
+    security_id: 'ISIN:INE222A01011',
+    action_date: '2025-06-01',
+    ratio_numerator: '2',
+    ratio_denominator: '1',
+  },
+];
+
 function makeRequest(batchId = 'batch-1') {
   return {
     request: new NextRequest(`http://localhost/api/batches/${batchId}/retry`, { method: 'POST' }),
@@ -216,6 +226,20 @@ describe('POST /api/batches/[batchId]/retry', () => {
 
     expect(repo.updateBatchStatus).toHaveBeenCalledWith('batch-1', 'running', null);
     expect(mockRunProcessingPipeline).toHaveBeenCalledOnce();
+  });
+
+  it('loads persisted corporate actions and forwards them into the retry pipeline', async () => {
+    repo.getCorporateActions.mockResolvedValueOnce(SAMPLE_CORPORATE_ACTIONS);
+
+    const { request, params } = makeRequest();
+    await POST(request, { params });
+
+    expect(repo.getCorporateActions).toHaveBeenCalledWith('batch-1');
+    expect(mockRunProcessingPipeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        corporateActions: SAMPLE_CORPORATE_ACTIONS,
+      }),
+    );
   });
 
   it('returns 500 and marks batch failed when pipeline throws', async () => {

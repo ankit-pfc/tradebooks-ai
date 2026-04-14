@@ -36,16 +36,31 @@ import { PipelineValidationError } from '../errors/pipeline-validation';
  */
 function normaliseDate(raw: string): string {
   const trimmed = raw.trim();
+  let iso: string;
+
   // Already ISO format
-  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
-    return trimmed.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    iso = trimmed;
+  } else {
+    // DD-MM-YYYY or DD/MM/YYYY
+    const parts = trimmed.split(/[-/]/);
+    if (parts.length === 3 && parts[0].length === 2) {
+      iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    } else {
+      iso = trimmed.slice(0, 10);
+    }
   }
-  // DD-MM-YYYY or DD/MM/YYYY
-  const parts = trimmed.split(/[-/]/);
-  if (parts.length >= 3 && parts[0].length === 2) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== iso) {
+    throw new PipelineValidationError(
+      'E_INVALID_DATE',
+      `Invalid date "${raw}". Expected YYYY-MM-DD or DD-MM-YYYY.`,
+      { raw_date: raw, normalized_date: iso },
+    );
   }
-  return trimmed.slice(0, 10);
+
+  return iso;
 }
 
 /** Generate a deterministic hex hash over the supplied fields. */
@@ -166,6 +181,17 @@ export function tradebookRowToEvents(
   isinSymbolMap?: ReadonlyMap<string, string>,
   classificationStrategy: TradeClassificationStrategy = TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
 ): CanonicalEvent[] {
+  if (row.trade_type !== 'buy' && row.trade_type !== 'sell') {
+    throw new PipelineValidationError(
+      'E_INVALID_TRADE_TYPE',
+      `Invalid trade type "${row.trade_type}". Expected "buy" or "sell".`,
+      {
+        trade_id: row.trade_id,
+        trade_type: row.trade_type,
+      },
+    );
+  }
+
   const eventId = crypto.randomUUID();
   const eventType =
     row.trade_type === 'buy' ? EventType.BUY_TRADE : EventType.SELL_TRADE;
@@ -178,6 +204,27 @@ export function tradebookRowToEvents(
 
   const qty = new Decimal(row.quantity);
   const price = new Decimal(row.price);
+  if (qty.lte(0)) {
+    throw new PipelineValidationError(
+      'E_INVALID_QUANTITY',
+      `Invalid trade quantity "${row.quantity}". Quantity must be greater than zero.`,
+      {
+        trade_id: row.trade_id,
+        quantity: row.quantity,
+      },
+    );
+  }
+  if (price.lt(0)) {
+    throw new PipelineValidationError(
+      'E_INVALID_PRICE',
+      `Invalid trade price "${row.price}". Price cannot be negative.`,
+      {
+        trade_id: row.trade_id,
+        price: row.price,
+      },
+    );
+  }
+
   const grossAmount = qty.mul(price);
 
   const eventDate = normaliseDate(row.trade_date);
@@ -437,7 +484,7 @@ export function corporateActionToEvents(
     source_file_id: fileId,
     source_row_ids: [`${action.action_type}|${action.security_id}|${action.action_date}`],
     contract_note_ref: null,
-    external_ref: action.new_security_id ?? action.notes ?? null,
+    external_ref: action.new_security_id ?? null,
     event_hash: eventHash,
   }];
 }

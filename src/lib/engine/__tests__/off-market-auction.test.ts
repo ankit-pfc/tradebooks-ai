@@ -204,6 +204,88 @@ describe('buildVouchers off-market/auction integration', () => {
     expect(vouchers[0].total_debit).toBe(vouchers[0].total_credit);
   });
 
+  it('deducts cost basis for AUCTION_ADJUSTMENT when matching lots are available', () => {
+    const buyEvent = makeEvent({
+      event_type: EventType.BUY_TRADE,
+      event_date: '2025-01-01',
+      quantity: '100',
+      rate: '200',
+      gross_amount: '20000.00',
+    });
+    const auctionEvent = makeEvent({
+      event_type: EventType.AUCTION_ADJUSTMENT,
+      event_date: '2025-06-01',
+      quantity: '-100',
+      rate: '250',
+      gross_amount: '25000.00',
+    });
+
+    const tracker = new CostLotTracker();
+    const vouchers = buildVouchers([buyEvent, auctionEvent], DEFAULT_PROFILE, tracker);
+    const auctionVoucher = vouchers.find((voucher) =>
+      voucher.source_event_ids.includes(auctionEvent.event_id),
+    );
+
+    expect(auctionVoucher).toBeDefined();
+    expect(auctionVoucher?.total_debit).toBe(auctionVoucher?.total_credit);
+    expect(
+      auctionVoucher?.lines.some((line) =>
+        line.dr_cr === 'CR' &&
+        line.security_id === 'NSE:RELIANCE' &&
+        new Decimal(line.amount).equals(20000),
+      ),
+    ).toBe(true);
+    expect(
+      auctionVoucher?.lines.some((line) =>
+        line.dr_cr === 'CR' && new Decimal(line.amount).equals(5000),
+      ),
+    ).toBe(true);
+  });
+
+  it('uses an uncovered disposal for AUCTION_ADJUSTMENT when no lots are available', () => {
+    const auctionEvent = makeEvent({
+      event_type: EventType.AUCTION_ADJUSTMENT,
+      event_date: '2025-06-01',
+      quantity: '-100',
+      rate: '100',
+      gross_amount: '10000.00',
+    });
+
+    const tracker = new CostLotTracker();
+    const vouchers = buildVouchers([auctionEvent], DEFAULT_PROFILE, tracker);
+    const auctionVoucher = vouchers[0];
+
+    expect(auctionVoucher.total_debit).toBe(auctionVoucher.total_credit);
+    expect(
+      auctionVoucher.lines.some((line) =>
+        line.dr_cr === 'CR' &&
+        line.security_id === 'NSE:RELIANCE' &&
+        new Decimal(line.amount).equals(0),
+      ),
+    ).toBe(true);
+    expect(
+      auctionVoucher.lines.some((line) =>
+        line.dr_cr === 'CR' && new Decimal(line.amount).equals(10000),
+      ),
+    ).toBe(true);
+  });
+
+  it('throws for AUCTION_ADJUSTMENT with missing security_id', () => {
+    const auctionEvent = makeEvent({
+      event_type: EventType.AUCTION_ADJUSTMENT,
+      event_date: '2025-06-01',
+      security_id: null,
+      gross_amount: '10000.00',
+      quantity: '-100',
+    });
+
+    const tracker = new CostLotTracker();
+
+    expect(() => buildVouchers([auctionEvent], DEFAULT_PROFILE, tracker)).toThrow(
+      'has no security_id',
+    );
+  });
+
   it('handles mixed events including all new types', () => {
     const buyEvent = makeEvent({
       event_type: EventType.BUY_TRADE,

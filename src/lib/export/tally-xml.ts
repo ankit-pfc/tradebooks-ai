@@ -92,9 +92,11 @@ function toTallyDate(isoDate: string): string {
  * VoucherLine.amount is always stored as a positive decimal string;
  * dr_cr drives the sign.
  */
-function tallyAmount(amount: string, drCr: 'DR' | 'CR'): string {
+export function tallyAmount(amount: string, drCr: 'DR' | 'CR'): string {
   const n = parseFloat(amount);
-  if (isNaN(n)) return '0.00';
+  if (!Number.isFinite(n)) {
+    throw new Error(`Invalid Tally amount: ${amount}`);
+  }
   const abs = Math.abs(n).toFixed(2);
   return drCr === 'DR' ? `-${abs}` : abs;
 }
@@ -119,9 +121,11 @@ function isDeemedPositive(drCr: 'DR' | 'CR'): string {
  * The `drCr` parameter is retained for call-site compatibility but is
  * intentionally unused.
  */
-function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'SH'): string {
+export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'SH'): string {
   const n = parseFloat(qty);
-  if (!Number.isFinite(n)) return `0 ${unit}`;
+  if (!Number.isFinite(n)) {
+    throw new Error(`Invalid Tally quantity: ${qty}`);
+  }
   return `${Math.abs(n)} ${unit}`;
 }
 
@@ -129,9 +133,11 @@ function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'SH'): string {
  * Format a rate string for Tally's INVENTORYALLOCATIONS.LIST.
  * TallyPrime expects format: "<number>/<unit>" (e.g., "100.00/SH").
  */
-function tallyRate(rate: string, unit = 'SH'): string {
+export function tallyRate(rate: string, unit = 'SH'): string {
   const n = parseFloat(rate);
-  if (isNaN(n)) return `0/${unit}`;
+  if (!Number.isFinite(n)) {
+    throw new Error(`Invalid Tally rate: ${rate}`);
+  }
   return `${Math.abs(n).toFixed(2)}/${unit}`;
 }
 

@@ -80,9 +80,10 @@ export async function POST(
       }),
     );
 
-    // TODO: corporate actions temporarily disabled — re-enable when unblocked
-    // const corporateActions = await repo.getCorporateActions(batchId);
-    const corporateActions: import('@/lib/parsers/zerodha/types').CorporateActionInput[] = [];
+    // Pick up any corporate actions the user declared since the last run so
+    // retry after "declare CA -> retry" loops resolves post-split / bonus
+    // cost-lot mismatches.
+    const corporateActions = await repo.getCorporateActions(batchId);
 
     let result;
     try {

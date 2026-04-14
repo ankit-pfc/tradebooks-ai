@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   generateVouchersXml,
   generateFullExport,
+  tallyAmount,
+  tallyQty,
+  tallyRate,
   type VoucherDraftWithLines,
 } from '../../lib/export/tally-xml';
 import { VoucherType } from '../../lib/types/vouchers';
@@ -170,6 +173,27 @@ describe('generateVouchersXml', () => {
   it('handles empty vouchers array', () => {
     const xml = generateVouchersXml([], 'Co');
     expect(xml).toContain('<DATA/>');
+  });
+});
+
+describe('Tally numeric formatting guards', () => {
+  it('throws when a corrupt amount reaches serialization', () => {
+    expect(() => tallyAmount('abc', 'DR')).toThrow('Invalid Tally amount');
+  });
+
+  it('throws when a corrupt quantity reaches serialization', () => {
+    expect(() => tallyQty('', 'DR')).toThrow('Invalid Tally quantity');
+  });
+
+  it('throws when a corrupt rate reaches serialization', () => {
+    expect(() => tallyRate('Infinity', 'SH')).toThrow('Invalid Tally rate');
+  });
+
+  it('keeps normal numeric formatting unchanged', () => {
+    expect(tallyAmount('25000', 'DR')).toBe('-25000.00');
+    expect(tallyAmount('25000', 'CR')).toBe('25000.00');
+    expect(tallyQty('-10', 'CR')).toBe('10 SH');
+    expect(tallyRate('2500', 'SH')).toBe('2500.00/SH');
   });
 });
 

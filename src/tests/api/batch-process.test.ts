@@ -91,6 +91,17 @@ const PIPELINE_OUTPUT = {
   fyLabel: 'FY 2025-26',
 };
 
+const SAMPLE_CORPORATE_ACTIONS = [
+  {
+    action_type: 'STOCK_SPLIT' as const,
+    security_id: 'ISIN:INE111A01012',
+    new_security_id: 'ISIN:INE111A01020',
+    action_date: '2024-10-28',
+    ratio_numerator: '5',
+    ratio_denominator: '1',
+  },
+];
+
 function makeRequest(batchId = 'batch-1', body?: unknown) {
   return {
     request: new NextRequest(`http://localhost/api/batches/${batchId}/process`, {
@@ -225,6 +236,20 @@ describe('POST /api/batches/[batchId]/process', () => {
     expect(mockRunProcessingPipeline).toHaveBeenCalledWith(
       expect.objectContaining({
         purchaseMergeMode: 'same_rate',
+      }),
+    );
+  });
+
+  it('loads persisted corporate actions and forwards them into the pipeline', async () => {
+    repo.getCorporateActions.mockResolvedValueOnce(SAMPLE_CORPORATE_ACTIONS);
+
+    const { request, params } = makeRequest();
+    await POST(request, { params });
+
+    expect(repo.getCorporateActions).toHaveBeenCalledWith('batch-1');
+    expect(mockRunProcessingPipeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        corporateActions: SAMPLE_CORPORATE_ACTIONS,
       }),
     );
   });

@@ -322,6 +322,15 @@ describe('runProcessingPipeline — matchResult present with real fixture', () =
 });
 
 describe('runProcessingPipeline — corporate actions', () => {
+    function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
+        const voucher = transactionsXml
+            .split('<VOUCHER ')
+            .map((chunk) => `<VOUCHER ${chunk}`)
+            .find((chunk) => chunk.includes(`<NARRATION>${narrationPrefix}`));
+        expect(voucher).toBeDefined();
+        return voucher!;
+    }
+
     // A tradebook where the buy uses the pre-split ISIN and the sell uses the
     // post-split ISIN after a 1:5 face-value split. Without a declared
     // STOCK_SPLIT corporate action, cost lots stay keyed to the old ISIN and
@@ -392,5 +401,103 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.voucherCount).toBeGreaterThan(0);
         // 2 trade events + 1 corporate action event (at minimum)
         expect(result.eventCount).toBeGreaterThanOrEqual(3);
+    });
+
+    it('uses split-adjusted cost basis for a post-split sell on the known IRCTC split date', async () => {
+        const irctcSplitTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2021-05-12,NSE,EQ,IRCTC,INE335Y01012,BUY,10,4200.00,CNC,T300,ORD300,09:15:00',
+            '2021-11-12,NSE,EQ,IRCTC,INE335Y01020,SELL,50,857.15,CNC,T301,ORD301,09:15:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-irctc-split',
+            periodFrom: '2021-04-01',
+            periodTo: '2022-03-31',
+            corporateActions: [
+                {
+                    action_type: 'STOCK_SPLIT',
+                    security_id: 'ISIN:INE335Y01012',
+                    new_security_id: 'ISIN:INE335Y01020',
+                    action_date: '2021-10-28',
+                    ratio_numerator: '5',
+                    ratio_denominator: '1',
+                    notes: 'IRCTC face value split 10 to 2',
+                },
+            ],
+            files: [
+                {
+                    fileId: 'file-irctc-split',
+                    fileName: 'tradebook-irctc-split.csv',
+                    buffer: irctcSplitTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of IRCTC');
+
+        expect(result.eventCount).toBe(3);
+        expect(result.voucherCount).toBe(2);
+        expect(sellVoucher).toContain('<LEDGERNAME>IRCTC-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>IRCTC-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<ACTUALQTY>50 SH</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>840.00/SH</RATE>');
+        expect(sellVoucher).toContain('<AMOUNT>42000.00</AMOUNT>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON IRCTC</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>857.50</AMOUNT>');
+    });
+
+    it('increases open-lot quantity for a bonus issue without creating a phantom buy voucher', async () => {
+        const bonusTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2025-01-01,NSE,EQ,BONUSCO,INE222A01011,BUY,100,200.00,CNC,T400,ORD400,09:15:00',
+            '2025-09-01,NSE,EQ,BONUSCO,INE222A01011,SELL,150,150.00,CNC,T401,ORD401,09:15:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-bonus-open-lot',
+            corporateActions: [
+                {
+                    action_type: 'BONUS',
+                    security_id: 'ISIN:INE222A01011',
+                    action_date: '2025-06-01',
+                    ratio_numerator: '2',
+                    ratio_denominator: '1',
+                    notes: '1:1 bonus issue',
+                },
+            ],
+            files: [
+                {
+                    fileId: 'file-bonus-open-lot',
+                    fileName: 'tradebook-bonus-open-lot.csv',
+                    buffer: bonusTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of BONUSCO');
+        const purchaseVoucherCount = result.transactionsXml.match(/<NARRATION>Purchase of BONUSCO/g)?.length ?? 0;
+        const closingLots = mockRepo.saveClosingLots.mock.calls[0][1] as Record<
+            string,
+            Array<{
+                open_quantity: string;
+                effective_unit_cost: string;
+                remaining_total_cost: string;
+            }>
+        >;
+
+        expect(result.eventCount).toBe(3);
+        expect(result.voucherCount).toBe(2);
+        expect(purchaseVoucherCount).toBe(1);
+        expect(sellVoucher).toContain('<ACTUALQTY>150 SH</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>100.00/SH</RATE>');
+        expect(sellVoucher).toContain('<AMOUNT>15000.00</AMOUNT>');
+        expect(closingLots['ISIN:INE222A01011'][0].open_quantity).toBe('50');
+        expect(closingLots['ISIN:INE222A01011'][0].effective_unit_cost).toBe('100.000000');
+        expect(closingLots['ISIN:INE222A01011'][0].remaining_total_cost).toBe('5000.00');
     });
 });

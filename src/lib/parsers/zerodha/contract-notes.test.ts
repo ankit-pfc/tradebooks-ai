@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as XLSX from 'xlsx';
@@ -554,6 +554,38 @@ describe('normalizeChargeSignConvention', () => {
     expect(parseFloat(out.exchange_charges)).toBe(0.5);
     expect(parseFloat(out.sebi_fees)).toBe(0.01);
     expect(parseFloat(out.stamp_duty)).toBe(2.37);
+  });
+
+  it('uses majority-rule and warns when one large positive masks mostly negative charges', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const input = baseCharges({
+      brokerage: '1000.00',
+      exchange_charges: '-1.00',
+      clearing_charges: '-1.00',
+      cgst: '-1.00',
+      sgst: '-1.00',
+      igst: '-1.00',
+      stt: '-1.00',
+      sebi_fees: '-1.00',
+      stamp_duty: '-1.00',
+    });
+
+    const out = normalizeChargeSignConvention(input);
+
+    expect(parseFloat(out.brokerage)).toBe(-1000);
+    expect(parseFloat(out.exchange_charges)).toBe(1);
+    expect(parseFloat(out.clearing_charges)).toBe(1);
+    expect(parseFloat(out.cgst)).toBe(1);
+    expect(parseFloat(out.sgst)).toBe(1);
+    expect(parseFloat(out.igst)).toBe(1);
+    expect(parseFloat(out.stt)).toBe(1);
+    expect(parseFloat(out.sebi_fees)).toBe(1);
+    expect(parseFloat(out.stamp_duty)).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Ambiguous Zerodha contract note charge signs'),
+    );
+
+    warn.mockRestore();
   });
 });
 

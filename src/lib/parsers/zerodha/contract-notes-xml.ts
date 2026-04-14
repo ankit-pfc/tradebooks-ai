@@ -35,6 +35,7 @@ import type {
   ContractNoteParseResult,
 } from './types';
 import { normalizeChargeSignConvention } from './contract-notes';
+import { PipelineValidationError } from '../../errors/pipeline-validation';
 
 export const PARSER_VERSION = '1.0.0';
 
@@ -186,13 +187,26 @@ export function parseContractNotesXml(
       const instrumentId: string = str(t['@_instrument_id']);
       const rawQty = str(t.quantity);
       const rawType = str(t.type).toUpperCase();
+      const parsedQty = parseFloat(rawQty);
 
       // buy_sell: explicit field takes precedence; fall back to quantity sign
       let buySell: 'B' | 'S';
       if (rawType === 'B' || rawType === 'S') {
         buySell = rawType as 'B' | 'S';
+      } else if (Number.isNaN(parsedQty)) {
+        throw new PipelineValidationError(
+          'E_INVALID_TRADE_TYPE',
+          'XML contract note trade is missing both a valid type and a signed quantity.',
+          {
+            file_name: fileName,
+            contract_note_no: contractNoteNo,
+            trade_no: str(t.id),
+            raw_type: rawType,
+            raw_quantity: rawQty,
+          },
+        );
       } else {
-        buySell = parseFloat(rawQty) < 0 ? 'S' : 'B';
+        buySell = parsedQty < 0 ? 'S' : 'B';
       }
 
       // instrument_id format: "NSE:BOSCHLTD - EQ / ISIN123456789012"

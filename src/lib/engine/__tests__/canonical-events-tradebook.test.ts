@@ -69,6 +69,76 @@ describe('tradebookRowToEvents', () => {
     expect(events[0].event_date).toBe('2024-06-15');
   });
 
+  it.each(['2024-13-45', '2024-02-30', '99-99-9999', ''])(
+    'throws typed validation error for invalid trade date "%s"',
+    (tradeDate) => {
+      try {
+        tradebookRowToEvents(
+          makeTradebookRow({ trade_date: tradeDate }),
+          'batch-1',
+          'file-1',
+        );
+        throw new Error('Expected invalid date validation error');
+      } catch (err) {
+        expect(isPipelineValidationError(err)).toBe(true);
+        if (isPipelineValidationError(err)) {
+          expect(err.code).toBe('E_INVALID_DATE');
+        }
+      }
+    },
+  );
+
+  it.each(['0', '-5'])(
+    'throws typed validation error for invalid trade quantity "%s"',
+    (quantity) => {
+      try {
+        tradebookRowToEvents(
+          makeTradebookRow({ quantity }),
+          'batch-1',
+          'file-1',
+        );
+        throw new Error('Expected invalid quantity validation error');
+      } catch (err) {
+        expect(isPipelineValidationError(err)).toBe(true);
+        if (isPipelineValidationError(err)) {
+          expect(err.code).toBe('E_INVALID_QUANTITY');
+        }
+      }
+    },
+  );
+
+  it('throws typed validation error for negative trade price', () => {
+    try {
+      tradebookRowToEvents(
+        makeTradebookRow({ price: '-100' }),
+        'batch-1',
+        'file-1',
+      );
+      throw new Error('Expected invalid price validation error');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_INVALID_PRICE');
+      }
+    }
+  });
+
+  it('throws typed validation error for invalid trade type', () => {
+    try {
+      tradebookRowToEvents(
+        makeTradebookRow({ trade_type: 'hold' as 'buy' }),
+        'batch-1',
+        'file-1',
+      );
+      throw new Error('Expected invalid trade type validation error');
+    } catch (err) {
+      expect(isPipelineValidationError(err)).toBe(true);
+      if (isPipelineValidationError(err)) {
+        expect(err.code).toBe('E_INVALID_TRADE_TYPE');
+      }
+    }
+  });
+
   it('builds security_id as ISIN:xxx for equity segments when ISIN is available', () => {
     const events = tradebookRowToEvents(
       makeTradebookRow({ exchange: 'nse', symbol: 'reliance', segment: 'EQ' }),
@@ -272,6 +342,14 @@ describe('corporateActionToEvents', () => {
   it('converts STOCK_SPLIT to STOCK_SPLIT event', () => {
     const events = corporateActionToEvents(makeCorporateAction({ action_type: 'STOCK_SPLIT' }), 'b', 'f');
     expect(events[0].event_type).toBe(EventType.STOCK_SPLIT);
+  });
+
+  it('does not treat corporate action notes as a security migration reference', () => {
+    const events = corporateActionToEvents(
+      makeCorporateAction({ action_type: 'BONUS', notes: '1:1 bonus issue' }),
+      'b', 'f',
+    );
+    expect(events[0].external_ref).toBeNull();
   });
 
   it('converts RIGHTS_ISSUE with cost_per_share as rate', () => {
