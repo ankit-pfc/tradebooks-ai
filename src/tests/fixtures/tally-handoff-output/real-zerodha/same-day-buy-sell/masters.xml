@@ -13,6 +13,72 @@
       </REQUESTDESC>
       <REQUESTDATA>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Journal" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Journal</NAME>
+            </NAME.LIST>
+            <PARENT>Journal</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Receipt</NAME>
+            </NAME.LIST>
+            <PARENT>Receipt</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Payment</NAME>
+            </NAME.LIST>
+            <PARENT>Payment</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Contra</NAME>
+            </NAME.LIST>
+            <PARENT>Contra</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Purchase</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>STCG</NAME>
@@ -447,6 +513,25 @@
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>Cost of Shares Sold</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Unmatched Sell Suspense" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Unmatched Sell Suspense</NAME>
+            </NAME.LIST>
+            <PARENT>Suspense A/c</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Unmatched Sell Suspense</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

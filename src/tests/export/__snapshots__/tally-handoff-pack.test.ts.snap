@@ -16,6 +16,72 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
       </REQUESTDESC>
       <REQUESTDATA>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Journal" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Journal</NAME>
+            </NAME.LIST>
+            <PARENT>Journal</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Receipt</NAME>
+            </NAME.LIST>
+            <PARENT>Receipt</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Payment</NAME>
+            </NAME.LIST>
+            <PARENT>Payment</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Contra</NAME>
+            </NAME.LIST>
+            <PARENT>Contra</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Purchase</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>STCG</NAME>
@@ -532,14 +598,33 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="Unmatched Sell Suspense" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Unmatched Sell Suspense</NAME>
+            </NAME.LIST>
+            <PARENT>Suspense A/c</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Unmatched Sell Suspense</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Alter">
             <NAME.LIST>
               <NAME>SH</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
             <ORIGINALNAME/>
             <DECIMALPLACES>0</DECIMALPLACES>
-            <FORMALNAME>Shares</FORMALNAME>
+            <FORMALNAME>SHARE</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>SH</NAME>
@@ -591,6 +676,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08</NARRATION>
           <VOUCHERNUMBER>CN-SIMPLE-BUY</VOUCHERNUMBER>
+          <REFERENCE>CN-SIMPLE-BUY</REFERENCE>
+          <REFERENCEDATE>20240401</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -627,6 +714,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
           <VOUCHERNUMBER>ORD-1</VOUCHERNUMBER>
+          <REFERENCE>ORD-1</REFERENCE>
+          <REFERENCEDATE>20240401</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -691,6 +780,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>5 shares intraday gain in INFY</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY</VOUCHERNUMBER>
+          <REFERENCE>CN-SAME-DAY</REFERENCE>
+          <REFERENCEDATE>20240403</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -729,6 +820,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>5 shares intraday gain in INFY</NARRATION>
           <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
+          <REFERENCE>ORD-3</REFERENCE>
+          <REFERENCEDATE>20240403</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -771,6 +864,72 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </STATICVARIABLES>
       </REQUESTDESC>
       <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Journal" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Journal</NAME>
+            </NAME.LIST>
+            <PARENT>Journal</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Receipt</NAME>
+            </NAME.LIST>
+            <PARENT>Receipt</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Payment</NAME>
+            </NAME.LIST>
+            <PARENT>Payment</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Contra</NAME>
+            </NAME.LIST>
+            <PARENT>Contra</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Purchase</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
@@ -1211,6 +1370,25 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </LANGUAGENAME.LIST>
           </LEDGER>
         </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Unmatched Sell Suspense" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Unmatched Sell Suspense</NAME>
+            </NAME.LIST>
+            <PARENT>Suspense A/c</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Unmatched Sell Suspense</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
       </REQUESTDATA>
     </IMPORTDATA>
   </BODY>
@@ -1240,6 +1418,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>5 shares intraday gain in INFY</NARRATION>
           <VOUCHERNUMBER>CN-SAME-DAY</VOUCHERNUMBER>
+          <REFERENCE>CN-SAME-DAY</REFERENCE>
+          <REFERENCEDATE>20240403</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -1278,6 +1458,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>5 shares intraday gain in INFY</NARRATION>
           <VOUCHERNUMBER>ORD-3</VOUCHERNUMBER>
+          <REFERENCE>ORD-3</REFERENCE>
+          <REFERENCEDATE>20240403</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -1320,6 +1502,72 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
         </STATICVARIABLES>
       </REQUESTDESC>
       <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Journal" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Journal</NAME>
+            </NAME.LIST>
+            <PARENT>Journal</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Receipt</NAME>
+            </NAME.LIST>
+            <PARENT>Receipt</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Payment</NAME>
+            </NAME.LIST>
+            <PARENT>Payment</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Contra</NAME>
+            </NAME.LIST>
+            <PARENT>Contra</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Sales</NAME>
+            </NAME.LIST>
+            <PARENT>Sales</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
+            <NAME.LIST>
+              <NAME>Purchase</NAME>
+            </NAME.LIST>
+            <PARENT>Purchase</PARENT>
+            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+          </VOUCHERTYPE>
+        </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <GROUP NAME="STCG" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
@@ -1704,14 +1952,33 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+          <LEDGER NAME="Unmatched Sell Suspense" RESERVEDNAME="" ACTION="Create">
+            <NAME.LIST>
+              <NAME>Unmatched Sell Suspense</NAME>
+            </NAME.LIST>
+            <PARENT>Suspense A/c</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <ISINVENTORYAFFECTED>No</ISINVENTORYAFFECTED>
+            <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>Unmatched Sell Suspense</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Alter">
             <NAME.LIST>
               <NAME>SH</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
             <ORIGINALNAME/>
             <DECIMALPLACES>0</DECIMALPLACES>
-            <FORMALNAME>Shares</FORMALNAME>
+            <FORMALNAME>SHARE</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>SH</NAME>
@@ -1763,6 +2030,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08</NARRATION>
           <VOUCHERNUMBER>CN-SIMPLE-BUY</VOUCHERNUMBER>
+          <REFERENCE>CN-SIMPLE-BUY</REFERENCE>
+          <REFERENCEDATE>20240401</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
@@ -1799,6 +2068,8 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units</NARRATION>
           <VOUCHERNUMBER>ORD-1</VOUCHERNUMBER>
+          <REFERENCE>ORD-1</REFERENCE>
+          <REFERENCEDATE>20240401</REFERENCEDATE>
           <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>

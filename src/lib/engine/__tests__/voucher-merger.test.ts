@@ -344,6 +344,71 @@ describe('mergeSameRatePurchaseVouchers', () => {
     expect(merged.narrative).toContain('STT 50.00 (non-deductible)');
   });
 
+  it('merged narration sums every capitalizable charge across source fills (Bug 4)', () => {
+    // FY21-22 reviewer: "the narration for merged is not mentioning charges
+    // total as in other transaction, while it's adding up the charges. So
+    // need to charges total details in narration." This regression test
+    // locks in the summed-charge behaviour introduced for Bug 4.
+    const id1 = crypto.randomUUID();
+    const id2 = crypto.randomUUID();
+    const makeFill = (id: string): BuiltVoucherDraft => ({
+      voucher_draft_id: id,
+      import_batch_id: 'batch-1',
+      voucher_type: VoucherType.JOURNAL,
+      voucher_date: '2021-07-07',
+      external_reference: 'CN-1',
+      narrative:
+        'Purchase of TATAELXSI @ 4244.08 × 25 units | ' +
+        'brokerage 20.00, GST 3.60, stamp 0.40, exch 0.10 | ' +
+        'STT 2.50 (non-deductible)',
+      total_debit: '106127.03',
+      total_credit: '106127.03',
+      draft_status: VoucherStatus.DRAFT,
+      source_event_ids: [crypto.randomUUID()],
+      created_at: new Date().toISOString(),
+      lines: [
+        makeLine({
+          voucher_draft_id: id,
+          line_no: 1,
+          ledger_name: 'Investment in Equity Shares - TATAELXSI',
+          amount: '106102.03',
+          dr_cr: 'DR',
+          quantity: '25',
+          rate: '4244.08',
+          security_id: 'ISIN:INE670A01012',
+        }),
+        makeLine({
+          voucher_draft_id: id,
+          line_no: 2,
+          ledger_name: 'Securities Transaction Tax',
+          amount: '2.50',
+          dr_cr: 'DR',
+        }),
+        makeLine({
+          voucher_draft_id: id,
+          line_no: 3,
+          ledger_name: 'Zerodha Kite',
+          amount: '106127.03',
+          dr_cr: 'CR',
+        }),
+      ],
+    });
+
+    const result = mergeSameRatePurchaseVouchers([makeFill(id1), makeFill(id2)]);
+    expect(result).toHaveLength(1);
+    const merged = result[0];
+
+    // Merged narrative includes summed capitalizable charges AND the STT
+    // total (previously only STT was surfaced; brokerage/GST/stamp/exch
+    // were lost).
+    expect(merged.narrative).toContain('brokerage 40.00');
+    expect(merged.narrative).toContain('GST 7.20');
+    expect(merged.narrative).toContain('stamp 0.80');
+    expect(merged.narrative).toContain('exch 0.20');
+    expect(merged.narrative).toContain('STT 5.00 (non-deductible)');
+    expect(merged.narrative).toContain('[merged 2 fills]');
+  });
+
   it('merges investor-mode JOURNAL buys (narrative-prefix detection)', () => {
     const b1 = makeInvestorJournalBuyVoucher({});
     const b2 = makeInvestorJournalBuyVoucher({});

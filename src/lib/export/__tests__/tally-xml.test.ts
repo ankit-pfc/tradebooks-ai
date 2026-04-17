@@ -228,3 +228,78 @@ describe('generateVouchersXml — investor pipeline emits JV only', () => {
     expect(xml).toContain('<BILLEDQTY>');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Bug 1 + Bug 2 regressions — Tally XML masters / voucher side.
+// ---------------------------------------------------------------------------
+describe('tally-xml masters regressions', () => {
+  it('Bug 1: UNIT master for SH is emitted as ACTION=Alter with FORMALNAME=SHARE', async () => {
+    const { generateMastersXml } = await import('../tally-xml');
+    const xml = generateMastersXml(
+      [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
+      'Test Co',
+      undefined,
+      [{ name: 'RELIANCE-SH', baseUnit: 'SH' }],
+    );
+
+    // User requirement: Unit "SH" must have Formal name "SHARE" (singular).
+    // ACTION=Alter ensures re-imports into a company with a pre-existing
+    // broken "SH" unit get corrected in place.
+    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Alter">');
+    expect(xml).toContain('<FORMALNAME>SHARE</FORMALNAME>');
+    // No "]MISSING MASTER NAME" artefact — FORMALNAME is emitted for every unit.
+    expect(xml).not.toMatch(/<FORMALNAME>\s*<\/FORMALNAME>/);
+  });
+
+  it('Bug 2: masters XML alters the Journal voucher type to Manual numbering', async () => {
+    const { generateMastersXml } = await import('../tally-xml');
+    const xml = generateMastersXml([], 'Test Co', undefined, []);
+
+    // Journal voucher type must get NUMBERINGMETHOD=Manual so that the
+    // VOUCHERNUMBER carried in voucher XML (= contract note reference)
+    // survives the Tally import instead of being auto-renumbered 1..N.
+    expect(xml).toMatch(
+      /<VOUCHERTYPE NAME="Journal"[^>]*ACTION="Alter"[^>]*>[\s\S]*?<NUMBERINGMETHOD>Manual<\/NUMBERINGMETHOD>/,
+    );
+  });
+});
+
+describe('tally-xml voucher reference regressions (Bug 2)', () => {
+  it('emits REFERENCE + REFERENCEDATE for any voucher with an external_reference', () => {
+    const voucher: VoucherDraftWithLines = {
+      voucher_draft_id: 'v1',
+      import_batch_id: 'b1',
+      voucher_type: VoucherType.JOURNAL,
+      invoice_intent: InvoiceIntent.NONE,
+      voucher_date: '2024-06-15',
+      external_reference: 'CN-42',
+      narrative: 'test',
+      total_debit: '1000.00',
+      total_credit: '1000.00',
+      draft_status: VoucherStatus.DRAFT,
+      source_event_ids: ['e1'],
+      created_at: new Date().toISOString(),
+      lines: [
+        {
+          voucher_line_id: 'l1', voucher_draft_id: 'v1', line_no: 1,
+          ledger_name: 'Zerodha Broker', amount: '1000.00', dr_cr: 'DR',
+          security_id: null, quantity: null, rate: null,
+          stock_item_name: null, cost_center: null, bill_ref: null,
+        },
+        {
+          voucher_line_id: 'l2', voucher_draft_id: 'v1', line_no: 2,
+          ledger_name: 'Bank Account', amount: '1000.00', dr_cr: 'CR',
+          security_id: null, quantity: null, rate: null,
+          stock_item_name: null, cost_center: null, bill_ref: null,
+        },
+      ],
+    };
+
+    const xml = generateVouchersXml([voucher], 'Test Co');
+    // VOUCHERNUMBER preserved (existing behaviour).
+    expect(xml).toContain('<VOUCHERNUMBER>CN-42</VOUCHERNUMBER>');
+    // New: REFERENCE populates the Tally "Ref" column, visible in Daybook.
+    expect(xml).toContain('<REFERENCE>CN-42</REFERENCE>');
+    expect(xml).toContain('<REFERENCEDATE>20240615</REFERENCEDATE>');
+  });
+});

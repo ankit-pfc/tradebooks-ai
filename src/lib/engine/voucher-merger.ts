@@ -132,7 +132,9 @@ export function mergeSameRateTradeVouchers(
     mergedTrades.push(mergeGroup(group.map((e) => e.voucher), group[0].side));
   }
 
-  // Preserve chronological ordering across all voucher types
+  // Preserve chronological ordering across all voucher types.
+  // Pre-merge source vouchers share identical dates so this sort is stable
+  // regardless of whether a group was collapsed or not.
   return [...mergedTrades, ...others].sort((a, b) =>
     a.voucher_date.localeCompare(b.voucher_date),
   );
@@ -303,7 +305,16 @@ function mergeGroup(
     .reduce((sum, l) => sum.add(new Decimal(l.amount)), new Decimal(0))
     .toFixed(2);
 
-  const narrative = buildMergedTradeNarrative(mergedLines, side, group.length, mode);
+  const sourceNarratives = group
+    .map((v) => v.narrative)
+    .filter((n): n is string => typeof n === 'string' && n.length > 0);
+  const narrative = buildMergedTradeNarrative(
+    mergedLines,
+    side,
+    group.length,
+    mode,
+    sourceNarratives,
+  );
 
   return {
     ...base,
@@ -319,28 +330,38 @@ function mergeGroup(
 }
 
 /**
- * Build a narrative for a merged trade voucher from the merged lines.
+ * Build a narrative for a merged trade voucher.
  *
- * Investor-mode trade vouchers (after voucher-builder Fix 1+2) no longer
- * carry individual brokerage / GST / stamp DR lines — those amounts are
- * absorbed into the asset line on a buy and into the net broker line on a
- * sell. So we cannot reconstruct the per-charge breakdown from the merged
- * lines. What we CAN reconstruct:
+ * The investor-mode buy voucher capitalizes brokerage/exchange/SEBI/stamp/GST
+ * into the asset line, so the merged lines alone cannot tell us what each
+ * charge was worth. But every source voucher's narrative DOES carry the
+ * per-fill breakdown that buildTradeNarrative emits, e.g.:
  *
- *   - total quantity and effective rate on the stock line
- *   - STT total (always posted as its own DR line when non-zero)
+ *   "Purchase of RELIANCE @ 2500 × 10 units |
+ *    brokerage 20.00, GST 3.60, stamp 0.40, exch 0.10 |
+ *    STT 2.50 (non-deductible)"
  *
- * That's enough for an auditable one-liner:
- *   "Purchase of RELIANCE @ 2502.04 × 20 units | STT 5.00 (non-deductible) [merged 2 fills]"
- *   "Sale of RELIANCE @ 2600.00 × 20 units | STT 5.20 (non-deductible) [merged 2 fills]"
+ * We sum every recognised charge label across the group's source narratives
+ * and produce:
  *
- * The user can drill into the voucher lines for the exact split.
+ *   "Purchase of RELIANCE @ 2502.04 × 20 units |
+ *    brokerage 40.00, GST 7.20, stamp 0.80, exch 0.20 |
+ *    STT 5.00 (non-deductible) [merged 2 fills]"
+ *
+ * The FY21-22 reviewer explicitly asked for this: "the narration for merged
+ * is not mentioning charges total as in other transaction, while it's adding
+ * up the charges. So need to charges total details in narration."
+ *
+ * Falls back to the previous lines-only behaviour when source narratives are
+ * missing or unparseable (e.g. intraday consolidated vouchers with their own
+ * narration format).
  */
 function buildMergedTradeNarrative(
   lines: VoucherLine[],
   side: TradeSide,
   mergedCount: number,
   mode: PurchaseMergeMode,
+  sourceNarratives: readonly string[] = [],
 ): string | null {
   const sideLabel = side === 'buy' ? 'Purchase of' : 'Sale of';
   const stockDrCr: 'DR' | 'CR' = side === 'buy' ? 'DR' : 'CR';
@@ -355,21 +376,109 @@ function buildMergedTradeNarrative(
   const ledgerParts = stockLine.ledger_name.split(' - ');
   const symbol = ledgerParts.length > 1 ? ledgerParts[ledgerParts.length - 1] : stockLine.ledger_name;
 
-  // STT is posted as its own DR line on both buy and sell vouchers in
-  // investor mode. Detect it by ledger-name match so overridden Tally-profile
-  // STT ledger names still resolve correctly.
-  const sttLine = lines.find(
-    (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
-  );
+  // Aggregate charges across source narratives.
+  //   capitalizable: {label → Decimal} preserving first-seen label order.
+  //   sttTotal: Decimal | null
+  const capitalizable = new Map<string, Decimal>();
+  let sttTotal: Decimal | null = null;
+  for (const narrative of sourceNarratives) {
+    const parsed = parseTradeNarrativeCharges(narrative);
+    if (!parsed) continue;
+    for (const { label, amount } of parsed.capitalizable) {
+      const existing = capitalizable.get(label) ?? new Decimal(0);
+      capitalizable.set(label, existing.add(amount));
+    }
+    if (parsed.stt) {
+      sttTotal = (sttTotal ?? new Decimal(0)).add(parsed.stt);
+    }
+  }
+
+  // STT fallback: when narrative parsing yielded nothing (e.g. old intraday
+  // narrations), look at the STT voucher line directly.
+  if (sttTotal === null) {
+    const sttLine = lines.find(
+      (l) => l.dr_cr === 'DR' && /securities transaction tax|^stt\b/i.test(l.ledger_name),
+    );
+    if (sttLine) {
+      const amount = new Decimal(sttLine.amount);
+      if (!amount.isZero()) {
+        sttTotal = amount;
+      }
+    }
+  }
 
   const parts = [`${sideLabel} ${symbol} @ ${stockLine.rate} × ${stockLine.quantity} units`];
-  if (sttLine) {
-    const sttAmount = new Decimal(sttLine.amount);
-    if (!sttAmount.isZero()) {
-      parts.push(`STT ${sttAmount.toFixed(2)} (non-deductible)`);
+  if (capitalizable.size > 0) {
+    const chargeParts: string[] = [];
+    for (const [label, amount] of capitalizable) {
+      if (amount.isZero()) continue;
+      chargeParts.push(`${label} ${amount.toFixed(2)}`);
     }
+    if (chargeParts.length > 0) {
+      parts.push(chargeParts.join(', '));
+    }
+  }
+  if (sttTotal !== null && !sttTotal.isZero()) {
+    parts.push(`STT ${sttTotal.toFixed(2)} (non-deductible)`);
   }
   const fillsLabel = mode === 'daily_summary' ? 'trades' : 'fills';
   parts.push(`[merged ${mergedCount} ${fillsLabel}]`);
   return parts.join(' | ');
+}
+
+/**
+ * Parse a per-fill trade narrative emitted by voucher-builder.buildTradeNarrative
+ * into its charge components.
+ *
+ * Accepted input (pipe-separated segments):
+ *   "Purchase of RELIANCE @ 2500 × 10 units"
+ *   "Purchase of RELIANCE @ 2500 × 10 units | brokerage 20.00, GST 3.60"
+ *   "Purchase of RELIANCE @ 2500 × 10 units | brokerage 20.00 | STT 2.50 (non-deductible)"
+ *
+ * Returns null for narratives that don't start with "Purchase of" / "Sale of"
+ * (e.g. intraday consolidated vouchers) so callers can fall back cleanly.
+ *
+ * The STT segment is matched by the trailing "(non-deductible)" marker so
+ * that any STT amount accidentally included in the capitalizable list is
+ * not double-counted.
+ */
+function parseTradeNarrativeCharges(narrative: string): {
+  capitalizable: Array<{ label: string; amount: Decimal }>;
+  stt: Decimal | null;
+} | null {
+  if (!/^(Purchase|Sale) of\b/.test(narrative)) return null;
+  const segments = narrative.split('|').map((s) => s.trim());
+  if (segments.length === 0) return null;
+
+  const capitalizable: Array<{ label: string; amount: Decimal }> = [];
+  let stt: Decimal | null = null;
+
+  // Skip the prefix segment ("Purchase of RELIANCE @ 2500 × 10 units").
+  for (let i = 1; i < segments.length; i++) {
+    const segment = segments[i];
+    if (!segment) continue;
+
+    // STT segment: "STT 2.50 (non-deductible)" — capture the number.
+    const sttMatch = segment.match(/^STT\s+([-+]?\d+(?:\.\d+)?)\s*\(non-deductible\)/i);
+    if (sttMatch) {
+      stt = (stt ?? new Decimal(0)).add(new Decimal(sttMatch[1]));
+      continue;
+    }
+
+    // Skip noise segments (e.g. merged-fills marker, review hints).
+    if (/^\[/.test(segment) || /^\(/.test(segment)) continue;
+
+    // Capitalizable charges: "brokerage 20.00, GST 3.60, stamp 0.40, exch 0.10"
+    // Split on commas and match each "label amount" pair.
+    const items = segment.split(',').map((s) => s.trim()).filter(Boolean);
+    for (const item of items) {
+      const m = item.match(/^([A-Za-z][A-Za-z\s]*?)\s+([-+]?\d+(?:\.\d+)?)$/);
+      if (!m) continue;
+      const label = m[1].trim();
+      const amount = new Decimal(m[2]);
+      capitalizable.push({ label, amount });
+    }
+  }
+
+  return { capitalizable, stt };
 }

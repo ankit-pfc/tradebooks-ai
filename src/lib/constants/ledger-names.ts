@@ -360,6 +360,25 @@ export const OFF_MARKET_SUSPENSE: LedgerDef = {
   group: 'Suspense A/c',
 };
 
+/**
+ * Suspense ledger for sells where the cost-lot tracker found no prior
+ * purchase (uncovered disposal). Per FY21-22 review feedback: "we cannot
+ * assume that it's a STCG … instead keep such incomplete transactions in
+ * suspense with narration mentioning transaction details so that the
+ * person can decide what they need to do". Used for:
+ *   • Sells with no opening stock and no matching buy in the batch
+ *     (e.g. IEX sold 30 on 07-07-21 when only the sell was imported).
+ *   • Post-split sells whose pre-split lots were not carried forward
+ *     (e.g. IRCTC 12-Nov-21 sells after the 1:5 face-value split).
+ *   • Prior-year holdings that exist in Tally as opening balances but
+ *     were never seeded into the pipeline's cost tracker (63MOONS,
+ *     FIEMIND sells in FY22-23 after FY21-22 import).
+ */
+export const UNMATCHED_SELL_SUSPENSE: LedgerDef = {
+  name: 'Unmatched Sell Suspense',
+  group: 'Suspense A/c',
+};
+
 // ---------------------------------------------------------------------------
 // Custom sub-groups required for Capital Account approach
 // ---------------------------------------------------------------------------
@@ -409,6 +428,7 @@ export const SYSTEM_LEDGERS: readonly SystemLedgerEntry[] = [
   { key: 'TDS_ON_DIVIDEND', name: TDS_ON_DIVIDEND.name, group: TDS_ON_DIVIDEND.group },
   { key: 'TDS_ON_SECURITIES', name: TDS_ON_SECURITIES.name, group: TDS_ON_SECURITIES.group },
   { key: 'OFF_MARKET_SUSPENSE', name: OFF_MARKET_SUSPENSE.name, group: OFF_MARKET_SUSPENSE.group },
+  { key: 'UNMATCHED_SELL_SUSPENSE', name: UNMATCHED_SELL_SUSPENSE.name, group: UNMATCHED_SELL_SUSPENSE.group },
 ] as const;
 
 /** Set of all system ledger keys for quick lookup. */

@@ -623,6 +623,59 @@ describe('buildSttSummaryVoucher — sign handling', () => {
 });
 
 // ---------------------------------------------------------------------------
+// buildSttSummaryVouchers — monthly grouping (Bug 7)
+// ---------------------------------------------------------------------------
+describe('buildSttSummaryVouchers — per-calendar-month grouping', () => {
+  it('emits ONE voucher per calendar month (Bug 7 requirement)', async () => {
+    const { buildSttSummaryVouchers } = await import('../voucher-builder');
+    const vouchers = buildSttSummaryVouchers([
+      // April 2021
+      makeChargeEvent(EventType.STT, '10.00', 'NSE:A', { event_date: '2021-04-05' }),
+      makeChargeEvent(EventType.STT, '5.00', 'NSE:B', { event_date: '2021-04-20' }),
+      // May 2021
+      makeChargeEvent(EventType.STT, '8.00', 'NSE:C', { event_date: '2021-05-10' }),
+      // July 2021 (gap from May is fine)
+      makeChargeEvent(EventType.STT, '12.00', 'NSE:D', { event_date: '2021-07-07' }),
+    ]);
+
+    expect(vouchers).toHaveLength(3);
+    // Sorted chronologically so callers can append directly to the voucher list.
+    expect(vouchers.map((v) => v.voucher_date)).toEqual([
+      '2021-04-20',
+      '2021-05-10',
+      '2021-07-07',
+    ]);
+
+    // April month: 10 + 5 = 15
+    expect(vouchers[0].total_debit).toBe('15.00');
+    expect(vouchers[0].narrative).toContain('STT for period 2021-04-05 to 2021-04-20 — 2 trade(s)');
+    // May month: just 8
+    expect(vouchers[1].total_debit).toBe('8.00');
+    expect(vouchers[1].narrative).toContain('1 trade(s)');
+    // July month: 12
+    expect(vouchers[2].total_debit).toBe('12.00');
+  });
+
+  it('drops months whose STT events sum to zero', async () => {
+    const { buildSttSummaryVouchers } = await import('../voucher-builder');
+    const vouchers = buildSttSummaryVouchers([
+      // April: net zero — skipped
+      makeChargeEvent(EventType.STT, '10.00', 'NSE:A', { event_date: '2021-04-05' }),
+      makeChargeEvent(EventType.STT, '-10.00', 'NSE:A', { event_date: '2021-04-06' }),
+      // May: non-zero — kept
+      makeChargeEvent(EventType.STT, '5.00', 'NSE:B', { event_date: '2021-05-01' }),
+    ]);
+    expect(vouchers).toHaveLength(1);
+    expect(vouchers[0].voucher_date).toBe('2021-05-01');
+  });
+
+  it('returns empty array when no events are supplied', async () => {
+    const { buildSttSummaryVouchers } = await import('../voucher-builder');
+    expect(buildSttSummaryVouchers([])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // buildCorporateActionVoucher
 // ---------------------------------------------------------------------------
 describe('buildCorporateActionVoucher', () => {
@@ -718,8 +771,9 @@ describe('buildBuyVoucher — capitalize RATE reflects all-in cost', () => {
 // ---------------------------------------------------------------------------
 // Uncovered (zero-cost) disposal — emitted by cost-lots.ts when sell quantity
 // exceeds open lots. Voucher builder must emit a balanced voucher with NO
-// asset / stock-in-trade CR line (nothing to clear), routing the full
-// proceeds to the gain ledger.
+// asset / stock-in-trade CR line (nothing to clear). Per FY21-22 review the
+// proceeds are routed to the Unmatched Sell Suspense ledger — the reviewer
+// cannot assume STCG for a sell with no prior purchase (see ledger-names.ts).
 // ---------------------------------------------------------------------------
 describe('buildSellVoucher — uncovered disposal (zero cost basis)', () => {
   const zeroCostDisposals = [{
@@ -731,7 +785,7 @@ describe('buildSellVoucher — uncovered disposal (zero cost basis)', () => {
     gain_or_loss: '26000.00',
   }];
 
-  it('investor mode: emits a balanced voucher without an asset CR line', () => {
+  it('investor mode: routes full proceeds to Unmatched Sell Suspense (not STCG)', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostDisposals, 100);
 
@@ -740,13 +794,22 @@ describe('buildSellVoucher — uncovered disposal (zero cost basis)', () => {
     expect(
       voucher.lines.find((l) => l.dr_cr === 'CR' && l.ledger_name.includes('Investment in Equity Shares')),
     ).toBeUndefined();
-    // Full gross proceeds land on the STCG/gain ledger (holding = 100 days).
-    const gainLine = voucher.lines.find((l) => l.dr_cr === 'CR' && l.ledger_name.includes('Short Term Capital Gain'));
-    expect(gainLine).toBeDefined();
-    expect(gainLine!.amount).toBe('26000.00');
+    // STCG/LTCG must NOT fire — cost basis is unknown.
+    expect(
+      voucher.lines.find((l) => l.dr_cr === 'CR' && l.ledger_name.includes('Short Term Capital Gain')),
+    ).toBeUndefined();
+    // Proceeds land on the Unmatched Sell Suspense ledger for manual review.
+    const suspenseLine = voucher.lines.find(
+      (l) => l.dr_cr === 'CR' && l.ledger_name === 'Unmatched Sell Suspense',
+    );
+    expect(suspenseLine).toBeDefined();
+    expect(suspenseLine!.amount).toBe('26000.00');
+    // Narrative flags the issue so the reviewer can reclassify in Tally.
+    expect(voucher.narrative).toContain('REVIEW');
+    expect(voucher.narrative).toContain('no prior purchase');
   });
 
-  it('trader mode: emits a balanced voucher without a Shares-in-Trade CR line', () => {
+  it('trader mode: routes full gross to Unmatched Sell Suspense (not Trading Sales)', () => {
     const event = makeSellEvent({ gross_amount: '26000.00' });
     const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostDisposals);
 
@@ -755,10 +818,13 @@ describe('buildSellVoucher — uncovered disposal (zero cost basis)', () => {
     expect(findLine(voucher.lines, 'Cost of Shares Sold', 'DR')).toBeUndefined();
     // No Shares-in-Trade CR either — there is nothing to clear.
     expect(findLine(voucher.lines, 'Shares-in-Trade', 'CR')).toBeUndefined();
-    // Trading Sales CR still absorbs the gross.
-    const salesLine = findLine(voucher.lines, 'Trading Sales', 'CR');
-    expect(salesLine).toBeDefined();
-    expect(salesLine!.amount).toBe('26000.00');
+    // Trading Sales MUST NOT get the gross — that would inflate business
+    // revenue for a sell whose cost basis is unknown.
+    expect(findLine(voucher.lines, 'Trading Sales', 'CR')).toBeUndefined();
+    // Suspense CR absorbs the gross instead.
+    const suspenseLine = findLine(voucher.lines, 'Unmatched Sell Suspense', 'CR');
+    expect(suspenseLine).toBeDefined();
+    expect(suspenseLine!.amount).toBe('26000.00');
   });
 });
 

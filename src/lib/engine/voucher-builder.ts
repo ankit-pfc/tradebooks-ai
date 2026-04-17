@@ -703,10 +703,32 @@ export function buildSellVoucher(
   const skipInventory = isSpeculativeTrade(event);
   // Uncovered disposal: cost-lots engine emits a zero-cost disposal when
   // sell quantity exceeds the open lots (see cost-lots.ts _disposeFifo /
-  // _disposeWeightedAverage). In that case there is no inventory to clear,
-  // so we skip the asset CR line entirely and route the full proceeds to
-  // the gain ledger. Tally handles the stock-register reconciliation.
+  // _disposeWeightedAverage). That happens when:
+  //   • The scrip has no opening stock and no matching buy in the batch
+  //     (e.g. IEX sold 30 on 07-07-21 — only the sell was imported).
+  //   • Post-split sells whose pre-split lots were not carried forward
+  //     (e.g. IRCTC 12-Nov-21 sells after the 1:5 face-value split).
+  //   • Prior-year holdings that exist in Tally as opening balances but
+  //     were never seeded into the pipeline's cost tracker (63MOONS and
+  //     FIEMIND sells in FY22-23 after FY21-22 import).
+  // Per FY21-22 review feedback, the gain/loss on a fully-uncovered sell
+  // must NOT default to STCG — "we cannot assume that it's a STCG …
+  // instead keep such incomplete transactions in suspense with narration
+  // mentioning transaction details so the person can decide what they need
+  // to do." We route the full proceeds to UNMATCHED_SELL_SUSPENSE and skip
+  // the asset / capital-gain lines on a fully-uncovered disposal.
   const hasZeroCostBasis = totalCostBasis.isZero();
+  const hasUncoveredDisposal = costDisposals.some(
+    (d) => d.lot_id === 'uncovered' || new Decimal(d.total_cost).isZero(),
+  );
+  const fullyUncovered =
+    hasUncoveredDisposal &&
+    hasZeroCostBasis &&
+    // Defensive: zero-cost AND no real disposals can mean "no sell qty" —
+    // which should never happen here — or "all lots were fully consumed by
+    // prior zero-cost adjustments". Require at least one explicit uncovered
+    // disposal record before switching to suspense routing.
+    costDisposals.length > 0;
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
@@ -756,14 +778,28 @@ export function buildSellVoucher(
       );
     }
 
-    // CR or DR: Capital gain / loss.
+    // CR or DR: Capital gain / loss — OR suspense on a fully-uncovered sell.
     //
+    // Fully-uncovered sell: the sell has no matching prior purchase and no
+    // opening lot. Per FY21-22 review feedback, route the full sale
+    // consideration to UNMATCHED_SELL_SUSPENSE instead of auto-classifying
+    // as STCG. The narrative carries the date/qty/rate so the person can
+    // reclassify manually in Tally.
+    //
+    // Balance check (uncovered case):
+    //   DR broker (gross − all) + DR STT (stt) = gross − non-STT
+    //   CR suspense (saleConsideration)                                  ✓
+    if (fullyUncovered) {
+      lines.push(
+        makeLine(draftId, lineNo++, L.UNMATCHED_SELL_SUSPENSE.name, saleConsideration, 'CR'),
+      );
+    } else {
     // Computed from saleConsideration (gross − non-STT charges) so the
     // ledger amount matches ITR-2's Schedule CG reporting. STT is a
     // disallowed expense and is excluded from the consideration figure
     // by construction (it lives on its own DR line above).
     //
-    // Balance check:
+    // Balance check (covered case):
     //   DR broker (gross − all) + DR STT (stt) = gross − non-STT = saleConsideration
     //   CR investment (costBasis) + CR gain (saleConsideration − costBasis) = saleConsideration ✓
     const investorIsGain = investorGainLoss.greaterThanOrEqualTo(0);
@@ -807,6 +843,7 @@ export function buildSellVoucher(
         lines.push(makeLine(draftId, lineNo++, lossLedger, investorGainLoss.abs(), 'DR'));
       }
     }
+    } // end else (covered-case gain/loss branch)
   } else {
     // Trader mode
     const stockLedger = tallyProfile
@@ -835,8 +872,19 @@ export function buildSellVoucher(
       );
     }
 
-    // CR: Trading Sales at gross
-    lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
+    // CR: Trading Sales at gross — UNLESS the sell is fully uncovered, in
+    // which case we redirect the full gross proceeds to the unmatched-sell
+    // suspense ledger. This mirrors the investor-mode routing: a sell with
+    // no opening stock and no matching buy should not inflate Trading Sales
+    // (which is the business-income revenue line) until the user decides
+    // how to classify it in Tally.
+    if (fullyUncovered) {
+      lines.push(
+        makeLine(draftId, lineNo++, L.UNMATCHED_SELL_SUSPENSE.name, grossAmount, 'CR'),
+      );
+    } else {
+      lines.push(makeLine(draftId, lineNo++, L.TRADING_SALES.name, grossAmount, 'CR'));
+    }
 
     // CR: Shares-in-Trade at cost basis.
     // Uncovered disposals have zero cost basis — skip the line entirely so
@@ -858,6 +906,14 @@ export function buildSellVoucher(
   }
 
   const qty = new Decimal(event.quantity).abs();
+  // When the sell has no matching opening stock / prior purchase, flag the
+  // narrative so the reviewer sees "REVIEW — no prior purchase" next to the
+  // trade details. Suspense routing is already applied above; this just
+  // makes the reason visible in the Tally daybook.
+  const baseNarrative = buildTradeNarrative('sell', symbol, qty, event.rate, chargeEvents);
+  const narrative = fullyUncovered
+    ? `${baseNarrative} [REVIEW: no prior purchase found on ${event.event_date} — posted to Unmatched Sell Suspense, please reclassify]`
+    : withTradeReviewNarrative(baseNarrative, event);
   const draft: BuiltVoucherDraft = {
     voucher_draft_id: draftId,
     import_batch_id: event.import_batch_id,
@@ -874,10 +930,7 @@ export function buildSellVoucher(
     voucher_date: event.event_date,
     // Voucher number = bare contract note reference. See buildBuyVoucher.
     external_reference: event.contract_note_ref ?? event.external_ref ?? null,
-    narrative: withTradeReviewNarrative(
-      buildTradeNarrative('sell', symbol, qty, event.rate, chargeEvents),
-      event,
-    ),
+    narrative,
     total_debit: '0',
     total_credit: '0',
     draft_status: VoucherStatus.DRAFT,
@@ -1457,55 +1510,112 @@ export function buildSttSummaryVoucher(
   sttEvents: CanonicalEvent[],
   tallyProfile?: TallyProfile,
 ): BuiltVoucherDraft | null {
-  if (sttEvents.length === 0) return null;
+  const vouchers = buildSttSummaryVouchers(sttEvents, tallyProfile);
+  if (vouchers.length === 0) return null;
+  // Legacy single-voucher shim: when there's only one month's worth of STT,
+  // the monthly and batch-level variants produce the same voucher. Callers
+  // that still use the singular name (older tests, older pipeline code) get
+  // the most recent month's voucher so its voucher_date stays at the batch
+  // tail — matching the previous behaviour.
+  return vouchers[vouchers.length - 1];
+}
 
-  const totalStt = sttEvents.reduce(
-    (sum, e) => sum.add(new Decimal(e.charge_amount)),
-    new Decimal(0),
-  );
-  if (totalStt.isZero()) return null;
+/**
+ * Build ONE STT Journal voucher per calendar month for all non-intraday STT.
+ *
+ * Per FY21-22 reviewer: "Monthly 1 entry of total STT can be commonly
+ * passed for investment entries." A single batch-wide STT journal collapses
+ * the month-level detail that tax practitioners rely on for ITR-2
+ * Schedule CG reconciliation; emitting one journal per YYYY-MM keeps each
+ * month's broker statement independently reconcilable.
+ *
+ * Normal case (net STT > 0 for the month):
+ *   DR  STT                                  {month STT}
+ *   CR  Zerodha Broking                      {month STT}
+ *
+ * Negative-sign case (net STT < 0 — broker reversed STT on a cancelled
+ * trade within the same month): flip DR/CR so the voucher stays balanced
+ * and the broker cash flow mirrors the refund.
+ *
+ * Months whose STT events sum to zero are dropped (no voucher emitted).
+ * Each voucher's event_date is set to the LAST STT event date within that
+ * month so the Tally daybook shows the month-end position.
+ */
+export function buildSttSummaryVouchers(
+  sttEvents: CanonicalEvent[],
+  tallyProfile?: TallyProfile,
+): BuiltVoucherDraft[] {
+  if (sttEvents.length === 0) return [];
 
-  const dates = sttEvents.map((e) => e.event_date).sort();
-  const earliest = dates[0];
-  const latest = dates[dates.length - 1];
-  const tradeCount = sttEvents.length;
+  // Group by YYYY-MM prefix of event_date. Dates are ISO strings so string
+  // slicing is safe here — canonical-events guarantees normalized dates.
+  const byMonth = new Map<string, CanonicalEvent[]>();
+  for (const e of sttEvents) {
+    const monthKey = e.event_date.slice(0, 7); // "YYYY-MM"
+    const bucket = byMonth.get(monthKey);
+    if (bucket) {
+      bucket.push(e);
+    } else {
+      byMonth.set(monthKey, [e]);
+    }
+  }
 
   const sttLedger = tallyProfile
     ? resolveChargeLedger(tallyProfile, EventType.STT).name
     : L.STT.name;
   const brokerLedger = tallyProfile?.broker.name ?? L.BROKER.name;
 
-  const draftId = crypto.randomUUID();
-  const isRefund = totalStt.isNegative();
-  const absAmount = totalStt.abs();
-  const lines: VoucherLine[] = isRefund
-    ? [
-        makeLine(draftId, 1, brokerLedger, absAmount, 'DR'),
-        makeLine(draftId, 2, sttLedger, absAmount, 'CR'),
-      ]
-    : [
-        makeLine(draftId, 1, sttLedger, totalStt, 'DR'),
-        makeLine(draftId, 2, brokerLedger, totalStt, 'CR'),
-      ];
+  const vouchers: BuiltVoucherDraft[] = [];
 
-  const draft: BuiltVoucherDraft = {
-    voucher_draft_id: draftId,
-    import_batch_id: sttEvents[0].import_batch_id,
-    voucher_type: VoucherType.JOURNAL,
-    invoice_intent: InvoiceIntent.NONE,
-    voucher_date: latest,
-    external_reference: null,
-    narrative: `STT for period ${earliest} to ${latest} — ${tradeCount} trade(s)`,
-    total_debit: '0',
-    total_credit: '0',
-    draft_status: VoucherStatus.DRAFT,
-    source_event_ids: sttEvents.map((e) => e.event_id),
-    created_at: new Date().toISOString(),
-    lines,
-  };
+  // Walk months chronologically so the emitted vouchers are in date order.
+  const sortedMonths = [...byMonth.keys()].sort();
+  for (const monthKey of sortedMonths) {
+    const monthEvents = byMonth.get(monthKey)!;
+    const totalStt = monthEvents.reduce(
+      (sum, e) => sum.add(new Decimal(e.charge_amount)),
+      new Decimal(0),
+    );
+    if (totalStt.isZero()) continue;
 
-  assertBalanced(draft);
-  return draft;
+    const dates = monthEvents.map((e) => e.event_date).sort();
+    const earliest = dates[0];
+    const latest = dates[dates.length - 1];
+    const tradeCount = monthEvents.length;
+
+    const draftId = crypto.randomUUID();
+    const isRefund = totalStt.isNegative();
+    const absAmount = totalStt.abs();
+    const lines: VoucherLine[] = isRefund
+      ? [
+          makeLine(draftId, 1, brokerLedger, absAmount, 'DR'),
+          makeLine(draftId, 2, sttLedger, absAmount, 'CR'),
+        ]
+      : [
+          makeLine(draftId, 1, sttLedger, totalStt, 'DR'),
+          makeLine(draftId, 2, brokerLedger, totalStt, 'CR'),
+        ];
+
+    const draft: BuiltVoucherDraft = {
+      voucher_draft_id: draftId,
+      import_batch_id: monthEvents[0].import_batch_id,
+      voucher_type: VoucherType.JOURNAL,
+      invoice_intent: InvoiceIntent.NONE,
+      voucher_date: latest,
+      external_reference: null,
+      narrative: `STT for period ${earliest} to ${latest} — ${tradeCount} trade(s)`,
+      total_debit: '0',
+      total_credit: '0',
+      draft_status: VoucherStatus.DRAFT,
+      source_event_ids: monthEvents.map((e) => e.event_id),
+      created_at: new Date().toISOString(),
+      lines,
+    };
+
+    assertBalanced(draft);
+    vouchers.push(draft);
+  }
+
+  return vouchers;
 }
 
 // ---------------------------------------------------------------------------
@@ -1871,12 +1981,14 @@ export function buildVouchers(
     }
   }
 
-  // Lump-sum STT journal: one entry for all STT filtered from trade vouchers.
-  // STT is non-deductible (not part of cost basis or expense) but the money
-  // flows through the broker account, so recording it keeps the Zerodha
-  // Ledger reconcilable with the broker statement.
-  const sttVoucher = buildSttSummaryVoucher(filteredSttEvents, tallyProfile);
-  if (sttVoucher) vouchers.push(sttVoucher);
+  // Monthly STT journal vouchers: one entry per calendar month for all
+  // delivery-mode STT filtered from individual trade vouchers. STT is
+  // non-deductible (not part of cost basis or expense) but the money flows
+  // through the broker account, so recording it keeps the Zerodha ledger
+  // reconcilable with the broker statement. Per FY21-22 reviewer: "Monthly
+  // 1 entry of total STT can be commonly passed for investment entries."
+  const sttVouchers = buildSttSummaryVouchers(filteredSttEvents, tallyProfile);
+  vouchers.push(...sttVouchers);
 
   return vouchers;
 }

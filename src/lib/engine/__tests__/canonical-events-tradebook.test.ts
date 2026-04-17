@@ -564,4 +564,45 @@ describe('cross-exchange equity normalisation', () => {
     expect(bse[0].security_id).toBe('BSE:NIFTY24DECFUT');
     expect(nse[0].security_id).not.toBe(bse[0].security_id);
   });
+
+  it(
+    'Bug 5: same ISIN with different per-exchange symbols collapses to one canonical symbol',
+    () => {
+      // Reproduces the FY21-22 scenario where the same share trades as
+      // DEEPAKNI on BSE and DEEPAKNTR on NSE (shared ISIN INE288B01029),
+      // and the same for OCCL vs ORIENTCQ / RELIANCEPP vs RELIANCEP1.
+      // Result: one Tally stock ledger per ISIN, not per exchange symbol.
+      const rows = [
+        makeTradebookRow({
+          exchange: 'BSE', symbol: 'DEEPAKNI', segment: 'EQ',
+          isin: 'INE288B01029', trade_type: 'buy', trade_id: 'T1', order_id: 'O1',
+        }),
+        makeTradebookRow({
+          exchange: 'NSE', symbol: 'DEEPAKNTR', segment: 'EQ',
+          isin: 'INE288B01029', trade_type: 'sell', trade_id: 'T2', order_id: 'O2',
+        }),
+      ];
+
+      const events = buildCanonicalEvents({
+        tradebookRows: rows,
+        batchId: 'b',
+        fileIds: { tradebook: 'f1' },
+        classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+      });
+
+      const tradeEvents = events.filter(
+        (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+      );
+      expect(tradeEvents).toHaveLength(2);
+      // Canonical security_id shared across both events (ISIN-based).
+      expect(new Set(tradeEvents.map((e) => e.security_id))).toEqual(
+        new Set(['ISIN:INE288B01029']),
+      );
+      // Canonical security_symbol also unified — the first-seen (BSE) wins
+      // because rows are walked in order inside buildIsinSymbolMap.
+      expect(new Set(tradeEvents.map((e) => e.security_symbol))).toEqual(
+        new Set(['DEEPAKNI']),
+      );
+    },
+  );
 });

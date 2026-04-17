@@ -193,6 +193,16 @@ function collectLedgersFromProfile(
     );
   }
 
+  // Always include the unmatched-sell suspense ledger under the profile
+  // path too — the engine may route any sell whose cost-lot tracker returns
+  // an uncovered disposal here (Bug 3 / Bug 6 / Bug 8 fallback). Emitting
+  // the master unconditionally keeps the masters-import idempotent.
+  supplementalLedgers.push({
+    name: L.UNMATCHED_SELL_SUSPENSE.name,
+    parent_group: L.UNMATCHED_SELL_SUSPENSE.group,
+    affects_stock: false,
+  });
+
   return [...collected.ledgers.map((def) => ({
     name: def.name,
     parent_group: def.group,
@@ -267,6 +277,14 @@ export function collectRequiredLedgers(
   // 3. Misc charge ledgers.
   add({ name: L.AMC_CHARGES.name, parent_group: L.AMC_CHARGES.group, affects_stock: false });
   add({ name: L.MISC_CHARGES.name, parent_group: L.MISC_CHARGES.group, affects_stock: false });
+  // Suspense ledger for unmatched sells (no prior purchase / opening stock).
+  // Emitted unconditionally so the target ledger always exists when the
+  // engine routes an uncovered disposal here — see buildSellVoucher.
+  add({
+    name: L.UNMATCHED_SELL_SUSPENSE.name,
+    parent_group: L.UNMATCHED_SELL_SUSPENSE.group,
+    affects_stock: false,
+  });
 
   const requiredModes = getRequiredModes(events, profile.mode);
 

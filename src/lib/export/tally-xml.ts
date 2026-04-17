@@ -282,6 +282,34 @@ export function generateMastersXml(
 ): string {
   const { root, requestData } = buildEnvelope('All Masters', companyName);
 
+  // Alter the built-in Journal voucher type so its numbering method is
+  // Manual. Without this, Tally auto-numbers every incoming journal 1..N
+  // and discards the VOUCHERNUMBER carried in the voucher XML — which is
+  // where we put the contract-note reference (user requirement: "Journal
+  // voucher number AS contract note no — IT'S A MUST!"). Emitting this
+  // alter once as part of the masters import is a one-shot switch; later
+  // imports into the same company are idempotent because ACTION=Alter keeps
+  // the setting in place.
+  //
+  // Tally schema note: NUMBERINGMETHOD accepts "Manual", "Automatic",
+  // "Automatic (Manual Override)" — we use "Manual" so imported numbers
+  // are never rewritten.
+  for (const vchType of ['Journal', 'Receipt', 'Payment', 'Contra', 'Sales', 'Purchase']) {
+    const msg = requestData.ele('TALLYMESSAGE', {
+      'xmlns:UDF': 'TallyUDF',
+    });
+    const vtEle = msg.ele('VOUCHERTYPE', {
+      NAME: vchType,
+      RESERVEDNAME: '',
+      ACTION: 'Alter',
+    });
+    vtEle.ele('NAME.LIST').ele('NAME').txt(vchType);
+    vtEle.ele('PARENT').txt(vchType);
+    vtEle.ele('NUMBERINGMETHOD').txt('Manual');
+    vtEle.ele('ISDEEMEDPOSITIVE').txt('No');
+    vtEle.ele('AFFECTSSTOCK').txt('No');
+  }
+
   // Emit GROUP masters first — TallyPrime requires parent groups to exist
   // before child ledgers that reference them.
   if (groups && groups.length > 0) {
@@ -350,8 +378,11 @@ export function generateMastersXml(
   // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
     // --- UNIT masters (emit first) ---
+    // Formal name mirrors what the CA on the review sheet expects: symbol
+    // "SH", formal name "SHARE" (singular). Tally's Unit Alteration screen
+    // shows this as: Symbol=SH, Formal name=SHARE.
     const UNIT_FORMAL_NAMES: Record<string, string> = {
-      'SH': 'Shares',
+      'SH': 'SHARE',
       'Nos': 'Numbers',
     };
     const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'Nos'))].sort();
@@ -360,10 +391,14 @@ export function generateMastersXml(
         'xmlns:UDF': 'TallyUDF',
       });
 
+      // Use ACTION=Alter with an up-to-date FORMALNAME so re-imports into a
+      // company that already has an "SH" unit without a formal name (the
+      // broken state on the FY21-22 review sheet) get corrected in place.
+      // ACTION=Create would be a no-op on existing units.
       const unitEle = msg.ele('UNIT', {
         NAME: unitName,
         RESERVEDNAME: '',
-        ACTION: 'Create',
+        ACTION: 'Alter',
       });
 
       unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
@@ -373,9 +408,12 @@ export function generateMastersXml(
       // reference, resulting in [Missing_Master_Name] for the Symbol field.
       unitEle.ele('ORIGINALNAME').txt('');
       unitEle.ele('DECIMALPLACES').txt('0');
-      if (UNIT_FORMAL_NAMES[unitName]) {
-        unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName]);
-      }
+      // Always emit a FORMALNAME so the Tally Unit Alteration screen never
+      // renders "]MISSING MASTER NAME" in the Formal name field. When the
+      // unit is not in the curated map, fall back to the unit name itself —
+      // the Stock Item import still works and the formal name stays human-
+      // readable instead of empty.
+      unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName] ?? unitName);
 
       const langList = unitEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);
@@ -458,7 +496,19 @@ export function generateVouchersXml(
     }
 
     if (voucher.external_reference) {
+      // Emit both VOUCHERNUMBER and REFERENCE so the contract note number is
+      // visible in Tally even when the Journal voucher type is configured
+      // for automatic numbering (Tally ignores VOUCHERNUMBER in that case
+      // and auto-assigns 1..N). REFERENCE populates the "Ref" column in the
+      // Daybook and stays intact regardless of the voucher-type numbering
+      // method. The masters XML also alters the Journal voucher type to
+      // METHOD=Manual so VOUCHERNUMBER survives when the user has not yet
+      // switched numbering manually — see buildVoucherTypeAlter().
       voucherEle.ele('VOUCHERNUMBER').txt(voucher.external_reference);
+      voucherEle.ele('REFERENCE').txt(voucher.external_reference);
+      // The "Reference Date" defaults to the voucher date, which is already
+      // the contract-note trade date for trade vouchers.
+      voucherEle.ele('REFERENCEDATE').txt(tallyDate);
     }
 
     voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
