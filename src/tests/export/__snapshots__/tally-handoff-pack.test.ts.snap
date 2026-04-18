@@ -22,63 +22,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Receipt</NAME>
-            </NAME.LIST>
-            <PARENT>Receipt</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Payment</NAME>
-            </NAME.LIST>
-            <PARENT>Payment</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Contra</NAME>
-            </NAME.LIST>
-            <PARENT>Contra</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Sales</NAME>
-            </NAME.LIST>
-            <PARENT>Sales</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Purchase</NAME>
-            </NAME.LIST>
-            <PARENT>Purchase</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
@@ -871,63 +814,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Receipt</NAME>
-            </NAME.LIST>
-            <PARENT>Receipt</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Payment</NAME>
-            </NAME.LIST>
-            <PARENT>Payment</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Contra</NAME>
-            </NAME.LIST>
-            <PARENT>Contra</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Sales</NAME>
-            </NAME.LIST>
-            <PARENT>Sales</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Purchase</NAME>
-            </NAME.LIST>
-            <PARENT>Purchase</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
@@ -1509,63 +1395,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Receipt" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Receipt</NAME>
-            </NAME.LIST>
-            <PARENT>Receipt</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Payment" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Payment</NAME>
-            </NAME.LIST>
-            <PARENT>Payment</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Contra" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Contra</NAME>
-            </NAME.LIST>
-            <PARENT>Contra</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Sales" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Sales</NAME>
-            </NAME.LIST>
-            <PARENT>Sales</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
-          </VOUCHERTYPE>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <VOUCHERTYPE NAME="Purchase" RESERVEDNAME="" ACTION="Alter">
-            <NAME.LIST>
-              <NAME>Purchase</NAME>
-            </NAME.LIST>
-            <PARENT>Purchase</PARENT>
-            <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-            <AFFECTSSTOCK>No</AFFECTSSTOCK>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">

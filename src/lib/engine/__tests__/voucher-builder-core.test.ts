@@ -828,6 +828,53 @@ describe('buildSellVoucher — uncovered disposal (zero cost basis)', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Zero-cost COVERED disposal — e.g. bonus shares with nil acquisition cost.
+// These must flow to the capital-gain/loss ledger, NOT to Unmatched Sell
+// Suspense. Regression: the old detector treated total_cost == 0 as uncovered,
+// which misclassified legitimate zero-cost lots.
+// ---------------------------------------------------------------------------
+describe('buildSellVoucher — zero-cost covered disposal (bonus shares)', () => {
+  const zeroCostCoveredDisposals = [{
+    lot_id: 'lot-bonus-001',
+    acquisition_date: '2023-01-15',
+    quantity_sold: '10',
+    unit_cost: '0.000000',
+    total_cost: '0.00',
+    gain_or_loss: '26000.00',
+  }];
+
+  it('investor mode: routes to capital gain ledger, not suspense', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, INVESTOR_DEFAULT, [], zeroCostCoveredDisposals, 100);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    // Must NOT route to Unmatched Sell Suspense — this is a covered lot.
+    expect(
+      voucher.lines.find((l) => l.ledger_name === 'Unmatched Sell Suspense'),
+    ).toBeUndefined();
+    // Capital gain line must be present (STCG since holding < 12 months
+    // from acquisition_date 2023-01-15 to the default sell date).
+    const gainLine = voucher.lines.find(
+      (l) => l.dr_cr === 'CR' && l.ledger_name.includes('Capital Gain'),
+    );
+    expect(gainLine).toBeDefined();
+  });
+
+  it('trader mode: routes to Trading Sales, not suspense', () => {
+    const event = makeSellEvent({ gross_amount: '26000.00' });
+    const voucher = buildSellVoucher(event, TRADER_DEFAULT, [], zeroCostCoveredDisposals);
+
+    expect(voucher.total_debit).toBe(voucher.total_credit);
+    // Must NOT route to Unmatched Sell Suspense.
+    expect(
+      voucher.lines.find((l) => l.ledger_name === 'Unmatched Sell Suspense'),
+    ).toBeUndefined();
+    // Trading Sales must be present for trader mode.
+    expect(findLine(voucher.lines, 'Trading Sales', 'CR')).toBeDefined();
+  });
+});
+
 describe('buildVouchers — negative charge regression fixture', () => {
   it('produces a balanced buy voucher for the checked-in negative-charge contract note', () => {
     // Regression: the CN below mirrors a real Zerodha export with a -0.59

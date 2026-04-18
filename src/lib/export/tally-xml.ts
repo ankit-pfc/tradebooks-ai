@@ -294,20 +294,18 @@ export function generateMastersXml(
   // Tally schema note: NUMBERINGMETHOD accepts "Manual", "Automatic",
   // "Automatic (Manual Override)" — we use "Manual" so imported numbers
   // are never rewritten.
-  for (const vchType of ['Journal', 'Receipt', 'Payment', 'Contra', 'Sales', 'Purchase']) {
+  {
     const msg = requestData.ele('TALLYMESSAGE', {
       'xmlns:UDF': 'TallyUDF',
     });
     const vtEle = msg.ele('VOUCHERTYPE', {
-      NAME: vchType,
+      NAME: 'Journal',
       RESERVEDNAME: '',
       ACTION: 'Alter',
     });
-    vtEle.ele('NAME.LIST').ele('NAME').txt(vchType);
-    vtEle.ele('PARENT').txt(vchType);
+    vtEle.ele('NAME.LIST').ele('NAME').txt('Journal');
+    vtEle.ele('PARENT').txt('Journal');
     vtEle.ele('NUMBERINGMETHOD').txt('Manual');
-    vtEle.ele('ISDEEMEDPOSITIVE').txt('No');
-    vtEle.ele('AFFECTSSTOCK').txt('No');
   }
 
   // Emit GROUP masters first — TallyPrime requires parent groups to exist

@@ -261,6 +261,13 @@ describe('tally-xml masters regressions', () => {
     expect(xml).toMatch(
       /<VOUCHERTYPE NAME="Journal"[^>]*ACTION="Alter"[^>]*>[\s\S]*?<NUMBERINGMETHOD>Manual<\/NUMBERINGMETHOD>/,
     );
+
+    // Only Journal should be altered — other built-in voucher types (Receipt,
+    // Payment, Contra, Sales, Purchase) must NOT be mutated, as that would
+    // change the user's Tally company-wide settings for unrelated voucher types.
+    for (const vchType of ['Receipt', 'Payment', 'Contra', 'Sales', 'Purchase']) {
+      expect(xml).not.toContain(`VOUCHERTYPE NAME="${vchType}"`);
+    }
   });
 });
 

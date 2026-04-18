@@ -718,16 +718,17 @@ export function buildSellVoucher(
   // to do." We route the full proceeds to UNMATCHED_SELL_SUSPENSE and skip
   // the asset / capital-gain lines on a fully-uncovered disposal.
   const hasZeroCostBasis = totalCostBasis.isZero();
+  // Only treat a disposal as uncovered when the cost-lots engine explicitly
+  // tagged it with lot_id === 'uncovered'. A zero total_cost alone is NOT
+  // sufficient — legitimate zero-cost lots exist (bonus shares, carried-
+  // forward nil-cost holdings) and must flow to the capital-gain/loss ledger,
+  // not to Unmatched Sell Suspense.
   const hasUncoveredDisposal = costDisposals.some(
-    (d) => d.lot_id === 'uncovered' || new Decimal(d.total_cost).isZero(),
+    (d) => d.lot_id === 'uncovered',
   );
   const fullyUncovered =
     hasUncoveredDisposal &&
     hasZeroCostBasis &&
-    // Defensive: zero-cost AND no real disposals can mean "no sell qty" —
-    // which should never happen here — or "all lots were fully consumed by
-    // prior zero-cost adjustments". Require at least one explicit uncovered
-    // disposal record before switching to suspense routing.
     costDisposals.length > 0;
   const lines: VoucherLine[] = [];
   let lineNo = 1;
