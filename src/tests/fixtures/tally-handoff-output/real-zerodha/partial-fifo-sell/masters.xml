@@ -574,14 +574,14 @@
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>INFY-SH</NAME>
+              <NAME>INE009A01021-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>SH</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INFY-SH</NAME>
+                <NAME>INE009A01021-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

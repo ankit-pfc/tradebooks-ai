@@ -246,7 +246,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect((buyV as Record<string, unknown>).ISINVOICE).toBeUndefined();
   });
 
-  it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with HDFC-SH', () => {
+  it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with ISIN-based stock item', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
@@ -259,7 +259,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     });
     expect(drLineWithInventory).toBeDefined();
     const allocs = getInventoryAllocations(drLineWithInventory!);
-    expect(allocs[0].STOCKITEMNAME).toBe('HDFC-SH');
+    expect(allocs[0].STOCKITEMNAME).toBe('INE001A01036-SH');
   });
 
   it('buy voucher inventory has correct quantity (30 SH, positive = stock IN)', () => {
@@ -306,11 +306,11 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(gainLossLine).toBeDefined();
   });
 
-  it('mastersXml has HDFC-SH stock item', () => {
+  it('mastersXml has ISIN-based HDFC stock item', () => {
     const parsed = parseXml(result.mastersXml);
     const stockItems = getStockItems(parsed);
     const hdfcItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)).includes('HDFC-SH'),
+      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)).includes('INE001A01036-SH'),
     );
     expect(hdfcItem).toBeDefined();
   });
@@ -364,7 +364,7 @@ describe('Scenario 2: Cross-exchange ISIN unification', () => {
     }
   });
 
-  it('stock item in XML is ADSL-SH (not ISIN-based)', () => {
+  it('stock item in XML is ISIN-based for ADSL', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     for (const v of vouchers) {
@@ -372,7 +372,7 @@ describe('Scenario 2: Cross-exchange ISIN unification', () => {
       for (const l of lines) {
         const allocs = getInventoryAllocations(l);
         for (const a of allocs) {
-          expect(a.STOCKITEMNAME).toBe('ADSL-SH');
+          expect(a.STOCKITEMNAME).toBe('INE102I01027-SH');
         }
       }
     }
@@ -393,19 +393,13 @@ describe('Scenario 2: Cross-exchange ISIN unification', () => {
     }
   });
 
-  it('mastersXml uses ADSL-SH (not INE102I01027-SH)', () => {
+  it('mastersXml uses ISIN-based ADSL stock item', () => {
     const parsed = parseXml(result.mastersXml);
     const stockItems = getStockItems(parsed);
     const adslItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'ADSL-SH',
+      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'INE102I01027-SH',
     );
     expect(adslItem).toBeDefined();
-
-    // Should NOT have an ISIN-based stock item
-    const isinItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)).includes('INE102I01027'),
-    );
-    expect(isinItem).toBeUndefined();
   });
 
   it('investment ledger uses ADSL symbol (not ISIN)', () => {
@@ -510,7 +504,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
     const lineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0);
     expect(lineWithInventory).toBeDefined();
     const allocs = getInventoryAllocations(lineWithInventory!);
-    expect(allocs[0].STOCKITEMNAME).toBe('RELIANCE-SH');
+    expect(allocs[0].STOCKITEMNAME).toBe('INE002A01018-SH');
   });
 });
 
@@ -822,7 +816,7 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
     }
   });
 
-  it('ADSL sell vouchers have INVENTORYALLOCATIONS.LIST with ADSL-SH', () => {
+  it('ADSL sell vouchers have INVENTORYALLOCATIONS.LIST with ISIN-based stock item', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const adslSellVouchers = vouchers.filter(v =>
@@ -835,7 +829,7 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
       const inventoryLine = lines.find(l => getInventoryAllocations(l).length > 0);
       expect(inventoryLine).toBeDefined();
       const allocs = getInventoryAllocations(inventoryLine!);
-      expect(allocs[0].STOCKITEMNAME).toBe('ADSL-SH');
+      expect(allocs[0].STOCKITEMNAME).toBe('INE102I01027-SH');
     }
   });
 
@@ -876,18 +870,13 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
     }
   });
 
-  it('mastersXml has ADSL-SH stock item, NOT INE102I01027-SH', () => {
+  it('mastersXml has ISIN-based ADSL stock item', () => {
     const parsed = parseXml(result.mastersXml);
     const stockItems = getStockItems(parsed);
     const adslItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'ADSL-SH',
+      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'INE102I01027-SH',
     );
     expect(adslItem).toBeDefined();
-
-    const isinItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)).includes('INE102I01027'),
-    );
-    expect(isinItem).toBeUndefined();
   });
 
   it('ADSL investment ledger has AFFECTSSTOCK=Yes', () => {
@@ -963,6 +952,13 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     return messages
       .filter((m: Record<string, unknown>) => m.LEDGER)
       .map((m: Record<string, unknown>) => m.LEDGER as Record<string, unknown>);
+  }
+
+  function getAllStockItems() {
+    const messages = asArray(mastersParsed.ENVELOPE?.BODY?.IMPORTDATA?.REQUESTDATA?.TALLYMESSAGE);
+    return messages
+      .filter((m: Record<string, unknown>) => m.STOCKITEM)
+      .map((m: Record<string, unknown>) => m.STOCKITEM as Record<string, unknown>);
   }
 
   // -- Envelope structure --
@@ -1192,7 +1188,7 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
     }
   });
 
-  it('every STOCKITEMNAME in vouchers exists as a stock item master or matches an investment ledger', () => {
+  it('every STOCKITEMNAME in vouchers exists as a stock item master', () => {
     const vouchers = getAllVouchers();
     const stockItemNames = new Set<string>();
     for (const v of vouchers) {
@@ -1205,15 +1201,14 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
       }
     }
 
-    // Every stock item referenced in vouchers should also appear as a ledger
-    // with AFFECTSSTOCK=Yes (which tells Tally to track its inventory)
-    const ledgers = getAllLedgers();
-    const investmentLedgerNames = new Set(
-      ledgers.filter(l => l.AFFECTSSTOCK === 'Yes').map(l => String(l['@_NAME'])),
+    const stockItemMasterNames = new Set(
+      getAllStockItems().map((item) =>
+        String((item as Record<string, unknown>)['@_NAME'] ?? item.NAME),
+      ),
     );
 
     for (const name of stockItemNames) {
-      expect(investmentLedgerNames.has(name)).toBe(true);
+      expect(stockItemMasterNames.has(name)).toBe(true);
     }
   });
 

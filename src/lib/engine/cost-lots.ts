@@ -12,7 +12,12 @@ import { EventType, type CanonicalEvent, type CostLot } from '../types/events';
 function normalizeLegacySecurityId(securityId: string): string {
   const trimmed = securityId.trim().toUpperCase();
   const parts = trimmed.split(':');
-  return parts.length === 2 ? parts[1] : trimmed;
+  if (parts.length !== 2) return trimmed;
+
+  const [prefix, value] = parts;
+  if (prefix === 'ISIN') return `ISIN:${value}`;
+
+  return value;
 }
 
 // ---------------------------------------------------------------------------

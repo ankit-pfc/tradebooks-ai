@@ -307,6 +307,67 @@ describe('runProcessingPipeline — generic pnl file is recognised and skipped',
     });
 });
 
+describe('runProcessingPipeline — multi-FY opening lots', () => {
+    function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
+        const voucher = transactionsXml
+            .split('<VOUCHER ')
+            .map((chunk) => `<VOUCHER ${chunk}`)
+            .find((chunk) => chunk.includes(`<NARRATION>${narrationPrefix}`));
+        expect(voucher).toBeDefined();
+        return voucher!;
+    }
+
+    it('uses prior FY ISIN-keyed closing lots when the current FY only contains the sale', async () => {
+        mockRepo.getClosingLots.mockResolvedValueOnce({
+            'ISIN:INE111B01023': [
+                {
+                    cost_lot_id: 'lot-63moons-opening',
+                    security_id: 'ISIN:INE111B01023',
+                    source_buy_event_id: 'fy21-buy',
+                    open_quantity: '10',
+                    original_quantity: '10',
+                    effective_unit_cost: '80.000000',
+                    acquisition_date: '2021-07-01',
+                    remaining_total_cost: '800.00',
+                },
+            ],
+        });
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-04-12,NSE,EQ,63MOONS,INE111B01023,SELL,10,120.00,CNC,T500,ORD500,09:15:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-fy22-carry',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            priorBatchId: 'batch-fy21',
+            files: [
+                {
+                    fileId: 'file-fy22-carry',
+                    fileName: 'tradebook-fy22-carry.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of 63MOONS');
+
+        expect(mockRepo.getClosingLots).toHaveBeenCalledWith('batch-fy21');
+        expect(result.eventCount).toBe(1);
+        expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
+        expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>80.00/SH</RATE>');
+        expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>400.00</AMOUNT>');
+    });
+});
+
 describe('runProcessingPipeline — matchResult present with real fixture', () => {
     it('includes matchResult when contract note is also provided', async () => {
         // We simulate a contract note by providing the tradebook twice —
@@ -441,7 +502,7 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.eventCount).toBe(3);
         expect(result.voucherCount).toBe(2);
         expect(sellVoucher).toContain('<LEDGERNAME>IRCTC-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>IRCTC-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>INE335Y01020-SH</STOCKITEMNAME>');
         expect(sellVoucher).toContain('<ACTUALQTY>50 SH</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>840.00/SH</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>42000.00</AMOUNT>');

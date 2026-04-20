@@ -26,16 +26,6 @@
       "cost_basis": "0.00",
       "gain_loss": "0.00",
       "narration": "5 shares intraday gain in INFY"
-    },
-    {
-      "voucher_number": "ORD-3",
-      "voucher_type": "JOURNAL",
-      "total_debit": "25.00",
-      "total_credit": "25.00",
-      "stock_item": null,
-      "cost_basis": "0.00",
-      "gain_loss": "0.00",
-      "narration": "5 shares intraday gain in INFY"
     }
   ],
   "trade_match": {
