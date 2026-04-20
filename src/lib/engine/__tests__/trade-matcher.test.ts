@@ -66,7 +66,7 @@ describe('matchTrades', () => {
     expect(result.unmatchedContractNote).toHaveLength(0);
   });
 
-  it('matches with HIGH confidence by order_no + qty + date', () => {
+  it('matches with HIGH confidence by order_no + qty + date + direction', () => {
     const result = matchTrades(
       [makeTb({ trade_id: '9999', order_id: '1001', quantity: '10', trade_date: '2024-01-15' })],
       [withDate(makeCn({ trade_no: '8888', order_no: '1001', quantity: '10' }), '15-01-2024')],
@@ -76,6 +76,35 @@ describe('matchTrades', () => {
     expect(result.matched[0].match_confidence).toBe('HIGH');
   });
 
+  it('does not match opposite-side trades with the same order_no + qty + date', () => {
+    const result = matchTrades(
+      [
+        makeTb({
+          trade_id: '9999',
+          order_id: '1001',
+          quantity: '10',
+          trade_date: '2024-01-15',
+          trade_type: 'buy',
+        }),
+      ],
+      [
+        withDate(
+          makeCn({
+            trade_no: '8888',
+            order_no: '1001',
+            quantity: '10',
+            buy_sell: 'S',
+          }),
+          '15-01-2024',
+        ),
+      ],
+    );
+
+    expect(result.matched).toHaveLength(0);
+    expect(result.unmatchedTradebook).toHaveLength(1);
+    expect(result.unmatchedContractNote).toHaveLength(1);
+  });
+
   it('matches approximately by date + security + direction + qty + price', () => {
     const result = matchTrades(
       [makeTb({ trade_id: '9999', order_id: '5555', symbol: 'RELIANCE', price: '2500.00' })],
@@ -83,6 +112,26 @@ describe('matchTrades', () => {
         makeCn({ trade_no: '8888', order_no: '6666', security_description: 'RELIANCE INDUSTRIES LTD', gross_rate: '2500.02' }),
         '15-01-2024',
       )],
+    );
+
+    expect(result.matched).toHaveLength(1);
+    expect(result.matched[0].match_confidence).toBe('APPROXIMATE');
+  });
+
+  it('matches XML-style contract note descriptions by cleaned trading symbol', () => {
+    const result = matchTrades(
+      [makeTb({ trade_id: '9999', order_id: '5555', symbol: 'BOSCHLTD', price: '21000.00' })],
+      [
+        withDate(
+          makeCn({
+            trade_no: '8888',
+            order_no: '6666',
+            security_description: 'NSE:BOSCHLTD - EQ / INE323A01026',
+            gross_rate: '21000.00',
+          }),
+          '15-01-2024',
+        ),
+      ],
     );
 
     expect(result.matched).toHaveLength(1);

@@ -3,7 +3,7 @@
  * Matches tradebook rows to contract-note trade rows for cross-file
  * reconciliation. Uses a priority-based matching strategy:
  *   1. EXACT: trade_no == trade_id
- *   2. HIGH: order_no + quantity + date match
+ *   2. HIGH: order_no + quantity + date + direction match
  *   3. APPROXIMATE: date + security + direction + qty + price tolerance
  */
 
@@ -51,9 +51,12 @@ function normaliseDate(raw: string): string {
  * Normalise a contract-note security description to a short symbol.
  * "RELIANCE INDUSTRIES LTD" → "RELIANCE"
  * "TATA CONSULTANCY SERV LT" → "TATA"
+ * "NSE:BOSCHLTD - EQ / INE323A01026" → "BOSCHLTD"
  */
 function normaliseDescription(desc: string): string {
-  return desc.trim().toUpperCase().split(/\s+/)[0] || '';
+  const withoutExchangePrefix = desc.trim().toUpperCase().replace(/^[A-Z]+:/, '');
+  const withoutIsinSuffix = withoutExchangePrefix.split('/')[0]?.trim() ?? '';
+  return withoutIsinSuffix.split(/[\s-]+/)[0] || '';
 }
 
 /** Tradebook direction as 'B' | 'S'. */
@@ -106,7 +109,7 @@ export function matchTrades(
     }
   }
 
-  // Pass 2: HIGH confidence — order_no + quantity + date
+  // Pass 2: HIGH confidence — order_no + quantity + date + direction
   for (let ci = 0; ci < cnTradesWithDate.length; ci++) {
     if (usedCnIndices.has(ci)) continue;
     const cn = cnTradesWithDate[ci];
@@ -119,6 +122,7 @@ export function matchTrades(
       if (
         cn.trade.order_no === tb.order_id &&
         cn.trade.quantity === tb.quantity &&
+        cn.trade.buy_sell === tbDirection(tb) &&
         cnDate === normaliseDate(tb.trade_date)
       ) {
         matched.push({

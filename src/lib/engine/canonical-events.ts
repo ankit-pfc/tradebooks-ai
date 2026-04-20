@@ -15,6 +15,7 @@ import {
   TradeClassification,
   TradeClassificationStrategy,
 } from './trade-classifier';
+import { matchTrades } from './trade-matcher';
 import type {
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
@@ -653,6 +654,7 @@ export function contractNoteToEvents(
   symbolByDescription?: ReadonlyMap<string, string>,
   isinSymbolMap?: ReadonlyMap<string, string>,
   classificationStrategy: TradeClassificationStrategy = TradeClassificationStrategy.HEURISTIC_SAME_DAY_FLAT_INTRADAY,
+  isinByContractNoteTrade?: ReadonlyMap<ZerodhaContractNoteTradeRow, string>,
 ): CanonicalEvent[] {
   if (trades.length === 0) return [];
 
@@ -663,12 +665,17 @@ export function contractNoteToEvents(
   for (let i = 0; i < trades.length; i++) {
     const trade = trades[i];
     const alloc = allocations[i];
+    const matchedTradebookIsin = isinByContractNoteTrade?.get(trade);
+    const explicitTradeIsin = trade.isin?.trim().toUpperCase() ?? '';
+    const effectiveExplicitIsin = isValidIsinLike(explicitTradeIsin)
+      ? explicitTradeIsin
+      : matchedTradebookIsin;
     const securityId = buildSecurityIdFromDescription(
       trade.exchange,
       trade.security_description,
       trade.segment,
       symbolByDescription,
-      trade.isin,
+      effectiveExplicitIsin,
     );
 
     const qty = new Decimal(trade.quantity);
@@ -697,18 +704,17 @@ export function contractNoteToEvents(
       trade.gross_rate,
     );
 
-    // Derive a clean trading symbol for display and Tally stock-item naming.
+    // Derive a clean trading symbol for readable ledgers and narrations.
     // Priority order:
     //   1. ISIN → canonical-symbol map (so NSE & BSE trades for the same ISIN
-    //      always render to the SAME stock item in Tally — fixes the bug
-    //      where "scrips with different names across exchanges" produced
-    //      duplicate stock items).
+    //      keep one display symbol even when exchange tickers differ).
     //   2. extractCleanSymbolFromCnDescription (handles both "SYMBOL/ISIN"
     //      and "SYMBOL - SEGMENT / ISIN" Zerodha formats).
     //   3. legacy symbolByDescription lookup (kept for backwards compat).
     const descCleaned = trade.security_description.trim().toUpperCase();
     const isinFromDesc = extractIsinFromDescription(descCleaned);
-    const canonicalFromIsin = isinFromDesc ? isinSymbolMap?.get(isinFromDesc) : undefined;
+    const effectiveIsin = effectiveExplicitIsin ?? isinFromDesc;
+    const canonicalFromIsin = effectiveIsin ? isinSymbolMap?.get(effectiveIsin) : undefined;
     const cnSymbol = canonicalFromIsin
       ?? extractCleanSymbolFromCnDescription(descCleaned)
       ?? symbolByDescription?.get(descCleaned)
@@ -924,7 +930,8 @@ export interface BuildCanonicalEventsOpts {
  *
  * When both tradebook and contract-note data are supplied, contract-note trade
  * events take priority (richer data: trade_no, charges, contract_note_ref).
- * Tradebook events whose event_hash matches a contract-note event are discarded.
+ * Covered tradebook rows are discarded before voucher generation so Journal
+ * voucher numbers come from the contract note, not a tradebook order id.
  */
 export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalEvent[] {
   const {
@@ -964,8 +971,26 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       ? TradeClassificationStrategy.STRICT_PRODUCT
       : classificationStrategy;
 
-  // Collect CN trade_no values for dedup against tradebook trade_id
-  const cnTradeNos = new Set<string>();
+  const cnTradesWithDate = contractNoteSheets.flatMap((sheet) =>
+    sheet.trades.map((trade) => ({
+      trade,
+      tradeDate: sheet.charges.trade_date,
+    })),
+  );
+  const tradeMatchResult =
+    tradebookRows.length > 0 && cnTradesWithDate.length > 0
+      ? matchTrades(tradebookRows, cnTradesWithDate)
+      : null;
+  const matchedTradebookRows = new Set(
+    tradeMatchResult?.matched.map((match) => match.tradebookRow) ?? [],
+  );
+  const contractNoteIsinByTrade = new Map<ZerodhaContractNoteTradeRow, string>();
+  for (const match of tradeMatchResult?.matched ?? []) {
+    const isin = match.tradebookRow.isin?.trim().toUpperCase();
+    if (isin && isValidIsinLike(isin)) {
+      contractNoteIsinByTrade.set(match.contractNoteRow, isin);
+    }
+  }
 
   // 1. Contract-note events (trades + charges per sheet)
   for (const sheet of contractNoteSheets) {
@@ -977,21 +1002,18 @@ export function buildCanonicalEvents(opts: BuildCanonicalEventsOpts): CanonicalE
       contractNoteSymbolByDescription,
       isinSymbolMap,
       rowCreationStrategy,
+      contractNoteIsinByTrade,
     );
     for (const e of cnEvents) {
       events.push(e);
-      if (
-        (e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE) &&
-        e.external_ref
-      ) {
-        cnTradeNos.add(e.external_ref);
-      }
     }
   }
 
-  // 2. Tradebook events — skip those whose trade_id matches a CN trade_no
+  // 2. Tradebook events — skip rows already covered by contract-note trades.
+  // The matcher handles the real Zerodha variants we see in production:
+  // exact trade number, order+date+qty, and date+scrip+side+qty+price.
   for (const row of tradebookRows) {
-    if (cnTradeNos.has(row.trade_id)) continue;
+    if (matchedTradebookRows.has(row)) continue;
     const rowEvents = tradebookRowToEvents(
       row,
       batchId,

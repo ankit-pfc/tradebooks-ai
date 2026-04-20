@@ -438,6 +438,35 @@ describe('buildCanonicalEvents', () => {
     expect(tradeEvents[0].contract_note_ref).toBe('CN-001'); // from CN, not tradebook
   });
 
+  it('deduplicates tradebook rows even when CN trade_no differs from tradebook trade_id', () => {
+    const cnTrade = makeCnTrade({
+      order_no: '1',
+      trade_no: 'CN-1',
+      security_description: 'RELIANCE INDUSTRIES LTD',
+    });
+    const tbRow = makeTradebookRow({
+      trade_id: 'TB-1',
+      order_id: 'ORD-1',
+      symbol: 'RELIANCE',
+    });
+
+    const events = buildCanonicalEvents({
+      tradebookRows: [tbRow],
+      contractNoteSheets: [{ charges: makeCnCharges(), trades: [cnTrade] }],
+      batchId: 'batch-1',
+      fileIds: { tradebook: 'file-tb', contractNote: 'file-cn' },
+      classificationStrategy: TradeClassificationStrategy.ASSUME_ALL_EQ_INVESTMENT,
+    });
+
+    const tradeEvents = events.filter(
+      (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
+    );
+    expect(tradeEvents).toHaveLength(1);
+    expect(tradeEvents[0].contract_note_ref).toBe('CN-001');
+    expect(tradeEvents[0].external_ref).toBe('CN-1');
+    expect(tradeEvents[0].security_id).toBe('ISIN:INE002A01018');
+  });
+
   it('keeps tradebook events for dates not covered by contract notes', () => {
     // Tradebook has trades on Jan 15 and Jan 20; CN only covers Jan 15
     const tbRow15 = makeTradebookRow({ trade_id: '2001', trade_date: '2024-01-15' });
@@ -544,9 +573,10 @@ describe('buildCanonicalEvents', () => {
     expect(tradeEvents).toHaveLength(2);
 
     // Both trades MUST share the same security_id (ISIN-keyed) AND the same
-    // security_symbol (the FIRST one seen — "HDFC" from the NSE sheet),
-    // so the Tally export produces a single "HDFC-SH" stock item, not
-    // separate "HDFC-SH" and "HDFCBANK-SH" items.
+    // security_symbol (the FIRST one seen — "HDFC" from the NSE sheet).
+    // Voucher generation uses the ISIN-keyed security_id for the actual
+    // STOCKITEMNAME, so Tally inventory identity does not depend on either
+    // display symbol.
     for (const e of tradeEvents) {
       expect(e.security_id).toBe('ISIN:INE001A01036');
       expect(e.security_symbol).toBe('HDFC');

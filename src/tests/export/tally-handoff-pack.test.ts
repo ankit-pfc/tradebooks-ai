@@ -413,6 +413,24 @@ describe('Tally handoff pack', () => {
     }
   });
 
+  it('uses contract note numbers, not tradebook order ids, for Journal voucher numbers', () => {
+    expect(pack).not.toBeNull();
+
+    for (const sample of pack!.samples) {
+      const noteNumbers = new Set(sample.notes.map((note) => note.noteNo));
+      const journalRefs = sample.build.vouchers
+        .filter((voucher) => voucher.voucher_type === 'JOURNAL')
+        .map((voucher) => voucher.external_reference)
+        .filter((ref): ref is string => ref !== null);
+
+      expect(journalRefs.length).toBeGreaterThan(0);
+      for (const ref of journalRefs) {
+        expect(ref.startsWith('ORD-')).toBe(false);
+        expect(noteNumbers.has(ref)).toBe(true);
+      }
+    }
+  });
+
   it('generates exact XML snapshots for the three samples', () => {
     expect(pack).not.toBeNull();
     for (const sample of pack!.samples) {

@@ -85,6 +85,41 @@ describe('CostLotTracker serialization', () => {
     expect(restored.getOpenLots('RELIANCE')[0].open_quantity).toBe('5');
   });
 
+  it('preserves ISIN-prefixed opening lots so current-year sells can match them', () => {
+    const restored = CostLotTracker.fromJSON({
+      lots: {
+        'ISIN:INE111B01023': [
+          {
+            cost_lot_id: 'lot-63moons-opening',
+            security_id: 'ISIN:INE111B01023',
+            source_buy_event_id: 'fy21-buy',
+            open_quantity: '10',
+            original_quantity: '10',
+            effective_unit_cost: '80.000000',
+            acquisition_date: '2021-07-01',
+            remaining_total_cost: '800.00',
+          },
+        ],
+      },
+    });
+
+    const disposals = restored.disposeLots(
+      makeSellEvent({
+        security_id: 'ISIN:INE111B01023',
+        quantity: '-4',
+        rate: '120.00',
+        event_date: '2022-04-12',
+        gross_amount: '480.00',
+      }),
+      'FIFO',
+    );
+
+    expect(disposals).toHaveLength(1);
+    expect(disposals[0].lot_id).toBe('lot-63moons-opening');
+    expect(disposals[0].total_cost).toBe('320.00');
+    expect(restored.getOpenLots('ISIN:INE111B01023')[0].open_quantity).toBe('6');
+  });
+
   it('empty tracker serializes and restores correctly', () => {
     const tracker = new CostLotTracker();
     const json = tracker.toJSON();

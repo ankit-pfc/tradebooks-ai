@@ -35,20 +35,10 @@
       "voucher_type": "JOURNAL",
       "total_debit": "1001.49",
       "total_credit": "1001.49",
-      "stock_item": "INFY-SH",
+      "stock_item": "INE009A01021-SH",
       "cost_basis": "1001.49",
       "gain_loss": "0.00",
       "narration": "Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08"
-    },
-    {
-      "voucher_number": "ORD-1",
-      "voucher_type": "JOURNAL",
-      "total_debit": "1000.00",
-      "total_credit": "1000.00",
-      "stock_item": "INFY-SH",
-      "cost_basis": "1000.00",
-      "gain_loss": "0.00",
-      "narration": "Purchase of INFY @ 100 × 10 units"
     },
     {
       "voucher_number": null,
@@ -65,16 +55,6 @@
       "voucher_type": "JOURNAL",
       "total_debit": "23.51",
       "total_credit": "23.51",
-      "stock_item": null,
-      "cost_basis": "0.00",
-      "gain_loss": "0.00",
-      "narration": "5 shares intraday gain in INFY"
-    },
-    {
-      "voucher_number": "ORD-3",
-      "voucher_type": "JOURNAL",
-      "total_debit": "25.00",
-      "total_credit": "25.00",
       "stock_item": null,
       "cost_basis": "0.00",
       "gain_loss": "0.00",
