@@ -389,28 +389,23 @@ export function generateMastersXml(
         'xmlns:UDF': 'TallyUDF',
       });
 
-      // Use ACTION=Alter with an up-to-date FORMALNAME so re-imports into a
-      // company that already has an "SH" unit without a formal name (the
-      // broken state on the FY21-22 review sheet) get corrected in place.
-      // ACTION=Create would be a no-op on existing units.
+      // ACTION=Create with ORIGINALNAME=unitName matches the exact shape
+      // Tally itself emits when exporting unit masters. ACTION=Alter with
+      // an empty ORIGINALNAME (previous attempt) causes Tally to fail the
+      // master lookup and create a phantom entry whose Symbol field renders
+      // "!MISSING MASTER NAME" on the Unit Alteration screen. On re-imports,
+      // Tally skips an existing same-named unit with a harmless warning, so
+      // Create is idempotent in practice.
       const unitEle = msg.ele('UNIT', {
         NAME: unitName,
         RESERVEDNAME: '',
-        ACTION: 'Alter',
+        ACTION: 'Create',
       });
 
       unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
       unitEle.ele('ISSIMPLEUNIT').txt('Yes');
-      // ORIGINALNAME must be empty for simple units — setting it to the
-      // unit's own name causes Tally to interpret it as a base-unit
-      // reference, resulting in [Missing_Master_Name] for the Symbol field.
-      unitEle.ele('ORIGINALNAME').txt('');
+      unitEle.ele('ORIGINALNAME').txt(unitName);
       unitEle.ele('DECIMALPLACES').txt('0');
-      // Always emit a FORMALNAME so the Tally Unit Alteration screen never
-      // renders "]MISSING MASTER NAME" in the Formal name field. When the
-      // unit is not in the curated map, fall back to the unit name itself —
-      // the Stock Item import still works and the formal name stays human-
-      // readable instead of empty.
       unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName] ?? unitName);
 
       const langList = unitEle.ele('LANGUAGENAME.LIST');

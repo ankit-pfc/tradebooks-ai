@@ -424,12 +424,12 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Alter">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>SH</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME/>
+            <ORIGINALNAME>SH</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
             <FORMALNAME>SHARE</FORMALNAME>
             <LANGUAGENAME.LIST>

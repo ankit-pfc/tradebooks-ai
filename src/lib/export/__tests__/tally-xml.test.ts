@@ -233,7 +233,7 @@ describe('generateVouchersXml — investor pipeline emits JV only', () => {
 // Bug 1 + Bug 2 regressions — Tally XML masters / voucher side.
 // ---------------------------------------------------------------------------
 describe('tally-xml masters regressions', () => {
-  it('Bug 1: UNIT master for SH is emitted as ACTION=Alter with FORMALNAME=SHARE', async () => {
+  it('Bug 1: UNIT master for SH is emitted as ACTION=Create with ORIGINALNAME=SH and FORMALNAME=SHARE', async () => {
     const { generateMastersXml } = await import('../tally-xml');
     const xml = generateMastersXml(
       [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
@@ -242,12 +242,14 @@ describe('tally-xml masters regressions', () => {
       [{ name: 'RELIANCE-SH', baseUnit: 'SH' }],
     );
 
-    // User requirement: Unit "SH" must have Formal name "SHARE" (singular).
-    // ACTION=Alter ensures re-imports into a company with a pre-existing
-    // broken "SH" unit get corrected in place.
-    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Alter">');
+    // Unit "SH" must have Formal name "SHARE" (singular). ACTION=Create with
+    // a non-empty ORIGINALNAME matches Tally's own unit-export shape. The
+    // previous ACTION=Alter with <ORIGINALNAME/> (empty) caused Tally to
+    // create a phantom master whose Symbol rendered "!MISSING MASTER NAME".
+    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">');
+    expect(xml).toContain('<ORIGINALNAME>SH</ORIGINALNAME>');
+    expect(xml).not.toContain('<ORIGINALNAME/>');
     expect(xml).toContain('<FORMALNAME>SHARE</FORMALNAME>');
-    // No "]MISSING MASTER NAME" artefact — FORMALNAME is emitted for every unit.
     expect(xml).not.toMatch(/<FORMALNAME>\s*<\/FORMALNAME>/);
   });
 
