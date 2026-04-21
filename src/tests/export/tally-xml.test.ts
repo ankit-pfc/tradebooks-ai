@@ -130,8 +130,8 @@ describe('generateVouchersXml', () => {
     expect(xml).toContain('<STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>');
     expect(xml).toContain('ACTUALQTY');
     expect(xml).toContain('BILLEDQTY');
-    expect(xml).toContain('10 SH');
-    expect(xml).toContain('/SH');
+    expect(xml).toContain('10 NOS');
+    expect(xml).toContain('/NOS');
   });
 
   it('emits sales inventory entries nested under LEDGERENTRIES.LIST with negative quantity', () => {
@@ -166,7 +166,7 @@ describe('generateVouchersXml', () => {
     // ACTUALQTY/BILLEDQTY are always absolute — stock-out direction comes
     // from the parent ledger's CR, not from a negative qty. Tally double-
     // negates negative CR quantities and INCREASES holdings on sale.
-    expect(xml).toContain('10 SH');  // qty with UOM (always positive)
+    expect(xml).toContain('10 NOS');  // qty with UOM (always positive)
     expect(xml).not.toMatch(/<(ACTUALQTY|BILLEDQTY)>-/);
   });
 
@@ -192,7 +192,7 @@ describe('Tally numeric formatting guards', () => {
   it('keeps normal numeric formatting unchanged', () => {
     expect(tallyAmount('25000', 'DR')).toBe('-25000.00');
     expect(tallyAmount('25000', 'CR')).toBe('25000.00');
-    expect(tallyQty('-10', 'CR')).toBe('10 SH');
+    expect(tallyQty('-10', 'CR')).toBe('10 NOS');
     expect(tallyRate('2500', 'SH')).toBe('2500.00/SH');
   });
 });

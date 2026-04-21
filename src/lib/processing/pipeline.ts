@@ -358,7 +358,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   }
   const stockItems: StockItemMasterInput[] = Array.from(stockItemNames).map((name) => ({
     name,
-    baseUnit: 'SH',
+    baseUnit: 'NOS',
   }));
 
   const { mastersXml, transactionsXml } = generateFullExport(

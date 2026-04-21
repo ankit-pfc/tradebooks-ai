@@ -560,17 +560,18 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+          <UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">
+            <NAME>NOS</NAME>
             <NAME.LIST>
-              <NAME>SH</NAME>
+              <NAME>NOS</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>SH</ORIGINALNAME>
+            <ORIGINALNAME>NOS</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
-            <FORMALNAME>SHARE</FORMALNAME>
+            <FORMALNAME>NUMBERS</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
+                <NAME>NOS</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -581,7 +582,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <NAME.LIST>
               <NAME>INE009A01021-SH</NAME>
             </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
+            <BASEUNITS>NOS</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>INE009A01021-SH</NAME>
@@ -633,9 +634,9 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>-1001.49</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
               <STOCKITEMNAME>INE009A01021-SH</STOCKITEMNAME>
-              <ACTUALQTY>10 SH</ACTUALQTY>
-              <BILLEDQTY>10 SH</BILLEDQTY>
-              <RATE>100.15/SH</RATE>
+              <ACTUALQTY>10 NOS</ACTUALQTY>
+              <BILLEDQTY>10 NOS</BILLEDQTY>
+              <RATE>100.15/NOS</RATE>
               <AMOUNT>-1001.49</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
           </LEDGERENTRIES.LIST>
@@ -1700,17 +1701,18 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+          <UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">
+            <NAME>NOS</NAME>
             <NAME.LIST>
-              <NAME>SH</NAME>
+              <NAME>NOS</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>SH</ORIGINALNAME>
+            <ORIGINALNAME>NOS</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
-            <FORMALNAME>SHARE</FORMALNAME>
+            <FORMALNAME>NUMBERS</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
+                <NAME>NOS</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -1721,7 +1723,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <NAME.LIST>
               <NAME>INE009A01021-SH</NAME>
             </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
+            <BASEUNITS>NOS</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>INE009A01021-SH</NAME>
@@ -1773,9 +1775,9 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <AMOUNT>-1001.49</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
               <STOCKITEMNAME>INE009A01021-SH</STOCKITEMNAME>
-              <ACTUALQTY>10 SH</ACTUALQTY>
-              <BILLEDQTY>10 SH</BILLEDQTY>
-              <RATE>100.15/SH</RATE>
+              <ACTUALQTY>10 NOS</ACTUALQTY>
+              <BILLEDQTY>10 NOS</BILLEDQTY>
+              <RATE>100.15/NOS</RATE>
               <AMOUNT>-1001.49</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
           </LEDGERENTRIES.LIST>

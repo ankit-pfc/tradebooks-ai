@@ -233,23 +233,25 @@ describe('generateVouchersXml — investor pipeline emits JV only', () => {
 // Bug 1 + Bug 2 regressions — Tally XML masters / voucher side.
 // ---------------------------------------------------------------------------
 describe('tally-xml masters regressions', () => {
-  it('Bug 1: UNIT master for SH is emitted as ACTION=Create with ORIGINALNAME=SH and FORMALNAME=SHARE', async () => {
+  it('Bug 1: UNIT master is emitted as ACTION=Create with NOS symbol and NUMBERS formal name', async () => {
     const { generateMastersXml } = await import('../tally-xml');
     const xml = generateMastersXml(
       [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
       'Test Co',
       undefined,
-      [{ name: 'RELIANCE-SH', baseUnit: 'SH' }],
+      [{ name: 'RELIANCE-SH', baseUnit: 'NOS' }],
     );
 
-    // Unit "SH" must have Formal name "SHARE" (singular). ACTION=Create with
-    // a non-empty ORIGINALNAME matches Tally's own unit-export shape. The
-    // previous ACTION=Alter with <ORIGINALNAME/> (empty) caused Tally to
-    // create a phantom master whose Symbol rendered "!MISSING MASTER NAME".
-    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">');
-    expect(xml).toContain('<ORIGINALNAME>SH</ORIGINALNAME>');
+    // The Tally unit for quantities should be NOS/NUMBERS, while stock item
+    // names continue to use the "-SH" suffix. ACTION=Create with a non-empty
+    // ORIGINALNAME matches the checked-in export shape.
+    expect(xml).toContain('<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">');
+    expect(xml).toMatch(
+      /<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>NOS<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>NOS<\/NAME>/,
+    );
+    expect(xml).toContain('<ORIGINALNAME>NOS</ORIGINALNAME>');
     expect(xml).not.toContain('<ORIGINALNAME/>');
-    expect(xml).toContain('<FORMALNAME>SHARE</FORMALNAME>');
+    expect(xml).toContain('<FORMALNAME>NUMBERS</FORMALNAME>');
     expect(xml).not.toMatch(/<FORMALNAME>\s*<\/FORMALNAME>/);
   });
 

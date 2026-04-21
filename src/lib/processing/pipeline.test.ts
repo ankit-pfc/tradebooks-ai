@@ -360,8 +360,8 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>80.00/SH</RATE>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>80.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
         expect(sellVoucher).toContain('<AMOUNT>400.00</AMOUNT>');
@@ -503,8 +503,8 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.voucherCount).toBe(2);
         expect(sellVoucher).toContain('<LEDGERNAME>IRCTC-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>INE335Y01020-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>50 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>840.00/SH</RATE>');
+        expect(sellVoucher).toContain('<ACTUALQTY>50 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>840.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>42000.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON IRCTC</LEDGERNAME>');
         expect(sellVoucher).toContain('<AMOUNT>857.50</AMOUNT>');
@@ -554,8 +554,8 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.eventCount).toBe(3);
         expect(result.voucherCount).toBe(2);
         expect(purchaseVoucherCount).toBe(1);
-        expect(sellVoucher).toContain('<ACTUALQTY>150 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>100.00/SH</RATE>');
+        expect(sellVoucher).toContain('<ACTUALQTY>150 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>100.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>15000.00</AMOUNT>');
         expect(closingLots['ISIN:INE222A01011'][0].open_quantity).toBe('50');
         expect(closingLots['ISIN:INE222A01011'][0].effective_unit_cost).toBe('100.000000');

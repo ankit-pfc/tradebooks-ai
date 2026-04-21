@@ -134,7 +134,7 @@ function buildPipeline(
       }
     }
   }
-  const stockItems = [...stockItemNames].sort().map((name) => ({ name, baseUnit: 'SH' }));
+  const stockItems = [...stockItemNames].sort().map((name) => ({ name, baseUnit: 'NOS' }));
   const { mastersXml, transactionsXml } = generateFullExport(
     vouchers,
     ledgers,
@@ -228,11 +228,11 @@ function buildChecklist(sampleName: string, build: ReturnType<typeof buildPipeli
   return [
     `# ${sampleName} Tally Import Checklist`,
     '',
-    `- Masters that must exist first: broker ledger, stock item(s), UOM SH, charge ledgers, and gain/loss ledgers.`,
+    `- Masters that must exist first: broker ledger, stock item(s), UOM NOS, charge ledgers, and gain/loss ledgers.`,
     `- Voucher type used: ${voucherTypes}.`,
     `- Why that voucher type is correct: delivery equity trades use Journal vouchers so inventory allocations and gain/loss can be posted without switching to invoice-style vouchers.`,
     `- Sign conventions used: debits are negative amounts in XML, credits are positive amounts; purchase inventory quantities are positive, sale inventory quantities are negative.`,
-    `- Quantity/date/rate formatting: dates are YYYYMMDD, quantities carry the SH unit, and rates are written as rate/SH.`,
+    `- Quantity/date/rate formatting: dates are YYYYMMDD, quantities carry the NOS unit, and rates are written as rate/NOS.`,
     `- Representative voucher lines:\n${signExample}`,
     `- Included notes: ${notes.map((note) => note.noteNo).join(', ')}.`,
   ].join('\n');

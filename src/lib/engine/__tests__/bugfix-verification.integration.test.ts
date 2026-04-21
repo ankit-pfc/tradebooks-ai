@@ -41,7 +41,7 @@ function collectStockItems(vouchers: { lines: { stock_item_name: string | null }
       if (l.stock_item_name) names.add(l.stock_item_name);
     }
   }
-  return Array.from(names).sort().map(name => ({ name, baseUnit: 'SH' }));
+  return Array.from(names).sort().map(name => ({ name, baseUnit: 'NOS' }));
 }
 
 const CSV_HEADER = [
@@ -262,7 +262,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(allocs[0].STOCKITEMNAME).toBe('INE001A01036-SH');
   });
 
-  it('buy voucher inventory has correct quantity (30 SH, positive = stock IN)', () => {
+  it('buy voucher inventory has correct quantity (30 NOS, positive = stock IN)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
@@ -272,9 +272,9 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     const drLineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0)!;
     const allocs = getInventoryAllocations(drLineWithInventory);
     const actualQty = String(allocs[0].ACTUALQTY);
-    // DR = stock IN → positive qty, should contain "30" and "SH"
+    // DR = stock IN → positive qty, should contain "30" and "NOS"
     expect(actualQty).toContain('30');
-    expect(actualQty).toContain('SH');
+    expect(actualQty).toContain('NOS');
     // Should NOT be negative (no leading minus)
     expect(actualQty.trim().startsWith('-')).toBe(false);
   });
@@ -1124,10 +1124,10 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
           expect(alloc.STOCKITEMNAME).toBeDefined();
           expect(String(alloc.STOCKITEMNAME).length).toBeGreaterThan(0);
           expect(alloc.ACTUALQTY).toBeDefined();
-          expect(String(alloc.ACTUALQTY)).toContain('SH');
+          expect(String(alloc.ACTUALQTY)).toContain('NOS');
           expect(alloc.BILLEDQTY).toBeDefined();
           expect(alloc.RATE).toBeDefined();
-          expect(String(alloc.RATE)).toContain('/SH');
+          expect(String(alloc.RATE)).toContain('/NOS');
           expect(alloc.AMOUNT).toBeDefined();
         }
       }

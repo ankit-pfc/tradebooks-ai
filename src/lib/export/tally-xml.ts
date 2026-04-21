@@ -38,7 +38,7 @@ export interface GroupMasterInput {
 export interface StockItemMasterInput {
   /** Exact Tally stock item name (must match STOCKITEMNAME in INVENTORYENTRIES). */
   name: string;
-  /** Base unit of measure. Defaults to "Nos" (numbers) for equity shares. */
+  /** Base unit of measure. Defaults to "NOS" (NUMBERS) for equity shares. */
   baseUnit?: string;
 }
 
@@ -116,12 +116,12 @@ function isDeemedPositive(drCr: 'DR' | 'CR'): string {
  * sees a double negative on the CR stock line of a sell and posts the
  * movement as an inflow, inflating holdings on every sale.
  *
- * TallyPrime expects format: "<number> <unit>" (e.g., "10 SH").
+ * TallyPrime expects format: "<number> <unit>" (e.g., "10 NOS").
  *
  * The `drCr` parameter is retained for call-site compatibility but is
  * intentionally unused.
  */
-export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'SH'): string {
+export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'NOS'): string {
   const n = parseFloat(qty);
   if (!Number.isFinite(n)) {
     throw new Error(`Invalid Tally quantity: ${qty}`);
@@ -131,9 +131,9 @@ export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'SH'): string {
 
 /**
  * Format a rate string for Tally's INVENTORYALLOCATIONS.LIST.
- * TallyPrime expects format: "<number>/<unit>" (e.g., "100.00/SH").
+ * TallyPrime expects format: "<number>/<unit>" (e.g., "100.00/NOS").
  */
-export function tallyRate(rate: string, unit = 'SH'): string {
+export function tallyRate(rate: string, unit = 'NOS'): string {
   const n = parseFloat(rate);
   if (!Number.isFinite(n)) {
     throw new Error(`Invalid Tally rate: ${rate}`);
@@ -376,14 +376,15 @@ export function generateMastersXml(
   // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
     // --- UNIT masters (emit first) ---
-    // Formal name mirrors what the CA on the review sheet expects: symbol
-    // "SH", formal name "SHARE" (singular). Tally's Unit Alteration screen
-    // shows this as: Symbol=SH, Formal name=SHARE.
+    // The target Tally unit for equity quantities is NOS/NUMBERS. The stock
+    // item / ledger naming convention still uses the "-SH" suffix, but the
+    // unit master shown in Tally's Unit Alteration screen must be:
+    // Symbol=NOS, Formal name=NUMBERS.
     const UNIT_FORMAL_NAMES: Record<string, string> = {
-      'SH': 'SHARE',
+      'NOS': 'NUMBERS',
       'Nos': 'Numbers',
     };
-    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'Nos'))].sort();
+    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'NOS'))].sort();
     for (const unitName of unitNames) {
       const msg = requestData.ele('TALLYMESSAGE', {
         'xmlns:UDF': 'TallyUDF',
@@ -402,6 +403,10 @@ export function generateMastersXml(
         ACTION: 'Create',
       });
 
+      // Tally's Unit Alteration screen binds the "Symbol" input from the
+      // direct NAME field on UNIT masters. Keep NAME.LIST too because our
+      // checked-in exports already use that broader master shape.
+      unitEle.ele('NAME').txt(unitName);
       unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
       unitEle.ele('ISSIMPLEUNIT').txt('Yes');
       unitEle.ele('ORIGINALNAME').txt(unitName);
@@ -430,7 +435,7 @@ export function generateMastersXml(
         .ele('NAME')
         .txt(item.name);
 
-      itemEle.ele('BASEUNITS').txt(item.baseUnit ?? 'Nos');
+      itemEle.ele('BASEUNITS').txt(item.baseUnit ?? 'NOS');
 
       const langList = itemEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(item.name);
