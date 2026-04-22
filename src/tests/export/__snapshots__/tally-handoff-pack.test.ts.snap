@@ -578,6 +578,24 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME>SH</NAME>
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <FORMALNAME>SHARE</FORMALNAME>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>INE009A01021-SH</NAME>
@@ -1713,6 +1731,24 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>NOS</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME>SH</NAME>
+            <NAME.LIST>
+              <NAME>SH</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>SH</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <FORMALNAME>SHARE</FORMALNAME>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

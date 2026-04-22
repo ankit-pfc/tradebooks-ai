@@ -376,16 +376,28 @@ export function generateMastersXml(
   // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
     // --- UNIT masters (emit first) ---
-    // The target Tally unit for equity quantities is NOS/NUMBERS. The stock
-    // item / ledger naming convention still uses the "-SH" suffix, but the
-    // unit master shown in Tally's Unit Alteration screen must be:
-    // Symbol=NOS, Formal name=NUMBERS.
-    const UNIT_FORMAL_NAMES: Record<string, string> = {
-      'NOS': 'NUMBERS',
-      'Nos': 'Numbers',
-    };
-    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'NOS'))].sort();
-    for (const unitName of unitNames) {
+    // We intentionally emit TWO unit masters — this is the explicit unit
+    // contract, not a derivation from stock items:
+    //
+    //   NOS → NUMBERS   : used by STOCKITEM.BASEUNITS and voucher
+    //                     ACTUALQTY/BILLEDQTY/RATE suffixes. Must exist
+    //                     or Tally rejects the stock-item reference
+    //                     ("MISSING MASTER NAME" on the Unit Alteration
+    //                     screen, which is the bug commit 03958257 fixed).
+    //   SH  → SHARE     : a second, CA-preferred display unit that sits
+    //                     alongside NOS in Tally's Units list. No XML
+    //                     construct references it — it is present because
+    //                     the reviewing CA expects to see Symbol=SH,
+    //                     Formal=SHARE on the Unit Alteration screen.
+    //
+    // Do NOT reintroduce a derivation from stockItems[*].baseUnit: the
+    // display unit (SH) is not the unit any stock item or voucher
+    // references, and deriving conflates the two.
+    const UNIT_MASTERS: Array<{ name: string; formalName: string }> = [
+      { name: 'NOS', formalName: 'NUMBERS' },
+      { name: 'SH', formalName: 'SHARE' },
+    ];
+    for (const { name: unitName, formalName } of UNIT_MASTERS) {
       const msg = requestData.ele('TALLYMESSAGE', {
         'xmlns:UDF': 'TallyUDF',
       });
@@ -411,7 +423,7 @@ export function generateMastersXml(
       unitEle.ele('ISSIMPLEUNIT').txt('Yes');
       unitEle.ele('ORIGINALNAME').txt(unitName);
       unitEle.ele('DECIMALPLACES').txt('0');
-      unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName] ?? unitName);
+      unitEle.ele('FORMALNAME').txt(formalName);
 
       const langList = unitEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);

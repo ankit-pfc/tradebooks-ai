@@ -233,7 +233,7 @@ describe('generateVouchersXml — investor pipeline emits JV only', () => {
 // Bug 1 + Bug 2 regressions — Tally XML masters / voucher side.
 // ---------------------------------------------------------------------------
 describe('tally-xml masters regressions', () => {
-  it('Bug 1: UNIT master is emitted as ACTION=Create with NOS symbol and NUMBERS formal name', async () => {
+  it('Bug 1: emits both NOS (referenced by stock items/vouchers) and SH (CA display unit) masters', async () => {
     const { generateMastersXml } = await import('../tally-xml');
     const xml = generateMastersXml(
       [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
@@ -242,17 +242,42 @@ describe('tally-xml masters regressions', () => {
       [{ name: 'RELIANCE-SH', baseUnit: 'NOS' }],
     );
 
-    // The Tally unit for quantities should be NOS/NUMBERS, while stock item
-    // names continue to use the "-SH" suffix. ACTION=Create with a non-empty
-    // ORIGINALNAME matches the checked-in export shape.
+    // NOS master — referenced by STOCKITEM.BASEUNITS and voucher
+    // ACTUALQTY/RATE suffixes. Must resolve or Tally auto-creates a phantom
+    // unit on import (see commit 03958257).
     expect(xml).toContain('<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">');
     expect(xml).toMatch(
-      /<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>NOS<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>NOS<\/NAME>/,
+      /<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>NOS<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>NOS<\/NAME>[\s\S]*?<ORIGINALNAME>NOS<\/ORIGINALNAME>[\s\S]*?<FORMALNAME>NUMBERS<\/FORMALNAME>/,
     );
-    expect(xml).toContain('<ORIGINALNAME>NOS</ORIGINALNAME>');
+
+    // SH master — CA-preferred display unit on Tally's Unit Alteration
+    // screen. Not referenced by any STOCKITEM.BASEUNITS or voucher quantity.
+    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">');
+    expect(xml).toMatch(
+      /<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>SH<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>SH<\/NAME>[\s\S]*?<ORIGINALNAME>SH<\/ORIGINALNAME>[\s\S]*?<FORMALNAME>SHARE<\/FORMALNAME>/,
+    );
+
     expect(xml).not.toContain('<ORIGINALNAME/>');
-    expect(xml).toContain('<FORMALNAME>NUMBERS</FORMALNAME>');
     expect(xml).not.toMatch(/<FORMALNAME>\s*<\/FORMALNAME>/);
+
+    // Stock item still references NOS (not SH) — this is the contract the
+    // refactor protects: display unit (SH) and data unit (NOS) are decoupled.
+    expect(xml).toContain('<BASEUNITS>NOS</BASEUNITS>');
+    expect(xml).not.toContain('<BASEUNITS>SH</BASEUNITS>');
+  });
+
+  it('Bug 1: emits SH master even when no stock items use SH as baseUnit', async () => {
+    const { generateMastersXml } = await import('../tally-xml');
+    const xml = generateMastersXml(
+      [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
+      'Test Co',
+      undefined,
+      // Every stock item uses NOS — SH must still appear as a display unit.
+      [{ name: 'RELIANCE-SH', baseUnit: 'NOS' }, { name: 'INFY-SH', baseUnit: 'NOS' }],
+    );
+
+    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">');
+    expect(xml).toContain('<FORMALNAME>SHARE</FORMALNAME>');
   });
 
   it('Bug 2: masters XML alters the Journal voucher type to Manual numbering', async () => {
