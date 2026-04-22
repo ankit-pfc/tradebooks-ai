@@ -64,25 +64,16 @@ function symbolFromSecurityId(securityId: string | null): string {
   return parts.length > 1 ? parts[1] : securityId;
 }
 
-/** Extract the ISIN code from an ISIN-keyed canonical security_id. */
-function isinFromSecurityId(securityId: string | null): string | null {
-  if (!securityId) return null;
-  const [prefix, value] = securityId.split(':');
-  const isin = value?.trim().toUpperCase();
-  return prefix?.trim().toUpperCase() === 'ISIN' && isin ? isin : null;
-}
-
 /**
  * Build the Tally stock item name for a security.
  *
- * Tally matches inventory by STOCKITEMNAME, so stock items must use the
- * canonical ISIN identity whenever it is available. Ledger names and
- * narrations can remain symbol-based for readability, but inventory matching
- * must not depend on broker/exchange display names.
+ * Tally matches inventory by STOCKITEMNAME, but the exported name should stay
+ * human-readable in stock summary views. We therefore use the broker symbol
+ * whenever the canonical event carries one, while keeping the underlying lot
+ * identity on security_id (which may still be ISIN-based for matching/FIFO).
+ * Only truly unmapped events fall back to the security_id-derived token.
  */
 function stockItemNameForEvent(event: { security_id: string | null; security_symbol?: string | null }): string {
-  const isin = isinFromSecurityId(event.security_id);
-  if (isin) return `${isin}-SH`;
   return `${symbolFromEvent(event)}-SH`;
 }
 

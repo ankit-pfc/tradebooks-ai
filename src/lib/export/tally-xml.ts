@@ -38,9 +38,18 @@ export interface GroupMasterInput {
 export interface StockItemMasterInput {
   /** Exact Tally stock item name (must match STOCKITEMNAME in INVENTORYENTRIES). */
   name: string;
-  /** Base unit of measure. Defaults to "NOS" (NUMBERS) for equity shares. */
+  /** Base unit of measure. Defaults to "SH" (Shares) for equity shares. */
   baseUnit?: string;
 }
+
+const BUILTIN_VOUCHER_TYPES = [
+  'Journal',
+  'Purchase',
+  'Sales',
+  'Receipt',
+  'Payment',
+  'Contra',
+] as const;
 
 /**
  * VoucherDraft augmented with its resolved line items.
@@ -116,12 +125,12 @@ function isDeemedPositive(drCr: 'DR' | 'CR'): string {
  * sees a double negative on the CR stock line of a sell and posts the
  * movement as an inflow, inflating holdings on every sale.
  *
- * TallyPrime expects format: "<number> <unit>" (e.g., "10 NOS").
+ * TallyPrime expects format: "<number> <unit>" (e.g., "10 SH").
  *
  * The `drCr` parameter is retained for call-site compatibility but is
  * intentionally unused.
  */
-export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'NOS'): string {
+export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'SH'): string {
   const n = parseFloat(qty);
   if (!Number.isFinite(n)) {
     throw new Error(`Invalid Tally quantity: ${qty}`);
@@ -131,9 +140,9 @@ export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'NOS'): string 
 
 /**
  * Format a rate string for Tally's INVENTORYALLOCATIONS.LIST.
- * TallyPrime expects format: "<number>/<unit>" (e.g., "100.00/NOS").
+ * TallyPrime expects format: "<number>/<unit>" (e.g., "100.00/SH").
  */
-export function tallyRate(rate: string, unit = 'NOS'): string {
+export function tallyRate(rate: string, unit = 'SH'): string {
   const n = parseFloat(rate);
   if (!Number.isFinite(n)) {
     throw new Error(`Invalid Tally rate: ${rate}`);
@@ -279,33 +288,42 @@ export function generateMastersXml(
   companyName: string,
   groups?: GroupMasterInput[],
   stockItems?: StockItemMasterInput[],
+  manualNumberingVoucherTypes?: string[],
 ): string {
   const { root, requestData } = buildEnvelope('All Masters', companyName);
 
-  // Alter the built-in Journal voucher type so its numbering method is
-  // Manual. Without this, Tally auto-numbers every incoming journal 1..N
-  // and discards the VOUCHERNUMBER carried in the voucher XML — which is
-  // where we put the contract-note reference (user requirement: "Journal
-  // voucher number AS contract note no — IT'S A MUST!"). Emitting this
-  // alter once as part of the masters import is a one-shot switch; later
-  // imports into the same company are idempotent because ACTION=Alter keeps
-  // the setting in place.
+  const voucherTypesForManualNumbering = BUILTIN_VOUCHER_TYPES.filter((voucherType, index, all) => {
+    if (voucherType === 'Journal') return true;
+    const requested = manualNumberingVoucherTypes?.includes(voucherType) ?? false;
+    return requested && all.indexOf(voucherType) === index;
+  });
+
+  // Alter the built-in voucher types touched by this export so their numbering
+  // method is Manual. Without this, Tally auto-numbers incoming vouchers and
+  // discards the VOUCHERNUMBER carried in the XML — which is where we put the
+  // broker / contract-note reference. Journal stays in the default set because
+  // investor-mode trade vouchers always land there; Purchase/Sales/Receipt/etc.
+  // are added only when the export actually emits them.
   //
   // Tally schema note: NUMBERINGMETHOD accepts "Manual", "Automatic",
   // "Automatic (Manual Override)" — we use "Manual" so imported numbers
   // are never rewritten.
-  {
+  for (const voucherType of voucherTypesForManualNumbering) {
     const msg = requestData.ele('TALLYMESSAGE', {
       'xmlns:UDF': 'TallyUDF',
     });
     const vtEle = msg.ele('VOUCHERTYPE', {
-      NAME: 'Journal',
+      NAME: voucherType,
       RESERVEDNAME: '',
       ACTION: 'Alter',
     });
-    vtEle.ele('NAME.LIST').ele('NAME').txt('Journal');
-    vtEle.ele('PARENT').txt('Journal');
+    vtEle.ele('NAME.LIST').ele('NAME').txt(voucherType);
+    vtEle.ele('PARENT').txt(voucherType);
     vtEle.ele('NUMBERINGMETHOD').txt('Manual');
+    // Inference from Tally's voucher-type field naming: this maps to the UI
+    // toggle "Prevent creating duplicate Voucher Nos." and ensures repeated
+    // imports with the same external reference are rejected instead of cloned.
+    vtEle.ele('PREVENTDUPLICATES').txt('Yes');
   }
 
   // Emit GROUP masters first — TallyPrime requires parent groups to exist
@@ -376,15 +394,15 @@ export function generateMastersXml(
   // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
     // --- UNIT masters (emit first) ---
-    // The target Tally unit for equity quantities is NOS/NUMBERS. The stock
+    // The target Tally unit for equity quantities is SH/Shares. The stock
     // item / ledger naming convention still uses the "-SH" suffix, but the
     // unit master shown in Tally's Unit Alteration screen must be:
-    // Symbol=NOS, Formal name=NUMBERS.
+    // Symbol=SH, Formal name=Shares.
     const UNIT_FORMAL_NAMES: Record<string, string> = {
-      'NOS': 'NUMBERS',
+      'SH': 'Shares',
       'Nos': 'Numbers',
     };
-    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'NOS'))].sort();
+    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'SH'))].sort();
     for (const unitName of unitNames) {
       const msg = requestData.ele('TALLYMESSAGE', {
         'xmlns:UDF': 'TallyUDF',
@@ -435,7 +453,7 @@ export function generateMastersXml(
         .ele('NAME')
         .txt(item.name);
 
-      itemEle.ele('BASEUNITS').txt(item.baseUnit ?? 'NOS');
+      itemEle.ele('BASEUNITS').txt(item.baseUnit ?? 'SH');
 
       const langList = itemEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(item.name);
@@ -597,8 +615,18 @@ export function generateFullExport(
   groups?: GroupMasterInput[],
   stockItems?: StockItemMasterInput[],
 ): FullExportResult {
+  const manualNumberingVoucherTypes = Array.from(
+    new Set(vouchers.map((voucher) => resolveVoucherXmlRenderConfig(voucher).tallyVoucherType)),
+  );
+
   return {
-    mastersXml: generateMastersXml(ledgers, companyName, groups, stockItems),
+    mastersXml: generateMastersXml(
+      ledgers,
+      companyName,
+      groups,
+      stockItems,
+      manualNumberingVoucherTypes,
+    ),
     transactionsXml: generateVouchersXml(vouchers, companyName),
   };
 }

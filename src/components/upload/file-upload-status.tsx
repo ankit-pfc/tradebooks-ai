@@ -8,6 +8,7 @@ export const BATCH_FILE_TYPE_LABELS: Record<BatchFileType, string> = {
   tradebook: 'Tradebook',
   funds_statement: 'Funds Statement',
   holdings: 'Holdings',
+  ledger: 'Ledger',
   contract_note: 'Contract Note',
   taxpnl: 'Tax P&L',
   pnl: 'P&L (not needed)',
@@ -20,6 +21,7 @@ export const FILE_TYPE_BADGE: Record<BatchFileType, string> = {
   tradebook: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   funds_statement: 'bg-blue-100 text-blue-700 border-blue-200',
   holdings: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  ledger: 'bg-cyan-100 text-cyan-700 border-cyan-200',
   contract_note: 'bg-violet-100 text-violet-700 border-violet-200',
   taxpnl: 'bg-orange-100 text-orange-700 border-orange-200',
   // Detected but informational only — every value in this file is already

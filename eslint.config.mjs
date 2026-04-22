@@ -20,6 +20,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Codex/Claude scratch worktrees can contain nested build output.
+    ".claude/worktrees/**",
     // Standalone scripts (CommonJS)
     "scripts/**",
     // Stale nested project artifact

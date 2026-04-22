@@ -41,7 +41,7 @@ function collectStockItems(vouchers: { lines: { stock_item_name: string | null }
       if (l.stock_item_name) names.add(l.stock_item_name);
     }
   }
-  return Array.from(names).sort().map(name => ({ name, baseUnit: 'NOS' }));
+  return Array.from(names).sort().map(name => ({ name, baseUnit: 'SH' }));
 }
 
 const CSV_HEADER = [
@@ -246,7 +246,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect((buyV as Record<string, unknown>).ISINVOICE).toBeUndefined();
   });
 
-  it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with ISIN-based stock item', () => {
+  it('buy voucher DR line has INVENTORYALLOCATIONS.LIST with symbol-based stock item', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
@@ -259,10 +259,10 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     });
     expect(drLineWithInventory).toBeDefined();
     const allocs = getInventoryAllocations(drLineWithInventory!);
-    expect(allocs[0].STOCKITEMNAME).toBe('INE001A01036-SH');
+    expect(allocs[0].STOCKITEMNAME).toBe('HDFC-SH');
   });
 
-  it('buy voucher inventory has correct quantity (30 NOS, positive = stock IN)', () => {
+  it('buy voucher inventory has correct quantity (30 SH, positive = stock IN)', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const buyV = vouchers.find(v =>
@@ -272,9 +272,9 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     const drLineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0)!;
     const allocs = getInventoryAllocations(drLineWithInventory);
     const actualQty = String(allocs[0].ACTUALQTY);
-    // DR = stock IN → positive qty, should contain "30" and "NOS"
+    // DR = stock IN → positive qty, should contain "30" and "SH"
     expect(actualQty).toContain('30');
-    expect(actualQty).toContain('NOS');
+    expect(actualQty).toContain('SH');
     // Should NOT be negative (no leading minus)
     expect(actualQty.trim().startsWith('-')).toBe(false);
   });
@@ -306,11 +306,11 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(gainLossLine).toBeDefined();
   });
 
-  it('mastersXml has ISIN-based HDFC stock item', () => {
+  it('mastersXml has symbol-based HDFC stock item', () => {
     const parsed = parseXml(result.mastersXml);
     const stockItems = getStockItems(parsed);
     const hdfcItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)).includes('INE001A01036-SH'),
+      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)).includes('HDFC-SH'),
     );
     expect(hdfcItem).toBeDefined();
   });
@@ -364,7 +364,7 @@ describe('Scenario 2: Cross-exchange ISIN unification', () => {
     }
   });
 
-  it('stock item in XML is ISIN-based for ADSL', () => {
+  it('stock item in XML stays symbol-based for ADSL', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     for (const v of vouchers) {
@@ -372,7 +372,7 @@ describe('Scenario 2: Cross-exchange ISIN unification', () => {
       for (const l of lines) {
         const allocs = getInventoryAllocations(l);
         for (const a of allocs) {
-          expect(a.STOCKITEMNAME).toBe('INE102I01027-SH');
+          expect(a.STOCKITEMNAME).toBe('ADSL-SH');
         }
       }
     }
@@ -393,11 +393,11 @@ describe('Scenario 2: Cross-exchange ISIN unification', () => {
     }
   });
 
-  it('mastersXml uses ISIN-based ADSL stock item', () => {
+  it('mastersXml uses symbol-based ADSL stock item', () => {
     const parsed = parseXml(result.mastersXml);
     const stockItems = getStockItems(parsed);
     const adslItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'INE102I01027-SH',
+      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'ADSL-SH',
     );
     expect(adslItem).toBeDefined();
   });
@@ -504,7 +504,7 @@ describe('Scenario 3: Intraday trades skip inventory', () => {
     const lineWithInventory = lines.find(l => getInventoryAllocations(l).length > 0);
     expect(lineWithInventory).toBeDefined();
     const allocs = getInventoryAllocations(lineWithInventory!);
-    expect(allocs[0].STOCKITEMNAME).toBe('INE002A01018-SH');
+    expect(allocs[0].STOCKITEMNAME).toBe('RELIANCE-SH');
   });
 });
 
@@ -816,7 +816,7 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
     }
   });
 
-  it('ADSL sell vouchers have INVENTORYALLOCATIONS.LIST with ISIN-based stock item', () => {
+  it('ADSL sell vouchers have INVENTORYALLOCATIONS.LIST with symbol-based stock item', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const adslSellVouchers = vouchers.filter(v =>
@@ -829,7 +829,7 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
       const inventoryLine = lines.find(l => getInventoryAllocations(l).length > 0);
       expect(inventoryLine).toBeDefined();
       const allocs = getInventoryAllocations(inventoryLine!);
-      expect(allocs[0].STOCKITEMNAME).toBe('INE102I01027-SH');
+      expect(allocs[0].STOCKITEMNAME).toBe('ADSL-SH');
     }
   });
 
@@ -870,11 +870,11 @@ describe('Scenario 6: Mixed portfolio full pipeline', () => {
     }
   });
 
-  it('mastersXml has ISIN-based ADSL stock item', () => {
+  it('mastersXml has symbol-based ADSL stock item', () => {
     const parsed = parseXml(result.mastersXml);
     const stockItems = getStockItems(parsed);
     const adslItem = stockItems.find(s =>
-      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'INE102I01027-SH',
+      String(((s as Record<string, unknown>)['@_NAME'] ?? (s as Record<string, unknown>).NAME)) === 'ADSL-SH',
     );
     expect(adslItem).toBeDefined();
   });
@@ -1124,10 +1124,10 @@ describe('Scenario 7: Tally import conformance on bug fix output', () => {
           expect(alloc.STOCKITEMNAME).toBeDefined();
           expect(String(alloc.STOCKITEMNAME).length).toBeGreaterThan(0);
           expect(alloc.ACTUALQTY).toBeDefined();
-          expect(String(alloc.ACTUALQTY)).toContain('NOS');
+          expect(String(alloc.ACTUALQTY)).toContain('SH');
           expect(alloc.BILLEDQTY).toBeDefined();
           expect(alloc.RATE).toBeDefined();
-          expect(String(alloc.RATE)).toContain('/NOS');
+          expect(String(alloc.RATE)).toContain('/SH');
           expect(alloc.AMOUNT).toBeDefined();
         }
       }

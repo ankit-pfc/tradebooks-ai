@@ -1,9 +1,12 @@
+import Decimal from 'decimal.js';
 import { detectFileType } from '@/lib/parsers/zerodha/detect';
 import { parseTradebook } from '@/lib/parsers/zerodha/tradebook';
 import { parseContractNotes } from '@/lib/parsers/zerodha/contract-notes';
 import { parseContractNotesXml } from '@/lib/parsers/zerodha/contract-notes-xml';
 import { parseFundsStatement } from '@/lib/parsers/zerodha/funds-statement';
 import { parseDividends } from '@/lib/parsers/zerodha/dividends';
+import { parseHoldings } from '@/lib/parsers/zerodha/holdings';
+import { parseLedger } from '@/lib/parsers/zerodha/ledger';
 import {
   buildCanonicalEvents,
   pairContractNoteData,
@@ -11,6 +14,7 @@ import {
 } from '@/lib/engine/canonical-events';
 import { CostLotTracker } from '@/lib/engine/cost-lots';
 import { buildVouchers } from '@/lib/engine/voucher-builder';
+import { resolveInvestmentLedger } from '@/lib/engine/ledger-resolver';
 import {
   INVESTOR_DEFAULT,
   TRADER_DEFAULT,
@@ -21,21 +25,31 @@ import {
 } from '@/lib/engine/accounting-policy';
 import { AccountingMode } from '@/lib/types/accounting';
 import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
-import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
+import {
+  generateFullExport,
+  type LedgerMasterInput,
+  type StockItemMasterInput,
+  type VoucherDraftWithLines,
+} from '@/lib/export/tally-xml';
 import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '@/lib/db';
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, disambiguateVoucherNumbers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
 import { TradeClassification, TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
+import * as L from '@/lib/constants/ledger-names';
 import type {
+  ZerodhaHoldingsRow,
   ZerodhaTradebookRow,
   ZerodhaFundsStatementRow,
   ZerodhaContractNoteCharges,
   ZerodhaDividendRow,
+  ZerodhaLedgerRow,
   ParseMetadata,
   CorporateActionInput,
 } from '@/lib/parsers/zerodha/types';
+import type { CostLot } from '@/lib/types/events';
+import { InvoiceIntent, VoucherStatus, VoucherType, type VoucherLine } from '@/lib/types/vouchers';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -116,7 +130,328 @@ interface ParsedFileSet {
   };
   fundsStatement?: { rows: ZerodhaFundsStatementRow[]; metadata: ParseMetadata };
   dividends?: { rows: ZerodhaDividendRow[]; metadata: ParseMetadata };
+  holdings?: { rows: ZerodhaHoldingsRow[]; metadata: ParseMetadata };
+  ledger?: { rows: ZerodhaLedgerRow[]; openingBalance: string; metadata: ParseMetadata };
   files: ParsedFile[];
+}
+
+interface OpeningSeedResult {
+  lots: Record<string, CostLot[]>;
+  vouchers: VoucherDraftWithLines[];
+  additionalLedgers: LedgerMasterInput[];
+}
+
+const ISIN_PATTERN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
+
+function isValidIsinLike(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return ISIN_PATTERN.test(value.trim().toUpperCase());
+}
+
+function shiftIsoDate(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizeSecurityId(params: {
+  isin?: string | null;
+  symbol: string;
+  fallbackSecurityId?: string | null;
+}): string {
+  const isin = params.isin?.trim().toUpperCase() ?? '';
+  if (isValidIsinLike(isin)) {
+    return `ISIN:${isin}`;
+  }
+
+  if (params.fallbackSecurityId) {
+    return params.fallbackSecurityId;
+  }
+
+  return `EQ:${params.symbol.trim().toUpperCase()}`;
+}
+
+function deriveSymbolFromSecurityId(securityId: string): string {
+  const parts = securityId.split(':');
+  return parts.length > 1 ? parts[1] : securityId;
+}
+
+function stockItemNameFromSecurityId(securityId: string, fallbackSymbol: string): string {
+  const normalizedSymbol = fallbackSymbol.trim().toUpperCase();
+  if (normalizedSymbol) {
+    return `${normalizedSymbol}-SH`;
+  }
+
+  const [, value] = securityId.split(':');
+  const normalizedValue = value?.trim().toUpperCase();
+  return `${normalizedValue || securityId.trim().toUpperCase()}-SH`;
+}
+
+function sanitizeReferenceToken(value: string): string {
+  return value.replace(/[^A-Z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'OPENING';
+}
+
+function makeVoucherLine(
+  draftId: string,
+  lineNo: number,
+  ledgerName: string,
+  amount: string,
+  drCr: 'DR' | 'CR',
+  opts?: {
+    security_id?: string | null;
+    quantity?: string | null;
+    rate?: string | null;
+    stock_item_name?: string | null;
+  },
+): VoucherLine {
+  return {
+    voucher_line_id: crypto.randomUUID(),
+    voucher_draft_id: draftId,
+    line_no: lineNo,
+    ledger_name: ledgerName,
+    amount,
+    dr_cr: drCr,
+    security_id: opts?.security_id ?? null,
+    quantity: opts?.quantity ?? null,
+    rate: opts?.rate ?? null,
+    stock_item_name: opts?.stock_item_name ?? null,
+    cost_center: null,
+    bill_ref: null,
+  };
+}
+
+function buildOpeningSymbolLookup(
+  tradebookRows: ZerodhaTradebookRow[] | undefined,
+  holdingsRows: ZerodhaHoldingsRow[] | undefined,
+): {
+  symbolBySecurityId: Map<string, string>;
+  securityIdBySymbol: Map<string, string>;
+} {
+  const symbolBySecurityId = new Map<string, string>();
+  const securityIdBySymbol = new Map<string, string>();
+
+  for (const row of tradebookRows ?? []) {
+    const symbol = row.symbol.trim().toUpperCase();
+    const securityId = normalizeSecurityId({ isin: row.isin, symbol, fallbackSecurityId: `EQ:${symbol}` });
+    symbolBySecurityId.set(securityId, symbol);
+    securityIdBySymbol.set(symbol, securityId);
+  }
+
+  for (const row of holdingsRows ?? []) {
+    const symbol = row.symbol.trim().toUpperCase();
+    const securityId = normalizeSecurityId({
+      isin: row.isin,
+      symbol,
+      fallbackSecurityId: securityIdBySymbol.get(symbol) ?? null,
+    });
+    symbolBySecurityId.set(securityId, symbol);
+    if (!securityIdBySymbol.has(symbol)) {
+      securityIdBySymbol.set(symbol, securityId);
+    }
+  }
+
+  return { symbolBySecurityId, securityIdBySymbol };
+}
+
+function mergeOpeningLots(
+  primary: Record<string, CostLot[]>,
+  supplement: Record<string, CostLot[]>,
+): Record<string, CostLot[]> {
+  const merged: Record<string, CostLot[]> = {};
+
+  for (const [securityId, lots] of Object.entries(primary)) {
+    merged[securityId] = lots.map((lot) => ({ ...lot }));
+  }
+
+  for (const [securityId, lots] of Object.entries(supplement)) {
+    if (merged[securityId]?.length) continue;
+    merged[securityId] = lots.map((lot) => ({ ...lot }));
+  }
+
+  return merged;
+}
+
+function buildLotsFromHoldings(
+  holdingsRows: ZerodhaHoldingsRow[] | undefined,
+  periodFrom: string,
+  securityIdBySymbol: Map<string, string>,
+): Record<string, CostLot[]> {
+  const result: Record<string, CostLot[]> = {};
+
+  for (const row of holdingsRows ?? []) {
+    const symbol = row.symbol.trim().toUpperCase();
+    if (!symbol) continue;
+
+    const securityId = normalizeSecurityId({
+      isin: row.isin,
+      symbol,
+      fallbackSecurityId: securityIdBySymbol.get(symbol) ?? null,
+    });
+
+    const totalQty = new Decimal(row.quantity_available || '0');
+    const longTermQty = Decimal.min(
+      Decimal.max(new Decimal(row.quantity_long_term || '0'), 0),
+      totalQty,
+    );
+    const shortTermQty = totalQty.sub(longTermQty);
+    const averagePrice = new Decimal(row.average_price || '0');
+
+    if (totalQty.lte(0) || averagePrice.lt(0)) {
+      continue;
+    }
+
+    const lots: CostLot[] = [];
+    const longTermDate = shiftIsoDate(periodFrom, -366);
+    const shortTermDate = shiftIsoDate(periodFrom, -1);
+
+    if (longTermQty.gt(0)) {
+      lots.push({
+        cost_lot_id: crypto.randomUUID(),
+        security_id: securityId,
+        source_buy_event_id: `opening-holdings:${securityId}:lt`,
+        open_quantity: longTermQty.toFixed(),
+        original_quantity: longTermQty.toFixed(),
+        effective_unit_cost: averagePrice.toFixed(6),
+        acquisition_date: longTermDate,
+        remaining_total_cost: longTermQty.mul(averagePrice).toFixed(2),
+      });
+    }
+
+    if (shortTermQty.gt(0)) {
+      lots.push({
+        cost_lot_id: crypto.randomUUID(),
+        security_id: securityId,
+        source_buy_event_id: `opening-holdings:${securityId}:st`,
+        open_quantity: shortTermQty.toFixed(),
+        original_quantity: shortTermQty.toFixed(),
+        effective_unit_cost: averagePrice.toFixed(6),
+        acquisition_date: shortTermDate,
+        remaining_total_cost: shortTermQty.mul(averagePrice).toFixed(2),
+      });
+    }
+
+    if (lots.length > 0) {
+      result[securityId] = lots;
+    }
+  }
+
+  return result;
+}
+
+function buildOpeningSeed(params: {
+  batchId: string;
+  periodFrom: string;
+  tallyProfile: ReturnType<typeof getDefaultTallyProfile>;
+  symbolBySecurityId: Map<string, string>;
+  openingLots: Record<string, CostLot[]>;
+  ledgerOpeningBalance: string;
+}): OpeningSeedResult {
+  const vouchers: VoucherDraftWithLines[] = [];
+  const ledgers = new Map<string, LedgerMasterInput>();
+  const counterLedger = {
+    name: L.OPENING_BALANCE_EQUITY.name,
+    parent_group: L.OPENING_BALANCE_EQUITY.group,
+    affects_stock: false,
+  };
+
+  for (const [securityId, lots] of Object.entries(params.openingLots)) {
+    const symbol = params.symbolBySecurityId.get(securityId) ?? deriveSymbolFromSecurityId(securityId);
+    const assetLedger = resolveInvestmentLedger(params.tallyProfile, symbol);
+    ledgers.set(assetLedger.name, {
+      name: assetLedger.name,
+      parent_group: assetLedger.group,
+      affects_stock: true,
+    });
+
+    lots.forEach((lot, index) => {
+      const quantity = new Decimal(lot.open_quantity);
+      const unitCost = new Decimal(lot.effective_unit_cost);
+      if (quantity.lte(0)) return;
+
+      const amount = new Decimal(lot.remaining_total_cost ?? quantity.mul(unitCost).toFixed(2))
+        .toDecimalPlaces(2)
+        .toFixed(2);
+      const draftId = crypto.randomUUID();
+      const reference = sanitizeReferenceToken(`OPEN-STOCK-${symbol}-${index + 1}-${params.periodFrom}`);
+      const stockItemName = stockItemNameFromSecurityId(securityId, symbol);
+      const longTermSeed = lot.acquisition_date <= shiftIsoDate(params.periodFrom, -366);
+      const lines: VoucherLine[] = [
+        makeVoucherLine(draftId, 1, assetLedger.name, amount, 'DR', {
+          security_id: securityId,
+          quantity: quantity.toFixed(),
+          rate: unitCost.toFixed(6),
+          stock_item_name: stockItemName,
+        }),
+        makeVoucherLine(draftId, 2, counterLedger.name, amount, 'CR'),
+      ];
+
+      vouchers.push({
+        voucher_draft_id: draftId,
+        import_batch_id: params.batchId,
+        voucher_type: VoucherType.JOURNAL,
+        invoice_intent: InvoiceIntent.NONE,
+        voucher_date: params.periodFrom,
+        external_reference: reference,
+        narrative: longTermSeed
+          ? `FY opening balance carried forward for ${symbol} (long-term lot)`
+          : `FY opening balance carried forward for ${symbol}`,
+        total_debit: amount,
+        total_credit: amount,
+        draft_status: VoucherStatus.DRAFT,
+        source_event_ids: [],
+        created_at: new Date().toISOString(),
+        lines,
+      });
+      ledgers.set(counterLedger.name, counterLedger);
+    });
+  }
+
+  const brokerOpening = new Decimal(params.ledgerOpeningBalance || '0');
+  if (!brokerOpening.isZero()) {
+    const brokerLedger = {
+      name: params.tallyProfile.broker.name,
+      parent_group: params.tallyProfile.broker.group,
+      affects_stock: false,
+    };
+    ledgers.set(brokerLedger.name, brokerLedger);
+
+    const amount = brokerOpening.abs().toFixed(2);
+    const draftId = crypto.randomUUID();
+    const isDebitBroker = brokerOpening.greaterThan(0);
+    const lines: VoucherLine[] = isDebitBroker
+      ? [
+        makeVoucherLine(draftId, 1, brokerLedger.name, amount, 'DR'),
+        makeVoucherLine(draftId, 2, counterLedger.name, amount, 'CR'),
+      ]
+      : [
+        makeVoucherLine(draftId, 1, counterLedger.name, amount, 'DR'),
+        makeVoucherLine(draftId, 2, brokerLedger.name, amount, 'CR'),
+      ];
+
+    vouchers.push({
+      voucher_draft_id: draftId,
+      import_batch_id: params.batchId,
+      voucher_type: VoucherType.JOURNAL,
+      invoice_intent: InvoiceIntent.NONE,
+      voucher_date: params.periodFrom,
+      external_reference: sanitizeReferenceToken(`OPEN-BROKER-${params.periodFrom}`),
+      narrative: 'FY opening broker balance carried forward',
+      total_debit: amount,
+      total_credit: amount,
+      draft_status: VoucherStatus.DRAFT,
+      source_event_ids: [],
+      created_at: new Date().toISOString(),
+      lines,
+    });
+    ledgers.set(counterLedger.name, counterLedger);
+  }
+
+  return {
+    lots: params.openingLots,
+    vouchers,
+    additionalLedgers: Array.from(ledgers.values()),
+  };
 }
 
 function buildContractNoteSymbolLookup(
@@ -186,6 +521,8 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     fundsStatement?: string;
     contractNote?: string;
     dividends?: string;
+    holdings?: string;
+    ledger?: string;
     corporateActions?: string;
   } = {};
 
@@ -235,6 +572,22 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
         const parsed = parseDividends(f.buffer, f.fileName);
         parsedFileSet.dividends = { rows: parsed.rows, metadata: parsed.metadata };
         fileIds.dividends = f.fileId;
+        break;
+      }
+      case 'holdings': {
+        const parsed = parseHoldings(f.buffer, f.fileName);
+        parsedFileSet.holdings = { rows: parsed.equity, metadata: parsed.metadata };
+        fileIds.holdings = f.fileId;
+        break;
+      }
+      case 'ledger': {
+        const parsed = parseLedger(f.buffer, f.fileName);
+        parsedFileSet.ledger = {
+          rows: parsed.rows,
+          openingBalance: parsed.opening_balance,
+          metadata: parsed.metadata,
+        };
+        fileIds.ledger = f.fileId;
         break;
       }
       case 'pnl': {
@@ -306,24 +659,47 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     ? mergeOverridesIntoProfile(baseTallyProfile, ledgerOverrides)
     : baseTallyProfile;
 
-  // Step 6: Load prior batch closing lots as opening balances (multi-FY)
-  let tracker: CostLotTracker;
-  if (priorBatchId) {
-    const priorLots = await repo.getClosingLots(priorBatchId);
-    tracker = priorLots ? CostLotTracker.fromJSON({ lots: priorLots }) : new CostLotTracker();
-  } else {
-    tracker = new CostLotTracker();
-  }
+  const { symbolBySecurityId, securityIdBySymbol } = buildOpeningSymbolLookup(
+    parsedFileSet.tradebook?.rows,
+    parsedFileSet.holdings?.rows,
+  );
+
+  // Step 6: Load prior batch closing lots and uploaded opening snapshots.
+  const priorLots = priorBatchId
+    ? (await repo.getClosingLots(priorBatchId)) ?? {}
+    : {};
+  const holdingsLots = buildLotsFromHoldings(
+    parsedFileSet.holdings?.rows,
+    periodFrom,
+    securityIdBySymbol,
+  );
+  const openingSeed = buildOpeningSeed({
+    batchId,
+    periodFrom,
+    tallyProfile,
+    symbolBySecurityId,
+    openingLots: mergeOpeningLots(priorLots, holdingsLots),
+    ledgerOpeningBalance: parsedFileSet.ledger?.openingBalance ?? '0',
+  });
+  const tracker = CostLotTracker.fromJSON({ lots: openingSeed.lots });
 
   // Step 7: Build vouchers, collect ledger masters, generate XML
-  const rawVouchers = buildVouchers(events, profile, tracker, tallyProfile);
+  const rawTradeVouchers = buildVouchers(events, profile, tracker, tallyProfile);
   // mergePurchaseVouchers consolidates same-rate fills; disambiguateVoucherNumbers
   // appends -2/-3 suffixes to any remaining duplicate VOUCHERNUMBER pairs so
   // multi-script CNs and multi-rate same-script CNs don't collide on Tally import
   // (item #16 from 3rd review).
-  const mergedVouchers = mergePurchaseVouchers(rawVouchers, purchaseMergeMode);
-  const vouchers = disambiguateVoucherNumbers(mergedVouchers);
-  const ledgers = collectRequiredLedgers(events, profile, { tallyProfile });
+  const mergedTradeVouchers = mergePurchaseVouchers(rawTradeVouchers, purchaseMergeMode);
+  const tradeVouchers = disambiguateVoucherNumbers(mergedTradeVouchers);
+  const vouchers = [...openingSeed.vouchers, ...tradeVouchers];
+  const ledgersByName = new Map<string, LedgerMasterInput>();
+  for (const ledger of collectRequiredLedgers(events, profile, { tallyProfile })) {
+    ledgersByName.set(ledger.name, ledger);
+  }
+  for (const ledger of openingSeed.additionalLedgers) {
+    ledgersByName.set(ledger.name, ledger);
+  }
+  const ledgers = Array.from(ledgersByName.values());
 
   const classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']> = {
     INVESTMENT: 0,
@@ -358,7 +734,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   }
   const stockItems: StockItemMasterInput[] = Array.from(stockItemNames).map((name) => ({
     name,
-    baseUnit: 'NOS',
+    baseUnit: 'SH',
   }));
 
   const { mastersXml, transactionsXml } = generateFullExport(
