@@ -9,15 +9,34 @@
 import Decimal from 'decimal.js';
 import { EventType, type CanonicalEvent, type CostLot } from '../types/events';
 
-function normalizeLegacySecurityId(securityId: string): string {
-  const trimmed = securityId.trim().toUpperCase();
-  const parts = trimmed.split(':');
-  if (parts.length !== 2) return trimmed;
+function normalizeStoredSecurityId(securityId: string): string {
+  return securityId.trim().toUpperCase();
+}
+
+function buildSecurityIdAliases(securityId: string): string[] {
+  const normalized = normalizeStoredSecurityId(securityId);
+  const aliases = [normalized];
+  const parts = normalized.split(':');
+
+  if (parts.length !== 2) {
+    aliases.push(`EQ:${normalized}`, `NSE:${normalized}`, `BSE:${normalized}`);
+    return [...new Set(aliases)];
+  }
 
   const [prefix, value] = parts;
-  if (prefix === 'ISIN') return `ISIN:${value}`;
+  if (prefix === 'ISIN') {
+    return aliases;
+  }
 
-  return value;
+  aliases.push(value);
+
+  if (prefix === 'EQ') {
+    aliases.push(`NSE:${value}`, `BSE:${value}`);
+  } else if (prefix === 'NSE' || prefix === 'BSE') {
+    aliases.push(`EQ:${value}`);
+  }
+
+  return [...new Set(aliases)];
 }
 
 // ---------------------------------------------------------------------------
@@ -66,6 +85,18 @@ export class CostLotTracker {
    * consuming from the front (index 0).
    */
   private readonly lots: Map<string, CostLot[]> = new Map();
+
+  private getLotEntries(securityId: string): Array<{ key: string; lots: CostLot[] }> {
+    return buildSecurityIdAliases(securityId)
+      .map((key) => ({ key, lots: this.lots.get(key) }))
+      .filter((entry): entry is { key: string; lots: CostLot[] } => Array.isArray(entry.lots));
+  }
+
+  private getSortedLotRefs(securityId: string): Array<{ key: string; lot: CostLot }> {
+    return this.getLotEntries(securityId)
+      .flatMap(({ key, lots }) => lots.map((lot) => ({ key, lot })))
+      .sort((a, b) => a.lot.acquisition_date.localeCompare(b.lot.acquisition_date));
+  }
 
   // -------------------------------------------------------------------------
   // addLot
@@ -178,9 +209,9 @@ export class CostLotTracker {
 
   /** Return a snapshot of all open lots for the given security. */
   getOpenLots(securityId: string): CostLot[] {
-    return (this.lots.get(securityId) ?? []).filter((lot) =>
-      new Decimal(lot.open_quantity).greaterThan(0),
-    );
+    return this.getSortedLotRefs(securityId)
+      .map(({ lot }) => lot)
+      .filter((lot) => new Decimal(lot.open_quantity).greaterThan(0));
   }
 
   // -------------------------------------------------------------------------
@@ -280,11 +311,11 @@ export class CostLotTracker {
   static fromJSON(data: { lots: Record<string, CostLot[]> }): CostLotTracker {
     const tracker = new CostLotTracker();
     for (const [securityId, lots] of Object.entries(data.lots)) {
-      const normalizedSecurityId = normalizeLegacySecurityId(securityId);
+      const normalizedSecurityId = normalizeStoredSecurityId(securityId);
       const normalizedLots = lots.map((lot) => {
         const normalized = {
           ...lot,
-          security_id: normalizeLegacySecurityId(lot.security_id),
+          security_id: normalizeStoredSecurityId(lot.security_id),
         };
         // Back-compat: lots serialized before remaining_total_cost was added
         // need it derived from effective_unit_cost × open_quantity.
@@ -333,11 +364,12 @@ export class CostLotTracker {
     sellRate: Decimal,
     sellDate: string,
   ): CostDisposal[] {
-    const openLots = this.lots.get(securityId) ?? [];
+    const lotEntries = this.getLotEntries(securityId);
+    const lotRefs = this.getSortedLotRefs(securityId);
     const disposals: CostDisposal[] = [];
     let remaining = sellQtyRemaining;
 
-    for (const lot of openLots) {
+    for (const { lot } of lotRefs) {
       if (remaining.isZero()) break;
 
       const lotOpen = new Decimal(lot.open_quantity);
@@ -376,11 +408,15 @@ export class CostLotTracker {
       remaining = remaining.sub(consumed);
     }
 
-    // Clean up fully exhausted lots
-    this.lots.set(
-      securityId,
-      openLots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0)),
-    );
+    // Clean up fully exhausted lots across all compatible legacy/current keys.
+    for (const { key, lots } of lotEntries) {
+      const openLots = lots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0));
+      if (openLots.length > 0) {
+        this.lots.set(key, openLots);
+      } else {
+        this.lots.delete(key);
+      }
+    }
 
     // If open lots were exhausted before the full sell qty was matched, record
     // the uncovered remainder as a zero-cost disposal. The pipeline still
@@ -405,7 +441,8 @@ export class CostLotTracker {
     sellRate: Decimal,
     sellDate: string,
   ): CostDisposal[] {
-    const openLots = this.lots.get(securityId) ?? [];
+    const lotEntries = this.getLotEntries(securityId);
+    const openLots = lotEntries.flatMap(({ lots }) => lots);
 
     // Compute weighted average unit cost across all open lots
     let totalQty = new Decimal(0);
@@ -459,10 +496,14 @@ export class CostLotTracker {
     }
 
     // Clean up exhausted lots
-    this.lots.set(
-      securityId,
-      openLots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0)),
-    );
+    for (const { key, lots } of lotEntries) {
+      const openForKey = lots.filter((lot) => new Decimal(lot.open_quantity).greaterThan(0));
+      if (openForKey.length > 0) {
+        this.lots.set(key, openForKey);
+      } else {
+        this.lots.delete(key);
+      }
+    }
 
     const disposals: CostDisposal[] = [{
       lot_id: 'WEIGHTED_AVERAGE',

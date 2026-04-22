@@ -9,6 +9,10 @@ import { Label } from "@/components/ui/label";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { FileUploadStatus } from "@/components/upload/file-upload-status";
 import { useBatchUpload, type ProcessingResult, type BatchUploadConfig } from "@/hooks/use-batch-upload";
+import {
+  buildTallyImportArtifactNames,
+  TALLY_IMPORT_STEPS,
+} from "@/lib/export/import-kit";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -65,18 +69,6 @@ function getSelectedPeriodValue(from: string, to: string): string {
 
 function isValidDateRange(from: string, to: string): boolean {
   return Boolean(from && to && from < to);
-}
-
-function toFilenameSafe(s: string): string {
-  return s.replace(/[^a-zA-Z0-9_-]/g, '_');
-}
-
-function deriveFYSuffix(from: string, to: string): string {
-  if (!from || !to) return '';
-  const fromYear = new Date(from).getFullYear();
-  const toYear = new Date(to).getFullYear();
-  if (isNaN(fromYear) || isNaN(toYear)) return '';
-  return `FY${fromYear}-${String(toYear).slice(2)}`;
 }
 
 function downloadXml(xml: string, filename: string) {
@@ -1084,7 +1076,9 @@ function StepResults({
   periodTo: string;
 }) {
   const router = useRouter();
-  const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [downloadedMasters, setDownloadedMasters] = useState(false);
+  const [downloadedTransactions, setDownloadedTransactions] = useState(false);
+  const hasDownloaded = downloadedMasters && downloadedTransactions;
 
   useEffect(() => {
     if (hasDownloaded) return;
@@ -1094,18 +1088,20 @@ function StepResults({
   }, [hasDownloaded]);
 
   function handleNavAway(href: string) {
-    if (!hasDownloaded && !confirm('Download your XML files before leaving? You can also re-download anytime from the Batches page.')) return;
+    if (
+      !hasDownloaded &&
+      !confirm(
+        "Download both XML files before leaving. Import 01 masters first, then 02 transactions, so Tally preserves Journal voucher numbers as contract note numbers.",
+      )
+    ) return;
     router.push(href);
   }
 
-  const fySuffix = deriveFYSuffix(periodFrom, periodTo);
-  const safeCompany = toFilenameSafe(companyName);
-  const mastersFilename = safeCompany && fySuffix
-    ? `${safeCompany}_Ledger_Masters_${fySuffix}.xml`
-    : 'tally-masters.xml';
-  const transactionsFilename = safeCompany && fySuffix
-    ? `${safeCompany}_Transactions_${fySuffix}.xml`
-    : 'tally-transactions.xml';
+  const { mastersFilename, transactionsFilename } = buildTallyImportArtifactNames(
+    companyName,
+    periodFrom,
+    periodTo,
+  );
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -1218,9 +1214,30 @@ function StepResults({
         <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
           Download Tally XML Files
         </p>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
+          <p className="text-sm font-semibold text-amber-900">
+            Import order is mandatory for Journal voucher numbering.
+          </p>
+          <div className="mt-2 space-y-2">
+            {TALLY_IMPORT_STEPS.map((step, idx) => (
+              <div key={step.title} className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-600 text-[11px] font-semibold text-white">
+                  {idx + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-amber-900">{step.title}</p>
+                  <p className="text-sm text-amber-800">{step.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => { downloadXml(result.mastersXml, mastersFilename); setHasDownloaded(true); }}
+            onClick={() => {
+              downloadXml(result.mastersXml, mastersFilename);
+              setDownloadedMasters(true);
+            }}
             className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
           >
             <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
@@ -1236,9 +1253,14 @@ function StepResults({
                 Masters XML
               </p>
               <p className="text-sm text-gray-600">
-                Ledger definitions &amp; groups ({result.ledgerCount} ledgers)
+                Required first: ledger definitions, groups, and Journal numbering update
               </p>
             </div>
+            {downloadedMasters ? (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                Downloaded
+              </span>
+            ) : null}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
@@ -1246,8 +1268,17 @@ function StepResults({
             </svg>
           </button>
           <button
-            onClick={() => { downloadXml(result.transactionsXml, transactionsFilename); setHasDownloaded(true); }}
-            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+            onClick={() => {
+              if (!downloadedMasters) return;
+              downloadXml(result.transactionsXml, transactionsFilename);
+              setDownloadedTransactions(true);
+            }}
+            disabled={!downloadedMasters}
+            className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors group ${
+              downloadedMasters
+                ? "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
+                : "cursor-not-allowed border-gray-200 bg-gray-50 opacity-60"
+            }`}
           >
             <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
@@ -1260,9 +1291,24 @@ function StepResults({
                 Transactions XML
               </p>
               <p className="text-sm text-gray-600">
-                {result.voucherCount} vouchers (Purchase &amp; Sales)
+                {downloadedMasters
+                  ? `${result.voucherCount} voucher entries ready for import`
+                  : "Available after downloading 01 masters first"}
               </p>
             </div>
+            {downloadedTransactions ? (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                Downloaded
+              </span>
+            ) : downloadedMasters ? (
+              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                Step 2
+              </span>
+            ) : (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                Locked
+              </span>
+            )}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
@@ -1271,7 +1317,7 @@ function StepResults({
           </button>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Download now — files are generated fresh each time and not stored on the server.
+          Download both files now. The 01/02 prefixes are intentional and match the Tally import order required to keep Journal voucher numbers aligned with contract note numbers.
         </p>
       </div>
 

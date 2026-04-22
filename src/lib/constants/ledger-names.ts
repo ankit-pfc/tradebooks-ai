@@ -30,6 +30,11 @@ export const BANK: LedgerDef = {
   group: 'Bank Accounts',
 };
 
+export const OPENING_BALANCE_EQUITY: LedgerDef = {
+  name: 'FY Opening Balance Equity',
+  group: 'Capital Account',
+};
+
 // ---------------------------------------------------------------------------
 // Charges
 // ---------------------------------------------------------------------------

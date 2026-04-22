@@ -54,3 +54,9 @@ tradebooks-ai-*.json
 # local dev artifacts
 Zerodha reports sss/
 public/Subject.png
+
+# claude agent worktrees (ephemeral scratch dirs)
+.claude/worktrees/
+
+# local test data (client financial data — never commit)
+TEST */

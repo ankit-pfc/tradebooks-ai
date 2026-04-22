@@ -19,6 +19,7 @@
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
+            <PREVENTDUPLICATES>Yes</PREVENTDUPLICATES>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
@@ -424,32 +425,32 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">
-            <NAME>NOS</NAME>
+          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
+            <NAME>SH</NAME>
             <NAME.LIST>
-              <NAME>NOS</NAME>
+              <NAME>SH</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>NOS</ORIGINALNAME>
+            <ORIGINALNAME>SH</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
-            <FORMALNAME>NUMBERS</FORMALNAME>
+            <FORMALNAME>Shares</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>NOS</NAME>
+                <NAME>SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>INE009A01021-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
-            <BASEUNITS>NOS</BASEUNITS>
+            <BASEUNITS>SH</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INE009A01021-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

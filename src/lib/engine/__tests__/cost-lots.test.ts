@@ -211,7 +211,7 @@ describe('CostLotTracker', () => {
       expect(tracker.getOpenLots('NSE:RELIANCE')).toHaveLength(0);
     });
 
-    it('normalizes legacy EXCHANGE:SYMBOL keys while loading serialized lots', () => {
+    it('allows current EQ-keyed lookups to consume legacy bare and exchange-prefixed lots', () => {
       const tracker = CostLotTracker.fromJSON({
         lots: {
           'BSE:ADSL': [
@@ -239,10 +239,19 @@ describe('CostLotTracker', () => {
         },
       });
 
-      const lots = tracker.getOpenLots('ADSL');
+      const lots = tracker.getOpenLots('EQ:ADSL');
       expect(lots).toHaveLength(2);
-      expect(tracker.getOpenLots('BSE:ADSL')).toHaveLength(0);
-      expect(lots.every((lot) => lot.security_id === 'ADSL')).toBe(true);
+
+      const disposals = tracker.disposeLots(
+        makeSellEvent({ security_id: 'EQ:ADSL', quantity: '-12', rate: '120' }),
+        'FIFO',
+      );
+
+      expect(disposals).toHaveLength(2);
+      expect(disposals[0].lot_id).toBe('lot-1');
+      expect(disposals[1].lot_id).toBe('lot-2');
+      expect(tracker.getOpenLots('EQ:ADSL')).toHaveLength(1);
+      expect(tracker.getOpenLots('EQ:ADSL')[0].open_quantity).toBe('3');
     });
   });
 

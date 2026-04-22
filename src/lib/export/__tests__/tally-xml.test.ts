@@ -233,29 +233,29 @@ describe('generateVouchersXml — investor pipeline emits JV only', () => {
 // Bug 1 + Bug 2 regressions — Tally XML masters / voucher side.
 // ---------------------------------------------------------------------------
 describe('tally-xml masters regressions', () => {
-  it('Bug 1: UNIT master is emitted as ACTION=Create with NOS symbol and NUMBERS formal name', async () => {
+  it('Bug 1: UNIT master is emitted as ACTION=Create with SH symbol and Shares formal name', async () => {
     const { generateMastersXml } = await import('../tally-xml');
     const xml = generateMastersXml(
       [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
       'Test Co',
       undefined,
-      [{ name: 'RELIANCE-SH', baseUnit: 'NOS' }],
+      [{ name: 'RELIANCE-SH', baseUnit: 'SH' }],
     );
 
-    // The Tally unit for quantities should be NOS/NUMBERS, while stock item
+    // The Tally unit for quantities should be SH/Shares, while stock item
     // names continue to use the "-SH" suffix. ACTION=Create with a non-empty
     // ORIGINALNAME matches the checked-in export shape.
-    expect(xml).toContain('<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">');
+    expect(xml).toContain('<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">');
     expect(xml).toMatch(
-      /<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>NOS<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>NOS<\/NAME>/,
+      /<UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>SH<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>SH<\/NAME>/,
     );
-    expect(xml).toContain('<ORIGINALNAME>NOS</ORIGINALNAME>');
+    expect(xml).toContain('<ORIGINALNAME>SH</ORIGINALNAME>');
     expect(xml).not.toContain('<ORIGINALNAME/>');
-    expect(xml).toContain('<FORMALNAME>NUMBERS</FORMALNAME>');
+    expect(xml).toContain('<FORMALNAME>Shares</FORMALNAME>');
     expect(xml).not.toMatch(/<FORMALNAME>\s*<\/FORMALNAME>/);
   });
 
-  it('Bug 2: masters XML alters the Journal voucher type to Manual numbering', async () => {
+  it('Bug 2: masters XML alters the Journal voucher type to Manual numbering with duplicate prevention', async () => {
     const { generateMastersXml } = await import('../tally-xml');
     const xml = generateMastersXml([], 'Test Co', undefined, []);
 
@@ -264,6 +264,9 @@ describe('tally-xml masters regressions', () => {
     // survives the Tally import instead of being auto-renumbered 1..N.
     expect(xml).toMatch(
       /<VOUCHERTYPE NAME="Journal"[^>]*ACTION="Alter"[^>]*>[\s\S]*?<NUMBERINGMETHOD>Manual<\/NUMBERINGMETHOD>/,
+    );
+    expect(xml).toMatch(
+      /<VOUCHERTYPE NAME="Journal"[^>]*ACTION="Alter"[^>]*>[\s\S]*?<PREVENTDUPLICATES>Yes<\/PREVENTDUPLICATES>/,
     );
 
     // Only Journal should be altered — other built-in voucher types (Receipt,

@@ -18,6 +18,7 @@ export type BatchFileType =
     | 'tradebook'
     | 'funds_statement'
     | 'holdings'
+    | 'ledger'
     | 'contract_note'
     | 'taxpnl'
     | 'pnl'
