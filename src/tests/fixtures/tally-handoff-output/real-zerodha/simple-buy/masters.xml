@@ -425,15 +425,31 @@
           </LEDGER>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">
+            <NAME>NOS</NAME>
+            <NAME.LIST>
+              <NAME>NOS</NAME>
+            </NAME.LIST>
+            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
+            <ORIGINALNAME>Numbers</ORIGINALNAME>
+            <DECIMALPLACES>0</DECIMALPLACES>
+            <LANGUAGENAME.LIST>
+              <NAME.LIST TYPE="String">
+                <NAME>NOS</NAME>
+              </NAME.LIST>
+              <LANGUAGEID> 1033</LANGUAGEID>
+            </LANGUAGENAME.LIST>
+          </UNIT>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
             <NAME>SH</NAME>
             <NAME.LIST>
               <NAME>SH</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>SH</ORIGINALNAME>
+            <ORIGINALNAME>Share</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
-            <FORMALNAME>Shares</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>SH</NAME>
@@ -447,7 +463,9 @@
             <NAME.LIST>
               <NAME>INFY-SH</NAME>
             </NAME.LIST>
-            <BASEUNITS>SH</BASEUNITS>
+            <BASEUNITS>NOS</BASEUNITS>
+            <ADDITIONALUNITS>SH</ADDITIONALUNITS>
+            <CONVERSION>1</CONVERSION>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>INFY-SH</NAME>

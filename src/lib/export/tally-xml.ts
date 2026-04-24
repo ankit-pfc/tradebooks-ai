@@ -38,8 +38,12 @@ export interface GroupMasterInput {
 export interface StockItemMasterInput {
   /** Exact Tally stock item name (must match STOCKITEMNAME in INVENTORYENTRIES). */
   name: string;
-  /** Base unit of measure. Defaults to "SH" (Shares) for equity shares. */
+  /** Base unit of measure. Defaults to "NOS" so Tally displays NOS-Numbers. */
   baseUnit?: string;
+  /** Alternate unit of measure. Defaults to "SH" for equity share quantities. */
+  additionalUnit?: string | null;
+  /** Conversion between base and alternate unit on the stock item. Defaults to "1". */
+  conversion?: string;
 }
 
 const BUILTIN_VOUCHER_TYPES = [
@@ -50,6 +54,15 @@ const BUILTIN_VOUCHER_TYPES = [
   'Payment',
   'Contra',
 ] as const;
+
+const DEFAULT_STOCK_BASE_UNIT = 'NOS';
+const DEFAULT_STOCK_ADDITIONAL_UNIT = 'SH';
+const DEFAULT_STOCK_UNIT_CONVERSION = '1';
+
+const SIMPLE_UNIT_FORMAL_NAMES: Record<string, string> = {
+  NOS: 'Numbers',
+  SH: 'Share',
+};
 
 /**
  * VoucherDraft augmented with its resolved line items.
@@ -394,42 +407,40 @@ export function generateMastersXml(
   // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
     // --- UNIT masters (emit first) ---
-    // The target Tally unit for equity quantities is SH/Shares. The stock
-    // item / ledger naming convention still uses the "-SH" suffix, but the
-    // unit master shown in Tally's Unit Alteration screen must be:
-    // Symbol=SH, Formal name=Shares.
-    const UNIT_FORMAL_NAMES: Record<string, string> = {
-      'SH': 'Shares',
-      'Nos': 'Numbers',
-    };
-    const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'SH'))].sort();
+    // Tally's stock item UI displays "Symbol-FormalName" by looking up the
+    // referenced UNIT master. For equity items we therefore create NOS/Numbers
+    // as the base unit and SH/Share as an alternate unit, then point the
+    // STOCKITEM at those unit symbols. "Secondary" unit creation in Tally is
+    // just this same UNIT master shape, not a separate XML structure.
+    const unitNames = [
+      ...new Set(
+        stockItems.flatMap((item) => {
+          const baseUnit = item.baseUnit ?? DEFAULT_STOCK_BASE_UNIT;
+          const additionalUnit = item.additionalUnit === undefined
+            ? DEFAULT_STOCK_ADDITIONAL_UNIT
+            : item.additionalUnit;
+          return additionalUnit ? [baseUnit, additionalUnit] : [baseUnit];
+        }),
+      ),
+    ].sort();
     for (const unitName of unitNames) {
       const msg = requestData.ele('TALLYMESSAGE', {
         'xmlns:UDF': 'TallyUDF',
       });
 
-      // ACTION=Create with ORIGINALNAME=unitName matches the exact shape
-      // Tally itself emits when exporting unit masters. ACTION=Alter with
-      // an empty ORIGINALNAME (previous attempt) causes Tally to fail the
-      // master lookup and create a phantom entry whose Symbol field renders
-      // "!MISSING MASTER NAME" on the Unit Alteration screen. On re-imports,
-      // Tally skips an existing same-named unit with a harmless warning, so
-      // Create is idempotent in practice.
+      // ACTION=Create is idempotent in practice for existing same-named
+      // units, while ORIGINALNAME carries Tally's "Formal Name" field.
       const unitEle = msg.ele('UNIT', {
         NAME: unitName,
         RESERVEDNAME: '',
         ACTION: 'Create',
       });
 
-      // Tally's Unit Alteration screen binds the "Symbol" input from the
-      // direct NAME field on UNIT masters. Keep NAME.LIST too because our
-      // checked-in exports already use that broader master shape.
       unitEle.ele('NAME').txt(unitName);
       unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
       unitEle.ele('ISSIMPLEUNIT').txt('Yes');
-      unitEle.ele('ORIGINALNAME').txt(unitName);
+      unitEle.ele('ORIGINALNAME').txt(SIMPLE_UNIT_FORMAL_NAMES[unitName] ?? unitName);
       unitEle.ele('DECIMALPLACES').txt('0');
-      unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName] ?? unitName);
 
       const langList = unitEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);
@@ -453,7 +464,15 @@ export function generateMastersXml(
         .ele('NAME')
         .txt(item.name);
 
-      itemEle.ele('BASEUNITS').txt(item.baseUnit ?? 'SH');
+      const baseUnit = item.baseUnit ?? DEFAULT_STOCK_BASE_UNIT;
+      const additionalUnit = item.additionalUnit === undefined
+        ? DEFAULT_STOCK_ADDITIONAL_UNIT
+        : item.additionalUnit;
+      itemEle.ele('BASEUNITS').txt(baseUnit);
+      if (additionalUnit) {
+        itemEle.ele('ADDITIONALUNITS').txt(additionalUnit);
+        itemEle.ele('CONVERSION').txt(item.conversion ?? DEFAULT_STOCK_UNIT_CONVERSION);
+      }
 
       const langList = itemEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(item.name);
