@@ -233,7 +233,7 @@ describe('generateVouchersXml — investor pipeline emits JV only', () => {
 // Bug 1 + Bug 2 regressions — Tally XML masters / voucher side.
 // ---------------------------------------------------------------------------
 describe('tally-xml masters regressions', () => {
-  it('Bug 1: UNIT master is emitted as ACTION=Create with NOS symbol and NUMBERS formal name', async () => {
+  it('Bug 1: UNIT master is emitted as ACTION=Create with SH symbol and Share formal name', async () => {
     const { generateMastersXml } = await import('../tally-xml');
     const xml = generateMastersXml(
       [{ name: 'RELIANCE-SH', parent_group: 'Investments', affects_stock: true }],
@@ -242,16 +242,15 @@ describe('tally-xml masters regressions', () => {
       [{ name: 'RELIANCE-SH', baseUnit: 'NOS' }],
     );
 
-    // The Tally unit for quantities should be NOS/NUMBERS, while stock item
-    // names continue to use the "-SH" suffix. ACTION=Create with a non-empty
-    // ORIGINALNAME matches the checked-in export shape.
+    // Stock items continue to use NOS as BASEUNITS, while Tally's Unit
+    // Alteration form must show Symbol=SH and Formal name=Share.
     expect(xml).toContain('<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">');
     expect(xml).toMatch(
-      /<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>NOS<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>NOS<\/NAME>/,
+      /<UNIT NAME="NOS" RESERVEDNAME="" ACTION="Create">[\s\S]*?<NAME>SH<\/NAME>[\s\S]*?<NAME\.LIST>[\s\S]*?<NAME>NOS<\/NAME>/,
     );
     expect(xml).toContain('<ORIGINALNAME>NOS</ORIGINALNAME>');
     expect(xml).not.toContain('<ORIGINALNAME/>');
-    expect(xml).toContain('<FORMALNAME>NUMBERS</FORMALNAME>');
+    expect(xml).toContain('<FORMALNAME>Share</FORMALNAME>');
     expect(xml).not.toMatch(/<FORMALNAME>\s*<\/FORMALNAME>/);
   });
 

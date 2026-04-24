@@ -38,7 +38,7 @@ export interface GroupMasterInput {
 export interface StockItemMasterInput {
   /** Exact Tally stock item name (must match STOCKITEMNAME in INVENTORYENTRIES). */
   name: string;
-  /** Base unit of measure. Defaults to "NOS" (NUMBERS) for equity shares. */
+  /** Base unit of measure. Defaults to "NOS" for equity shares. */
   baseUnit?: string;
 }
 
@@ -376,14 +376,10 @@ export function generateMastersXml(
   // Tally versions that process masters sequentially.
   if (stockItems && stockItems.length > 0) {
     // --- UNIT masters (emit first) ---
-    // The target Tally unit for equity quantities is NOS/NUMBERS. The stock
-    // item / ledger naming convention still uses the "-SH" suffix, but the
-    // unit master shown in Tally's Unit Alteration screen must be:
-    // Symbol=NOS, Formal name=NUMBERS.
-    const UNIT_FORMAL_NAMES: Record<string, string> = {
-      'NOS': 'NUMBERS',
-      'Nos': 'Numbers',
-    };
+    // Stock item BASEUNITS remains NOS, but the imported unit master must
+    // display Symbol=SH and Formal name=Share in Tally's Unit Alteration form.
+    const UNIT_SYMBOL = 'SH';
+    const UNIT_FORMAL_NAME = 'Share';
     const unitNames = [...new Set(stockItems.map((item) => item.baseUnit ?? 'NOS'))].sort();
     for (const unitName of unitNames) {
       const msg = requestData.ele('TALLYMESSAGE', {
@@ -404,14 +400,13 @@ export function generateMastersXml(
       });
 
       // Tally's Unit Alteration screen binds the "Symbol" input from the
-      // direct NAME field on UNIT masters. Keep NAME.LIST too because our
-      // checked-in exports already use that broader master shape.
-      unitEle.ele('NAME').txt(unitName);
+      // direct NAME field on UNIT masters.
+      unitEle.ele('NAME').txt(UNIT_SYMBOL);
       unitEle.ele('NAME.LIST').ele('NAME').txt(unitName);
       unitEle.ele('ISSIMPLEUNIT').txt('Yes');
       unitEle.ele('ORIGINALNAME').txt(unitName);
       unitEle.ele('DECIMALPLACES').txt('0');
-      unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAMES[unitName] ?? unitName);
+      unitEle.ele('FORMALNAME').txt(UNIT_FORMAL_NAME);
 
       const langList = unitEle.ele('LANGUAGENAME.LIST');
       langList.ele('NAME.LIST', { TYPE: 'String' }).ele('NAME').txt(unitName);
