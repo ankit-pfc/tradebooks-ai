@@ -41,7 +41,12 @@ function collectStockItems(vouchers: { lines: { stock_item_name: string | null }
       if (l.stock_item_name) names.add(l.stock_item_name);
     }
   }
-  return Array.from(names).sort().map(name => ({ name, baseUnit: 'SH' }));
+  return Array.from(names).sort().map(name => ({
+    name,
+    baseUnit: 'NOS',
+    additionalUnit: 'SH',
+    conversion: '1',
+  }));
 }
 
 const CSV_HEADER = [
