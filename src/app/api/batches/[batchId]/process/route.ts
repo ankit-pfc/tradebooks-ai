@@ -5,6 +5,7 @@ import { getFileStorage } from '@/lib/storage/file-storage';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { rateLimit } from '@/lib/rate-limit';
 import { runProcessingPipeline } from '@/lib/processing/pipeline';
+import type { OpeningBalanceSource } from '@/lib/processing/pipeline';
 import type { PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
@@ -21,6 +22,7 @@ export async function POST(
     // The previous default of STRICT_PRODUCT bypassed that logic and tripped
     // E_CLASSIFICATION_AMBIGUOUS for any tradebook/CN row without a product code.
     let classificationStrategy: TradeClassificationStrategy | undefined;
+    let openingBalanceSource: OpeningBalanceSource | undefined;
 
     try {
       const body = await request.json();
@@ -32,6 +34,22 @@ export async function POST(
           {
             error: `Invalid classificationStrategy: ${String(raw)}`,
             code: 'E_INVALID_CLASSIFICATION_STRATEGY',
+          },
+          { status: 400 },
+        );
+      }
+      const rawOpeningBalanceSource = body?.openingBalanceSource;
+      if (
+        rawOpeningBalanceSource === 'none' ||
+        rawOpeningBalanceSource === 'prior_batch' ||
+        rawOpeningBalanceSource === 'tally_existing'
+      ) {
+        openingBalanceSource = rawOpeningBalanceSource;
+      } else if (rawOpeningBalanceSource !== undefined) {
+        return NextResponse.json(
+          {
+            error: `Invalid openingBalanceSource: ${String(rawOpeningBalanceSource)}`,
+            code: 'E_INVALID_OPENING_BALANCE_SOURCE',
           },
           { status: 400 },
         );
@@ -130,6 +148,7 @@ export async function POST(
         periodFrom: batch.period_from,
         periodTo: batch.period_to,
         priorBatchId: batch.prior_batch_id ?? undefined,
+        openingBalanceSource,
         purchaseMergeMode,
         classificationStrategy,
         corporateActions,

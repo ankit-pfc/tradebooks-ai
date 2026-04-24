@@ -38,6 +38,7 @@ import { TradeClassification } from './trade-classifier';
 import { PipelineValidationError } from '../errors/pipeline-validation';
 
 export type BuiltVoucherDraft = VoucherDraft & { lines: VoucherLine[] };
+export type UncoveredSellTreatment = 'suspense' | 'tally_existing_opening';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -64,16 +65,25 @@ function symbolFromSecurityId(securityId: string | null): string {
   return parts.length > 1 ? parts[1] : securityId;
 }
 
+/** Extract the ISIN code from an ISIN-keyed canonical security_id. */
+function isinFromSecurityId(securityId: string | null): string | null {
+  if (!securityId) return null;
+  const [prefix, value] = securityId.split(':');
+  const isin = value?.trim().toUpperCase();
+  return prefix?.trim().toUpperCase() === 'ISIN' && isin ? isin : null;
+}
+
 /**
  * Build the Tally stock item name for a security.
  *
- * Tally matches inventory by STOCKITEMNAME, but the exported name should stay
- * human-readable in stock summary views. We therefore use the broker symbol
- * whenever the canonical event carries one, while keeping the underlying lot
- * identity on security_id (which may still be ISIN-based for matching/FIFO).
- * Only truly unmapped events fall back to the security_id-derived token.
+ * Tally matches inventory by STOCKITEMNAME, so stock items must use the
+ * canonical ISIN identity whenever it is available. Ledger names and
+ * narrations can remain symbol-based for readability, but inventory matching
+ * must not depend on broker/exchange display names.
  */
 function stockItemNameForEvent(event: { security_id: string | null; security_symbol?: string | null }): string {
+  const isin = isinFromSecurityId(event.security_id);
+  if (isin) return `${isin}-SH`;
   return `${symbolFromEvent(event)}-SH`;
 }
 
@@ -680,6 +690,7 @@ export function buildSellVoucher(
   costDisposals: CostDisposal[],
   holdingPeriodDays?: number,
   tallyProfile?: TallyProfile,
+  uncoveredSellTreatment: UncoveredSellTreatment = 'suspense',
 ): BuiltVoucherDraft {
   const effectiveProfile = deriveEffectiveProfile(profile, event);
   const draftId = crypto.randomUUID();
@@ -738,6 +749,8 @@ export function buildSellVoucher(
     hasUncoveredDisposal &&
     hasZeroCostBasis &&
     costDisposals.length > 0;
+  const useTallyExistingOpening =
+    fullyUncovered && uncoveredSellTreatment === 'tally_existing_opening';
   const lines: VoucherLine[] = [];
   let lineNo = 1;
 
@@ -772,13 +785,14 @@ export function buildSellVoucher(
     // For uncovered (zero cost basis) disposals, skip the asset line entirely:
     // there's nothing to clear, and a 0-amount line would be both meaningless
     // and a Tally inventory-rate error.
-    if (!hasZeroCostBasis) {
+    if (!hasZeroCostBasis || useTallyExistingOpening) {
       const absQty = new Decimal(event.quantity).abs();
+      const assetAmount = useTallyExistingOpening ? saleConsideration : totalCostBasis;
       const costPerUnit = absQty.greaterThan(0)
-        ? totalCostBasis.dividedBy(absQty).toDecimalPlaces(6).toString()
+        ? assetAmount.dividedBy(absQty).toDecimalPlaces(6).toString()
         : '0';
       lines.push(
-        makeLine(draftId, lineNo++, assetLedger, totalCostBasis, 'CR', skipInventory ? {} : {
+        makeLine(draftId, lineNo++, assetLedger, assetAmount, 'CR', skipInventory ? {} : {
           security_id: event.security_id,
           quantity: event.quantity,
           rate: costPerUnit,
@@ -798,7 +812,11 @@ export function buildSellVoucher(
     // Balance check (uncovered case):
     //   DR broker (gross − all) + DR STT (stt) = gross − non-STT
     //   CR suspense (saleConsideration)                                  ✓
-    if (fullyUncovered) {
+    if (useTallyExistingOpening) {
+      // Tally already has opening stock. The stock-aware CR line above lets
+      // Tally reduce that stock directly. We intentionally avoid a CG ledger
+      // because Tradebooks does not know acquisition cost/date in this mode.
+    } else if (fullyUncovered) {
       lines.push(
         makeLine(draftId, lineNo++, L.UNMATCHED_SELL_SUSPENSE.name, saleConsideration, 'CR'),
       );
@@ -887,7 +905,17 @@ export function buildSellVoucher(
     // no opening stock and no matching buy should not inflate Trading Sales
     // (which is the business-income revenue line) until the user decides
     // how to classify it in Tally.
-    if (fullyUncovered) {
+    if (useTallyExistingOpening) {
+      lines.push(makeLine(draftId, lineNo++, stockLedger, grossAmount, 'CR', skipInventory ? {} : {
+        security_id: event.security_id,
+        quantity: event.quantity,
+        rate: new Decimal(event.gross_amount)
+          .dividedBy(new Decimal(event.quantity).abs())
+          .toDecimalPlaces(6)
+          .toString(),
+        stock_item_name: stockItemNameForEvent(event),
+      }));
+    } else if (fullyUncovered) {
       lines.push(
         makeLine(draftId, lineNo++, L.UNMATCHED_SELL_SUSPENSE.name, grossAmount, 'CR'),
       );
@@ -920,7 +948,9 @@ export function buildSellVoucher(
   // trade details. Suspense routing is already applied above; this just
   // makes the reason visible in the Tally daybook.
   const baseNarrative = buildTradeNarrative('sell', symbol, qty, event.rate, chargeEvents);
-  const narrative = fullyUncovered
+  const narrative = useTallyExistingOpening
+    ? `${baseNarrative} [Opening stock assumed in Tally — stock reduced in Tally, capital gain/loss requires review]`
+    : fullyUncovered
     ? `${baseNarrative} [REVIEW: no prior purchase found on ${event.event_date} — posted to Unmatched Sell Suspense, please reclassify]`
     : withTradeReviewNarrative(baseNarrative, event);
   const draft: BuiltVoucherDraft = {
@@ -1652,6 +1682,7 @@ export function buildVouchers(
   profile: AccountingProfile,
   costTracker: CostLotTracker,
   tallyProfile?: TallyProfile,
+  uncoveredSellTreatment: UncoveredSellTreatment = 'suspense',
 ): BuiltVoucherDraft[] {
   const ambiguousTrade = events.find(
     (event) =>
@@ -1891,6 +1922,7 @@ export function buildVouchers(
             disposals,
             holdingPeriodDays,
             tallyProfile,
+            uncoveredSellTreatment,
           ),
         );
         break;

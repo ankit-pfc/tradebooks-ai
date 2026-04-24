@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { runProcessingPipeline, type PipelineInput } from './pipeline';
 import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
-import { buildXlsxBuffer } from '../../tests/helpers/factories';
 
 // ---------------------------------------------------------------------------
 // Mocks — storage and DB; engine/parser modules are real (integration-style)
@@ -59,61 +58,6 @@ const mixedProductTradebookBuffer = Buffer.from([
     '2024-06-17,MCX,COM,GOLDPETAL,NA,SELL,2,51000.00,CNC,T103,ORD103,11:00:00',
     '2024-06-18,NSE,EQ,INFY,INE009A01021,BUY,5,1500.00,MTF,T104,ORD104,12:00:00',
 ].join('\n'));
-
-function buildHoldingsBuffer(rows: Array<{
-    symbol: string;
-    isin: string;
-    quantityAvailable: number;
-    quantityLongTerm: number;
-    averagePrice: number;
-}>) {
-    return buildXlsxBuffer({
-        Equity: [
-            ['Equity Holdings Statement as on 2024-04-01'],
-            [],
-            [
-                'Symbol',
-                'ISIN',
-                'Sector',
-                'Quantity Available',
-                'Quantity Discrepant',
-                'Quantity Long Term',
-                'Quantity Pledged (Margin)',
-                'Quantity Pledged (Loan)',
-                'Average Price',
-                'Previous Closing Price',
-                'Unrealized P&L',
-                'Unrealized P&L Pct.',
-            ],
-            ...rows.map((row) => ([
-                row.symbol,
-                row.isin,
-                'Test Sector',
-                row.quantityAvailable,
-                0,
-                row.quantityLongTerm,
-                0,
-                0,
-                row.averagePrice,
-                row.averagePrice + 10,
-                0,
-                0,
-            ])),
-        ],
-    });
-}
-
-function buildLedgerBuffer(openingBalance: number) {
-    return buildXlsxBuffer({
-        Equity: [
-            ['Ledger for Equity from 2024-04-01 to 2025-03-31'],
-            [],
-            ['Particulars', 'Posting Date', 'Cost Center', 'Voucher Type', 'Debit', 'Credit', 'Net Balance'],
-            ['Opening Balance', '', '', '', '', '', openingBalance],
-            ['Funds transfer', '2024-04-02', 'EQ', 'Receipt', '', '5000', openingBalance + 5000],
-        ],
-    });
-}
 
 const BASE_INPUT: PipelineInput = {
     userId: 'user-001',
@@ -410,247 +354,119 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         });
 
         const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of 63MOONS');
+        const openingVoucher = findVoucherXml(
+            result.transactionsXml,
+            'Opening stock brought forward from previous FY',
+        );
 
         expect(mockRepo.getClosingLots).toHaveBeenCalledWith('batch-fy21');
         expect(result.eventCount).toBe(1);
+        expect(result.voucherCount).toBe(2);
+        expect(result.mastersXml).toContain('<LEDGER NAME="Opening Stock Balance B/F"');
+        expect(openingVoucher).toContain('<DATE>20220401</DATE>');
+        expect(openingVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
+        expect(openingVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(openingVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
+        expect(openingVoucher).toContain('<RATE>80.00/NOS</RATE>');
+        expect(openingVoucher).toContain('<LEDGERNAME>Opening Stock Balance B/F</LEDGERNAME>');
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>80.00/SH</RATE>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>80.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
         expect(sellVoucher).toContain('<AMOUNT>400.00</AMOUNT>');
     });
 
-    it('uses prior FY EQ-keyed closing lots when the current FY sale has no ISIN', async () => {
+    it('saves remaining prior FY lots as the next closing snapshot after partial FY sale', async () => {
         mockRepo.getClosingLots.mockResolvedValueOnce({
-            'EQ:ADSL': [
+            'ISIN:INE111B01023': [
                 {
-                    cost_lot_id: 'lot-adsl-opening',
-                    security_id: 'EQ:ADSL',
-                    source_buy_event_id: 'fy24-buy',
-                    open_quantity: '10',
-                    original_quantity: '10',
+                    cost_lot_id: 'lot-63moons-opening',
+                    security_id: 'ISIN:INE111B01023',
+                    security_symbol: '63MOONS',
+                    source_buy_event_id: 'fy21-buy',
+                    open_quantity: '20',
+                    original_quantity: '20',
                     effective_unit_cost: '80.000000',
-                    acquisition_date: '2024-02-01',
-                    remaining_total_cost: '800.00',
+                    acquisition_date: '2021-07-01',
+                    remaining_total_cost: '1600.00',
                 },
             ],
         });
         const sellOnlyTradebook = Buffer.from([
             'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
-            '2024-04-12,NSE,EQ,ADSL,NA,SELL,10,120.00,CNC,T510,ORD510,09:15:00',
+            '2022-04-12,NSE,EQ,63MOONS,INE111B01023,SELL,10,120.00,CNC,T500,ORD500,09:15:00',
         ].join('\n'));
 
         const result = await runProcessingPipeline({
             ...BASE_INPUT,
-            batchId: 'batch-fy25-eq-carry',
-            priorBatchId: 'batch-fy24',
-            files: [
-                {
-                    fileId: 'file-fy25-eq-carry',
-                    fileName: 'tradebook-fy25-eq-carry.csv',
-                    buffer: sellOnlyTradebook,
-                    mimeType: 'text/csv',
-                },
-            ],
-        });
-
-        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of ADSL');
-
-        expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
-        expect(sellVoucher).toContain('<LEDGERNAME>ADSL-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>ADSL-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>80.00/SH</RATE>');
-        expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
-        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON ADSL</LEDGERNAME>');
-        expect(sellVoucher).toContain('<AMOUNT>400.00</AMOUNT>');
-    });
-
-    it('keeps prior-lot stock items ISIN-keyed when no current-FY symbol mapping exists', async () => {
-        mockRepo.getClosingLots.mockResolvedValueOnce({
-            'ISIN:INE111B01023': [
-                {
-                    cost_lot_id: 'lot-carryforward-only',
-                    security_id: 'ISIN:INE111B01023',
-                    source_buy_event_id: 'fy21-buy',
-                    open_quantity: '10',
-                    original_quantity: '10',
-                    effective_unit_cost: '80.000000',
-                    acquisition_date: '2021-07-01',
-                    remaining_total_cost: '800.00',
-                },
-            ],
-        });
-        const unrelatedTradebook = Buffer.from([
-            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
-            '2022-04-12,NSE,EQ,INFY,INE009A01021,BUY,1,1500.00,CNC,T700,ORD700,09:15:00',
-        ].join('\n'));
-
-        const result = await runProcessingPipeline({
-            ...BASE_INPUT,
-            batchId: 'batch-fy22-unmapped-carry',
+            batchId: 'batch-fy22-partial-carry',
             periodFrom: '2022-04-01',
             periodTo: '2023-03-31',
             priorBatchId: 'batch-fy21',
             files: [
                 {
-                    fileId: 'file-fy22-unmapped-carry',
-                    fileName: 'tradebook-fy22-unmapped-carry.csv',
-                    buffer: unrelatedTradebook,
-                    mimeType: 'text/csv',
-                },
-            ],
-        });
-
-        const openingVoucher = findVoucherXml(
-            result.transactionsXml,
-            'FY opening balance carried forward for INE111B01023',
-        );
-
-        expect(openingVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
-        expect(openingVoucher).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
-    });
-});
-
-describe('runProcessingPipeline — uploaded opening balance seeds', () => {
-    function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
-        const voucher = transactionsXml
-            .split('<VOUCHER ')
-            .map((chunk) => `<VOUCHER ${chunk}`)
-            .find((chunk) => chunk.includes(`<NARRATION>${narrationPrefix}`));
-        expect(voucher).toBeDefined();
-        return voucher!;
-    }
-
-    it('uses uploaded holdings to seed opening stock and export FY-opening vouchers', async () => {
-        const sellOnlyTradebook = Buffer.from([
-            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
-            '2024-04-12,NSE,EQ,63MOONS,INE111B01023,SELL,10,120.00,CNC,T500,ORD500,09:15:00',
-        ].join('\n'));
-        const holdingsBuffer = buildHoldingsBuffer([
-            {
-                symbol: '63MOONS',
-                isin: 'INE111B01023',
-                quantityAvailable: 10,
-                quantityLongTerm: 10,
-                averagePrice: 80,
-            },
-        ]);
-
-        const result = await runProcessingPipeline({
-            ...BASE_INPUT,
-            batchId: 'batch-holdings-opening',
-            files: [
-                {
-                    fileId: 'file-holdings-tradebook',
-                    fileName: 'tradebook-fy24-sell-only.csv',
+                    fileId: 'file-fy22-partial-carry',
+                    fileName: 'tradebook-fy22-partial-carry.csv',
                     buffer: sellOnlyTradebook,
                     mimeType: 'text/csv',
                 },
-                {
-                    fileId: 'file-holdings-opening',
-                    fileName: 'holdings-opening.xlsx',
-                    buffer: holdingsBuffer,
-                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                },
             ],
         });
-
-        const openingVoucher = findVoucherXml(
-            result.transactionsXml,
-            'FY opening balance carried forward for 63MOONS',
-        );
-        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of 63MOONS');
+        const closingLots = mockRepo.saveClosingLots.mock.calls[0][1] as Record<
+            string,
+            Array<{
+                open_quantity: string;
+                effective_unit_cost: string;
+                remaining_total_cost: string;
+                security_symbol?: string | null;
+            }>
+        >;
 
         expect(result.voucherCount).toBe(2);
-        expect(openingVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
-        expect(openingVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
-        expect(openingVoucher).toContain('<ACTUALQTY>10 SH</ACTUALQTY>');
-        expect(openingVoucher).toContain('<RATE>80.00/SH</RATE>');
-        expect(openingVoucher).toContain('<AMOUNT>-800.00</AMOUNT>');
-        expect(openingVoucher).toContain('<LEDGERNAME>FY Opening Balance Equity</LEDGERNAME>');
-        expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
-        expect(sellVoucher).toContain('<LEDGERNAME>LTCG ON 63MOONS</LEDGERNAME>');
-        expect(sellVoucher).toContain('<RATE>80.00/SH</RATE>');
-        expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
+        expect(result.transactionsXml).toContain('Opening stock brought forward from previous FY');
+        expect(closingLots['ISIN:INE111B01023'][0].open_quantity).toBe('10');
+        expect(closingLots['ISIN:INE111B01023'][0].effective_unit_cost).toBe('80.000000');
+        expect(closingLots['ISIN:INE111B01023'][0].remaining_total_cost).toBe('800.00');
+        expect(closingLots['ISIN:INE111B01023'][0].security_symbol).toBe('63MOONS');
     });
 
-    it('uses uploaded holdings without ISIN to seed EQ-keyed opening stock for a no-ISIN sell', async () => {
+    it('emits stock-out lines against existing Tally opening stock without inventing gain/loss', async () => {
         const sellOnlyTradebook = Buffer.from([
             'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
-            '2024-04-12,NSE,EQ,ADSL,NA,SELL,10,120.00,CNC,T520,ORD520,09:15:00',
+            '2022-04-12,NSE,EQ,63MOONS,INE111B01023,SELL,10,120.00,CNC,T500,ORD500,09:15:00',
         ].join('\n'));
-        const holdingsBuffer = buildHoldingsBuffer([
-            {
-                symbol: 'ADSL',
-                isin: 'NA',
-                quantityAvailable: 10,
-                quantityLongTerm: 0,
-                averagePrice: 80,
-            },
-        ]);
 
         const result = await runProcessingPipeline({
             ...BASE_INPUT,
-            batchId: 'batch-holdings-opening-no-isin',
+            batchId: 'batch-fy22-tally-opening',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            openingBalanceSource: 'tally_existing',
             files: [
                 {
-                    fileId: 'file-holdings-tradebook-no-isin',
-                    fileName: 'tradebook-fy24-sell-only-no-isin.csv',
+                    fileId: 'file-fy22-tally-opening',
+                    fileName: 'tradebook-fy22-tally-opening.csv',
                     buffer: sellOnlyTradebook,
                     mimeType: 'text/csv',
                 },
-                {
-                    fileId: 'file-holdings-opening-no-isin',
-                    fileName: 'holdings-opening-no-isin.xlsx',
-                    buffer: holdingsBuffer,
-                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                },
             ],
         });
 
-        const openingVoucher = findVoucherXml(
-            result.transactionsXml,
-            'FY opening balance carried forward for ADSL',
-        );
-        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of ADSL');
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of 63MOONS');
 
-        expect(openingVoucher).toContain('<STOCKITEMNAME>ADSL-SH</STOCKITEMNAME>');
+        expect(mockRepo.getClosingLots).not.toHaveBeenCalled();
+        expect(result.checks.find((check) => check.check_name === 'Opening Stock in Tally')?.status).toBe('WARNING');
+        expect(sellVoucher).toContain('Opening stock assumed in Tally');
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
-        expect(sellVoucher).toContain('<LEDGERNAME>ADSL-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<RATE>80.00/SH</RATE>');
-        expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
-    });
-
-    it('uses uploaded ledger opening balance to export a broker opening voucher', async () => {
-        const ledgerBuffer = buildLedgerBuffer(12500);
-
-        const result = await runProcessingPipeline({
-            ...BASE_INPUT,
-            batchId: 'batch-ledger-opening',
-            files: [
-                ...BASE_INPUT.files,
-                {
-                    fileId: 'file-ledger-opening',
-                    fileName: 'equity-ledger-opening.xlsx',
-                    buffer: ledgerBuffer,
-                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                },
-            ],
-        });
-
-        const brokerOpeningVoucher = findVoucherXml(
-            result.transactionsXml,
-            'FY opening broker balance carried forward',
-        );
-
-        expect(brokerOpeningVoucher).toContain('<LEDGERNAME>ZERODHA - KITE</LEDGERNAME>');
-        expect(brokerOpeningVoucher).toContain('<AMOUNT>-12500.00</AMOUNT>');
-        expect(brokerOpeningVoucher).toContain('<LEDGERNAME>FY Opening Balance Equity</LEDGERNAME>');
-        expect(brokerOpeningVoucher).toContain('<AMOUNT>12500.00</AMOUNT>');
+        expect(sellVoucher).not.toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
+        expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>120.00/NOS</RATE>');
+        expect(sellVoucher).toContain('<AMOUNT>1200.00</AMOUNT>');
     });
 });
 
@@ -788,9 +604,9 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.eventCount).toBe(3);
         expect(result.voucherCount).toBe(2);
         expect(sellVoucher).toContain('<LEDGERNAME>IRCTC-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>IRCTC-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>50 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>840.00/SH</RATE>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>INE335Y01020-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<ACTUALQTY>50 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>840.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>42000.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON IRCTC</LEDGERNAME>');
         expect(sellVoucher).toContain('<AMOUNT>857.50</AMOUNT>');
@@ -840,8 +656,8 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.eventCount).toBe(3);
         expect(result.voucherCount).toBe(2);
         expect(purchaseVoucherCount).toBe(1);
-        expect(sellVoucher).toContain('<ACTUALQTY>150 SH</ACTUALQTY>');
-        expect(sellVoucher).toContain('<RATE>100.00/SH</RATE>');
+        expect(sellVoucher).toContain('<ACTUALQTY>150 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<RATE>100.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>15000.00</AMOUNT>');
         expect(closingLots['ISIN:INE222A01011'][0].open_quantity).toBe('50');
         expect(closingLots['ISIN:INE222A01011'][0].effective_unit_cost).toBe('100.000000');

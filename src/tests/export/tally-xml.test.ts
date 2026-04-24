@@ -7,7 +7,7 @@ import {
   tallyRate,
   type VoucherDraftWithLines,
 } from '../../lib/export/tally-xml';
-import { InvoiceIntent, VoucherType } from '../../lib/types/vouchers';
+import { VoucherType } from '../../lib/types/vouchers';
 import { makeVoucherDraft, makeVoucherLine } from '../helpers/factories';
 
 function makeVoucherWithLines(
@@ -130,8 +130,8 @@ describe('generateVouchersXml', () => {
     expect(xml).toContain('<STOCKITEMNAME>RELIANCE-SH</STOCKITEMNAME>');
     expect(xml).toContain('ACTUALQTY');
     expect(xml).toContain('BILLEDQTY');
-    expect(xml).toContain('10 SH');
-    expect(xml).toContain('/SH');
+    expect(xml).toContain('10 NOS');
+    expect(xml).toContain('/NOS');
   });
 
   it('emits sales inventory entries nested under LEDGERENTRIES.LIST with negative quantity', () => {
@@ -166,7 +166,7 @@ describe('generateVouchersXml', () => {
     // ACTUALQTY/BILLEDQTY are always absolute — stock-out direction comes
     // from the parent ledger's CR, not from a negative qty. Tally double-
     // negates negative CR quantities and INCREASES holdings on sale.
-    expect(xml).toContain('10 SH');  // qty with UOM (always positive)
+    expect(xml).toContain('10 NOS');  // qty with UOM (always positive)
     expect(xml).not.toMatch(/<(ACTUALQTY|BILLEDQTY)>-/);
   });
 
@@ -192,7 +192,7 @@ describe('Tally numeric formatting guards', () => {
   it('keeps normal numeric formatting unchanged', () => {
     expect(tallyAmount('25000', 'DR')).toBe('-25000.00');
     expect(tallyAmount('25000', 'CR')).toBe('25000.00');
-    expect(tallyQty('-10', 'CR')).toBe('10 SH');
+    expect(tallyQty('-10', 'CR')).toBe('10 NOS');
     expect(tallyRate('2500', 'SH')).toBe('2500.00/SH');
   });
 });
@@ -208,80 +208,5 @@ describe('generateFullExport', () => {
     expect(result.mastersXml).toContain('Bank Account');
     expect(result.transactionsXml).toContain('Vouchers');
     expect(result.transactionsXml).toContain('LEDGERENTRIES.LIST');
-  });
-
-  it('sets manual numbering and duplicate prevention for emitted Tally voucher types', () => {
-    const purchaseVoucher = makeVoucherWithLines({
-      voucher_draft_id: 'v-purchase',
-      voucher_type: VoucherType.JOURNAL,
-      invoice_intent: InvoiceIntent.PURCHASE,
-      lines: [
-        makeVoucherLine({
-          voucher_draft_id: 'v-purchase',
-          line_no: 1,
-          ledger_name: 'Zerodha Broker',
-          amount: '25000.00',
-          dr_cr: 'CR',
-        }),
-        makeVoucherLine({
-          voucher_draft_id: 'v-purchase',
-          line_no: 2,
-          ledger_name: 'RELIANCE-SH',
-          amount: '25000.00',
-          dr_cr: 'DR',
-          quantity: '10',
-          rate: '2500',
-          stock_item_name: 'RELIANCE-SH',
-        }),
-      ],
-    });
-
-    const receiptVoucher = makeVoucherWithLines({
-      voucher_draft_id: 'v-receipt',
-      voucher_type: VoucherType.RECEIPT,
-      invoice_intent: InvoiceIntent.NONE,
-      lines: [
-        makeVoucherLine({
-          voucher_draft_id: 'v-receipt',
-          line_no: 1,
-          ledger_name: 'Bank Account',
-          amount: '1000.00',
-          dr_cr: 'DR',
-        }),
-        makeVoucherLine({
-          voucher_draft_id: 'v-receipt',
-          line_no: 2,
-          ledger_name: 'Dividend Income',
-          amount: '1000.00',
-          dr_cr: 'CR',
-        }),
-      ],
-    });
-
-    const result = generateFullExport(
-      [purchaseVoucher, receiptVoucher],
-      [{ name: 'Bank Account', parent_group: 'Bank Accounts' }],
-      'Test Co',
-    );
-
-    expect(result.mastersXml).toMatch(
-      /<VOUCHERTYPE NAME="Journal"[^>]*>[\s\S]*?<NUMBERINGMETHOD>Manual<\/NUMBERINGMETHOD>/,
-    );
-    expect(result.mastersXml).toMatch(
-      /<VOUCHERTYPE NAME="Journal"[^>]*>[\s\S]*?<PREVENTDUPLICATES>Yes<\/PREVENTDUPLICATES>/,
-    );
-    expect(result.mastersXml).toMatch(
-      /<VOUCHERTYPE NAME="Purchase"[^>]*>[\s\S]*?<NUMBERINGMETHOD>Manual<\/NUMBERINGMETHOD>/,
-    );
-    expect(result.mastersXml).toMatch(
-      /<VOUCHERTYPE NAME="Purchase"[^>]*>[\s\S]*?<PREVENTDUPLICATES>Yes<\/PREVENTDUPLICATES>/,
-    );
-    expect(result.mastersXml).toMatch(
-      /<VOUCHERTYPE NAME="Receipt"[^>]*>[\s\S]*?<NUMBERINGMETHOD>Manual<\/NUMBERINGMETHOD>/,
-    );
-    expect(result.mastersXml).toMatch(
-      /<VOUCHERTYPE NAME="Receipt"[^>]*>[\s\S]*?<PREVENTDUPLICATES>Yes<\/PREVENTDUPLICATES>/,
-    );
-    expect(result.mastersXml).not.toContain('<VOUCHERTYPE NAME="Payment"');
   });
 });

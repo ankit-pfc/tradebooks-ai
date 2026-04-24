@@ -445,11 +445,11 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     const entries = getEntries(generateVouchersXml([purchaseVoucher], 'Co'));
     const inventoryEntry = entries[0]['INVENTORYALLOCATIONS.LIST'];
 
-    expect(inventoryEntry.ACTUALQTY).toBe('10 SH');
-    expect(inventoryEntry.BILLEDQTY).toBe('10 SH');
+    expect(inventoryEntry.ACTUALQTY).toBe('10 NOS');
+    expect(inventoryEntry.BILLEDQTY).toBe('10 NOS');
     expect(inventoryEntry.STOCKITEMNAME).toBe('RELIANCE-SH');
     expect(inventoryEntry.AMOUNT).toBe('-25000.00');
-    expect(inventoryEntry.RATE).toBe('2500.00/SH');
+    expect(inventoryEntry.RATE).toBe('2500.00/NOS');
     // ISDEEMEDPOSITIVE is no longer emitted on INVENTORYALLOCATIONS.LIST
     expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
   });
@@ -484,8 +484,8 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     // tally-xml.ts: Tally was double-negating sell-side quantities when
     // both the CR line and the qty string were negative, inflating
     // holdings. Keeping the inventory qty positive fixes the import.
-    expect(inventoryEntry.ACTUALQTY).toBe('10 SH');
-    expect(inventoryEntry.BILLEDQTY).toBe('10 SH');
+    expect(inventoryEntry.ACTUALQTY).toBe('10 NOS');
+    expect(inventoryEntry.BILLEDQTY).toBe('10 NOS');
     expect(inventoryEntry.AMOUNT).toBe('25000.00');
     // ISDEEMEDPOSITIVE is no longer emitted on INVENTORYALLOCATIONS.LIST
     expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
@@ -554,13 +554,13 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     expect(entries[1]['INVENTORYALLOCATIONS.LIST']).toBeDefined();
     // Always positive — stock-out direction is carried by CR on the parent
     // ledger, not by a negative qty.
-    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('10 SH');
+    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('10 NOS');
   });
 
   it('no ACTUALQTY or BILLEDQTY ever starts with a minus sign across all trade vouchers', () => {
     // Fix 3 guardrail: tallyQty() must always emit the absolute value.
     // Previously a negative canonical quantity on sell lines combined with
-    // the sign-aware tallyQty() produced "-10 SH", which Tally interpreted
+    // the sign-aware tallyQty() produced "-10 NOS", which Tally interpreted
     // as a second negation and INCREASED stock on sale. Importing such XML
     // corrupts holdings. This test scans every emitted quantity field in a
     // mixed voucher batch and guarantees none carries a leading minus.

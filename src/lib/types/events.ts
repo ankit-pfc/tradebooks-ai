@@ -121,6 +121,8 @@ export interface CanonicalEvent {
 export interface CostLot {
   cost_lot_id: string;
   security_id: string;
+  /** Human-readable broker symbol when available. Used for carried FY ledgers. */
+  security_symbol?: string | null;
   /** The BUY_TRADE canonical event that created this lot. */
   source_buy_event_id: string;
   /** Remaining unsold quantity as a decimal string. */

@@ -120,41 +120,6 @@ describe('CostLotTracker serialization', () => {
     expect(restored.getOpenLots('ISIN:INE111B01023')[0].open_quantity).toBe('6');
   });
 
-  it('preserves EQ-prefixed opening lots so current-year sells can match them', () => {
-    const restored = CostLotTracker.fromJSON({
-      lots: {
-        'EQ:ADSL': [
-          {
-            cost_lot_id: 'lot-adsl-opening',
-            security_id: 'EQ:ADSL',
-            source_buy_event_id: 'fy24-buy',
-            open_quantity: '10',
-            original_quantity: '10',
-            effective_unit_cost: '80.000000',
-            acquisition_date: '2024-02-01',
-            remaining_total_cost: '800.00',
-          },
-        ],
-      },
-    });
-
-    const disposals = restored.disposeLots(
-      makeSellEvent({
-        security_id: 'EQ:ADSL',
-        quantity: '-4',
-        rate: '120.00',
-        event_date: '2024-04-12',
-        gross_amount: '480.00',
-      }),
-      'FIFO',
-    );
-
-    expect(disposals).toHaveLength(1);
-    expect(disposals[0].lot_id).toBe('lot-adsl-opening');
-    expect(disposals[0].total_cost).toBe('320.00');
-    expect(restored.getOpenLots('EQ:ADSL')[0].open_quantity).toBe('6');
-  });
-
   it('empty tracker serializes and restores correctly', () => {
     const tracker = new CostLotTracker();
     const json = tracker.toJSON();

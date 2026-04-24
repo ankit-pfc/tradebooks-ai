@@ -11,6 +11,7 @@ import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { rateLimit } from '@/lib/rate-limit';
 import { MAX_FILE_SIZE, ALLOWED_MIME_TYPES } from '@/lib/upload-constants';
 import { runProcessingPipeline, type PipelineFileInput } from '@/lib/processing/pipeline';
+import type { OpeningBalanceSource } from '@/lib/processing/pipeline';
 import type { BatchFileType } from '@/lib/types/domain';
 import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
     const periodFrom = form.get('periodFrom') as string | null;
     const periodTo = form.get('periodTo') as string | null;
     const priorBatchId = form.get('priorBatchId') as string | null;
+    const openingBalanceSourceRaw = form.get('openingBalanceSource') as string | null;
     const classificationStrategyRaw = form.get('classificationStrategy') as string | null;
 
     const validClassificationStrategies = new Set<string>(Object.values(TradeClassificationStrategy));
@@ -66,6 +68,22 @@ export async function POST(request: NextRequest) {
     const classificationStrategy = classificationStrategyRaw
       ? (classificationStrategyRaw as TradeClassificationStrategy)
       : undefined;
+    let openingBalanceSource: OpeningBalanceSource | undefined;
+    if (
+      openingBalanceSourceRaw === 'none' ||
+      openingBalanceSourceRaw === 'prior_batch' ||
+      openingBalanceSourceRaw === 'tally_existing'
+    ) {
+      openingBalanceSource = openingBalanceSourceRaw;
+    } else if (openingBalanceSourceRaw) {
+      return NextResponse.json(
+        {
+          error: `Invalid openingBalanceSource: ${openingBalanceSourceRaw}`,
+          code: 'E_INVALID_OPENING_BALANCE_SOURCE',
+        },
+        { status: 400 },
+      );
+    }
 
     if (!companyName || !accountingMode) {
       return NextResponse.json(
@@ -219,6 +237,7 @@ export async function POST(request: NextRequest) {
         periodFrom: resolvedPeriodFrom,
         periodTo: resolvedPeriodTo,
         priorBatchId: priorBatchId ?? undefined,
+        openingBalanceSource,
         classificationStrategy,
         files: pipelineFiles,
       });

@@ -19,7 +19,6 @@
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <PREVENTDUPLICATES>Yes</PREVENTDUPLICATES>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">

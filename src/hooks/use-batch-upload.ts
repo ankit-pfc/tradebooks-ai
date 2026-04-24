@@ -176,6 +176,7 @@ export interface BatchUploadConfig {
   periodFrom?: string;
   periodTo?: string;
   priorBatchId?: string;
+  openingBalanceSource?: 'none' | 'prior_batch' | 'tally_existing';
 }
 
 export type PurchaseMergeMode = 'same_rate' | 'daily_summary';
@@ -341,7 +342,10 @@ export function useBatchUpload() {
   }, []);
 
   const startProcessing = useCallback(async (
-    options?: { classificationStrategy?: string },
+    options?: {
+      classificationStrategy?: string;
+      openingBalanceSource?: 'none' | 'prior_batch' | 'tally_existing';
+    },
   ): Promise<ProcessingResult | null> => {
     const { batchId, batchStatus } = stateRef.current;
     // Allow launching from 'uploading' (first attempt) and 'failed' (retry
@@ -357,6 +361,9 @@ export function useBatchUpload() {
       const body: Record<string, unknown> = { purchaseMergeMode: 'same_rate' };
       if (options?.classificationStrategy) {
         body.classificationStrategy = options.classificationStrategy;
+      }
+      if (options?.openingBalanceSource) {
+        body.openingBalanceSource = options.openingBalanceSource;
       }
       const res = await fetch(`/api/batches/${batchId}/process`, {
         method: 'POST',

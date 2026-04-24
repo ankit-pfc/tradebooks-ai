@@ -32,6 +32,7 @@ interface UploadFormData {
   periodFrom: string;
   periodTo: string;
   priorBatchId: string;
+  openingBalanceSource: "none" | "tally_existing";
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -381,6 +382,27 @@ function StepConfigure({
           </p>
         </div>
       )}
+
+      <div className="space-y-1.5">
+        <Label htmlFor="opening-balance-source" className="text-base font-medium text-gray-800">
+          If Prior Period Was Not Imported
+        </Label>
+        <select
+          id="opening-balance-source"
+          className={SELECT_CLASSES}
+          value={formData.priorBatchId ? "none" : formData.openingBalanceSource}
+          disabled={Boolean(formData.priorBatchId)}
+          onChange={(e) =>
+            onChange({ openingBalanceSource: e.target.value as UploadFormData["openingBalanceSource"] })
+          }
+        >
+          <option value="none">No opening stock in Tally</option>
+          <option value="tally_existing">Opening stock already exists in Tally</option>
+        </select>
+        <p className="text-sm text-gray-600">
+          Use the Tally option when this FY has sells from holdings already present in Tally. Tradebooks will pass stock-out entries so Tally reduces those balances, while gain/loss remains marked for review.
+        </p>
+      </div>
 
       <div className="pt-2">
         <Button
@@ -1356,6 +1378,7 @@ export default function UploadPage() {
     periodFrom: "",
     periodTo: "",
     priorBatchId: "",
+    openingBalanceSource: "none",
   });
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
 
@@ -1379,6 +1402,7 @@ export default function UploadPage() {
         periodFrom: formData.periodFrom || undefined,
         periodTo: formData.periodTo || undefined,
         priorBatchId: formData.priorBatchId || undefined,
+        openingBalanceSource: formData.priorBatchId ? "prior_batch" : formData.openingBalanceSource,
       };
       hook.createBatch(config);
     }
@@ -1387,21 +1411,25 @@ export default function UploadPage() {
 
   const handleProcess = useCallback(async () => {
     setStep(3);
-    const result = await hook.startProcessing();
+    const result = await hook.startProcessing({
+      openingBalanceSource: formData.priorBatchId ? "prior_batch" : formData.openingBalanceSource,
+    });
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
     // If result is null, batchStatus is 'failed' and StepProcessing shows error
-  }, [hook]);
+  }, [hook, formData.openingBalanceSource, formData.priorBatchId]);
 
   const handleRetryProcessing = useCallback(async () => {
-    const result = await hook.startProcessing();
+    const result = await hook.startProcessing({
+      openingBalanceSource: formData.priorBatchId ? "prior_batch" : formData.openingBalanceSource,
+    });
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
-  }, [hook]);
+  }, [hook, formData.openingBalanceSource, formData.priorBatchId]);
 
   const handleRetryWithStrategy = useCallback(async (
     strategy: 'ASSUME_ALL_EQ_INVESTMENT' | 'HEURISTIC_SAME_DAY_FLAT_INTRADAY',
@@ -1422,6 +1450,7 @@ export default function UploadPage() {
       periodFrom: "",
       periodTo: "",
       priorBatchId: "",
+      openingBalanceSource: "none",
     });
     setProcessingResult(null);
   };

@@ -31,7 +31,7 @@ export const BANK: LedgerDef = {
 };
 
 export const OPENING_BALANCE_EQUITY: LedgerDef = {
-  name: 'FY Opening Balance Equity',
+  name: 'Opening Stock Balance B/F',
   group: 'Capital Account',
 };
 

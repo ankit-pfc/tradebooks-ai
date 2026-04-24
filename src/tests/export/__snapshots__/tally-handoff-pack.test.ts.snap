@@ -22,7 +22,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <PREVENTDUPLICATES>Yes</PREVENTDUPLICATES>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
@@ -567,8 +566,9 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
               <NAME>NOS</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>Numbers</ORIGINALNAME>
+            <ORIGINALNAME>NOS</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
+            <FORMALNAME>NUMBERS</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>NOS</NAME>
@@ -578,33 +578,14 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
-            <NAME>SH</NAME>
+          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>SH</NAME>
-            </NAME.LIST>
-            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>Share</ORIGINALNAME>
-            <DECIMALPLACES>0</DECIMALPLACES>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </UNIT>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>INFY-SH</NAME>
+              <NAME>INE009A01021-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>NOS</BASEUNITS>
-            <ADDITIONALUNITS>SH</ADDITIONALUNITS>
-            <CONVERSION>1</CONVERSION>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INFY-SH</NAME>
+                <NAME>INE009A01021-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -652,10 +633,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1001.49</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>10 SH</ACTUALQTY>
-              <BILLEDQTY>10 SH</BILLEDQTY>
-              <RATE>100.15/SH</RATE>
+              <STOCKITEMNAME>INE009A01021-SH</STOCKITEMNAME>
+              <ACTUALQTY>10 NOS</ACTUALQTY>
+              <BILLEDQTY>10 NOS</BILLEDQTY>
+              <RATE>100.15/NOS</RATE>
               <AMOUNT>-1001.49</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
           </LEDGERENTRIES.LIST>
@@ -765,7 +746,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <PREVENTDUPLICATES>Yes</PREVENTDUPLICATES>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
@@ -1316,7 +1296,6 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             </NAME.LIST>
             <PARENT>Journal</PARENT>
             <NUMBERINGMETHOD>Manual</NUMBERINGMETHOD>
-            <PREVENTDUPLICATES>Yes</PREVENTDUPLICATES>
           </VOUCHERTYPE>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
@@ -1728,8 +1707,9 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
               <NAME>NOS</NAME>
             </NAME.LIST>
             <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>Numbers</ORIGINALNAME>
+            <ORIGINALNAME>NOS</ORIGINALNAME>
             <DECIMALPLACES>0</DECIMALPLACES>
+            <FORMALNAME>NUMBERS</FORMALNAME>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
                 <NAME>NOS</NAME>
@@ -1739,33 +1719,14 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <UNIT NAME="SH" RESERVEDNAME="" ACTION="Create">
-            <NAME>SH</NAME>
+          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>SH</NAME>
-            </NAME.LIST>
-            <ISSIMPLEUNIT>Yes</ISSIMPLEUNIT>
-            <ORIGINALNAME>Share</ORIGINALNAME>
-            <DECIMALPLACES>0</DECIMALPLACES>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>SH</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </UNIT>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>INFY-SH</NAME>
+              <NAME>INE009A01021-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>NOS</BASEUNITS>
-            <ADDITIONALUNITS>SH</ADDITIONALUNITS>
-            <CONVERSION>1</CONVERSION>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INFY-SH</NAME>
+                <NAME>INE009A01021-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -1813,10 +1774,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1001.49</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
-              <ACTUALQTY>10 SH</ACTUALQTY>
-              <BILLEDQTY>10 SH</BILLEDQTY>
-              <RATE>100.15/SH</RATE>
+              <STOCKITEMNAME>INE009A01021-SH</STOCKITEMNAME>
+              <ACTUALQTY>10 NOS</ACTUALQTY>
+              <BILLEDQTY>10 NOS</BILLEDQTY>
+              <RATE>100.15/NOS</RATE>
               <AMOUNT>-1001.49</AMOUNT>
             </INVENTORYALLOCATIONS.LIST>
           </LEDGERENTRIES.LIST>
