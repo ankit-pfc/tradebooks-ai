@@ -4,8 +4,10 @@ import { parseContractNotes } from '@/lib/parsers/zerodha/contract-notes';
 import { parseContractNotesXml } from '@/lib/parsers/zerodha/contract-notes-xml';
 import { parseFundsStatement } from '@/lib/parsers/zerodha/funds-statement';
 import { parseDividends } from '@/lib/parsers/zerodha/dividends';
+import { parseTaxPnl } from '@/lib/parsers/zerodha/taxpnl';
 import {
   buildCanonicalEvents,
+  buildUnifiedSecurityId,
   pairContractNoteData,
   type ContractNoteSheet,
 } from '@/lib/engine/canonical-events';
@@ -26,7 +28,7 @@ import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, disambiguateVoucherNumbers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
-import type { CostLot } from '@/lib/types/events';
+import { EventType, type CanonicalEvent, type CostLot } from '@/lib/types/events';
 import { TradeClassification, TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
 import { resolveInvestmentLedger } from '@/lib/engine/ledger-resolver';
@@ -41,6 +43,7 @@ import type {
   ZerodhaFundsStatementRow,
   ZerodhaContractNoteCharges,
   ZerodhaDividendRow,
+  ZerodhaTaxPnlExitRow,
   ParseMetadata,
   CorporateActionInput,
 } from '@/lib/parsers/zerodha/types';
@@ -119,6 +122,7 @@ interface ParsedFile {
 
 interface ParsedFileSet {
   tradebook?: { rows: ZerodhaTradebookRow[]; metadata: ParseMetadata };
+  taxPnl?: { exits: ZerodhaTaxPnlExitRow[]; metadata: ParseMetadata };
   contractNote?: {
     sheets: ContractNoteSheet[];
     charges: ZerodhaContractNoteCharges[];
@@ -168,6 +172,101 @@ function buildEventSymbolLookup(events: Array<{ security_id: string | null; secu
     }
   }
   return lookup;
+}
+
+function normalizeComparableDate(raw: string): string {
+  const trimmed = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
+  const parts = trimmed.split(/[-/]/);
+  if (parts.length >= 3 && parts[0].length === 2) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return trimmed.slice(0, 10);
+}
+
+function buildTradebookBuyKeySet(rows: ZerodhaTradebookRow[] | undefined): Set<string> {
+  const keys = new Set<string>();
+  for (const row of rows ?? []) {
+    if (row.trade_type !== 'buy') continue;
+    const securityId = buildUnifiedSecurityId(row.exchange, row.symbol, row.isin, row.segment);
+    keys.add(`${securityId}|${normalizeComparableDate(row.trade_date)}`);
+  }
+  return keys;
+}
+
+function buildTaxPnlSecurityId(row: ZerodhaTaxPnlExitRow): string {
+  const isin = row.isin.trim().toUpperCase();
+  if (isin && isin !== 'NA' && isin !== 'N/A' && isin !== '-') {
+    return `ISIN:${isin}`;
+  }
+  return `EQ:${row.symbol.trim().toUpperCase()}`;
+}
+
+function seedPriorCostLotsFromTaxPnl(params: {
+  tracker: CostLotTracker;
+  exits: ZerodhaTaxPnlExitRow[] | undefined;
+  periodFrom: string;
+  periodTo: string;
+  batchId: string;
+  sourceFileId: string;
+  existingTradebookBuyKeys: Set<string>;
+}): number {
+  let seeded = 0;
+
+  for (const row of params.exits ?? []) {
+    if (!row.entry_date || !row.exit_date) continue;
+    if (row.entry_date >= params.periodFrom) continue;
+    if (row.exit_date < params.periodFrom || row.exit_date > params.periodTo) continue;
+
+    const quantity = new Decimal(row.quantity);
+    const buyValue = new Decimal(row.buy_value);
+    if (!quantity.greaterThan(0) || buyValue.isNegative()) continue;
+
+    const securityId = buildTaxPnlSecurityId(row);
+    if (params.existingTradebookBuyKeys.has(`${securityId}|${row.entry_date}`)) {
+      continue;
+    }
+
+    const rate = quantity.isZero()
+      ? new Decimal(0)
+      : buyValue.div(quantity).toDecimalPlaces(6);
+    const rowKey = [
+      'taxpnl-opening',
+      row.symbol,
+      row.isin,
+      row.entry_date,
+      row.exit_date,
+      row.quantity,
+      row.buy_value,
+    ].join('|');
+
+    const syntheticBuy: CanonicalEvent = {
+      event_id: crypto.randomUUID(),
+      import_batch_id: params.batchId,
+      event_type: EventType.BUY_TRADE,
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      event_date: row.entry_date,
+      settlement_date: null,
+      security_id: securityId,
+      security_symbol: row.symbol.trim().toUpperCase(),
+      quantity: quantity.toFixed(),
+      rate: rate.toFixed(),
+      gross_amount: buyValue.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2),
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: params.sourceFileId,
+      source_row_ids: [rowKey],
+      contract_note_ref: null,
+      external_ref: `TAXPNL-OPENING-${row.exit_date}`,
+      event_hash: rowKey,
+    };
+
+    params.tracker.addLot(syntheticBuy);
+    seeded += 1;
+  }
+
+  return seeded;
 }
 
 function buildOpeningStockVoucher(params: {
@@ -279,7 +378,6 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodFrom,
     periodTo,
     priorBatchId,
-    openingBalanceSource = priorBatchId ? 'prior_batch' : 'none',
     purchaseMergeMode = 'same_rate',
     corporateActions = [],
     files,
@@ -312,6 +410,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     tradebook?: string;
     fundsStatement?: string;
     contractNote?: string;
+    taxPnl?: string;
     dividends?: string;
     corporateActions?: string;
   } = {};
@@ -362,6 +461,12 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
         const parsed = parseDividends(f.buffer, f.fileName);
         parsedFileSet.dividends = { rows: parsed.rows, metadata: parsed.metadata };
         fileIds.dividends = f.fileId;
+        break;
+      }
+      case 'taxpnl': {
+        const parsed = parseTaxPnl(f.buffer, f.fileName);
+        parsedFileSet.taxPnl = { exits: parsed.exits, metadata: parsed.metadata };
+        fileIds.taxPnl = f.fileId;
         break;
       }
       case 'pnl': {
@@ -451,10 +556,16 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     symbolLookup: buildEventSymbolLookup(events),
     tallyProfile,
   });
-  const uncoveredSellTreatment: UncoveredSellTreatment =
-    openingBalanceSource === 'tally_existing' && !priorBatchId
-      ? 'tally_existing_opening'
-      : 'suspense';
+  const seededTaxPnlLots = seedPriorCostLotsFromTaxPnl({
+    tracker,
+    exits: parsedFileSet.taxPnl?.exits,
+    periodFrom,
+    periodTo,
+    batchId,
+    sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
+    existingTradebookBuyKeys: buildTradebookBuyKeySet(parsedFileSet.tradebook?.rows),
+  });
+  const uncoveredSellTreatment: UncoveredSellTreatment = 'tally_existing_opening';
   const rawVouchers = buildVouchers(
     events,
     profile,
@@ -574,12 +685,12 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     },
   ];
 
-  if (uncoveredSellTreatment === 'tally_existing_opening') {
+  if (seededTaxPnlLots > 0) {
     checks.push({
-      check_name: 'Opening Stock in Tally',
-      status: 'WARNING',
+      check_name: 'Tax P&L Cost Basis',
+      status: 'PASSED',
       details:
-        'Opening stock was assumed to already exist in Tally. Unmatched sells include stock-out inventory lines so Tally can reduce existing stock, but capital gain/loss classification requires review because Tradebooks does not have acquisition cost/date.',
+        `Seeded ${seededTaxPnlLots} prior-period acquisition lot(s) from Zerodha Tax P&L so current-period sells can compute capital gain/loss instead of going to suspense.`,
     });
   }
 

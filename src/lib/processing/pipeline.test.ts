@@ -307,6 +307,62 @@ describe('runProcessingPipeline — generic pnl file is recognised and skipped',
     });
 });
 
+describe('runProcessingPipeline — Tax P&L prior cost basis', () => {
+    function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
+        const voucher = transactionsXml
+            .split('<VOUCHER ')
+            .map((chunk) => `<VOUCHER ${chunk}`)
+            .find((chunk) => chunk.includes(`<NARRATION>${narrationPrefix}`));
+        expect(voucher).toBeDefined();
+        return voucher!;
+    }
+
+    it('uses Tax P&L entry data for current-period sells bought before the selected FY', async () => {
+        const { buildXlsxBuffer } = await import('../../tests/helpers/factories');
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-06-27,NSE,EQ,FIEMIND,INE737H01014,SELL,10,1259.00,CNC,T501,ORD501,09:15:00',
+        ].join('\n'));
+        const taxPnlBuffer = buildXlsxBuffer({
+            'Tradewise Exits': [
+                ['Symbol', 'ISIN', 'Entry Date', 'Exit Date', 'Quantity', 'Buy Value', 'Sell Value', 'Profit', 'Period of Holding', 'Fair Market Value', 'Taxable Profit', 'Turnover'],
+                ['FIEMIND', 'INE737H01014', '2021-08-18', '2022-06-27', '10', '9767.5', '12590', '2822.5', '313', '0', '2822.5', '12590'],
+            ],
+        });
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-taxpnl-prior-cost',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            files: [
+                {
+                    fileId: 'file-fiemind-sell',
+                    fileName: 'tradebook-fy22-fiemind.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+                {
+                    fileId: 'file-taxpnl-fiemind',
+                    fileName: 'tax_pnl-FC9134.xlsx',
+                    buffer: taxPnlBuffer,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of FIEMIND');
+
+        expect(result.filesSummary.find((file) => file.fileName === 'tax_pnl-FC9134.xlsx')?.detectedType).toBe('taxpnl');
+        expect(result.checks.find((check) => check.check_name === 'Tax P&L Cost Basis')?.status).toBe('PASSED');
+        expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
+        expect(sellVoucher).toContain('<LEDGERNAME>FIEMIND-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>9767.50</AMOUNT>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON FIEMIND</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>2822.50</AMOUNT>');
+    });
+});
+
 describe('runProcessingPipeline — multi-FY opening lots', () => {
     function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
         const voucher = transactionsXml
@@ -444,7 +500,6 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
             batchId: 'batch-fy22-tally-opening',
             periodFrom: '2022-04-01',
             periodTo: '2023-03-31',
-            openingBalanceSource: 'tally_existing',
             files: [
                 {
                     fileId: 'file-fy22-tally-opening',
@@ -458,7 +513,6 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of 63MOONS');
 
         expect(mockRepo.getClosingLots).not.toHaveBeenCalled();
-        expect(result.checks.find((check) => check.check_name === 'Opening Stock in Tally')?.status).toBe('WARNING');
         expect(sellVoucher).toContain('Opening stock assumed in Tally');
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
         expect(sellVoucher).not.toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');

@@ -27,6 +27,6 @@ describe("TALLY_IMPORT_STEPS", () => {
     expect(TALLY_IMPORT_STEPS).toHaveLength(3);
     expect(TALLY_IMPORT_STEPS[0].title).toContain("Masters");
     expect(TALLY_IMPORT_STEPS[1].title).toContain("Transactions");
-    expect(TALLY_IMPORT_STEPS[2].detail).toContain("contract note number");
+    expect(TALLY_IMPORT_STEPS[2].detail).toContain("transaction import depends on");
   });
 });

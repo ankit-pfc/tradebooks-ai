@@ -16,23 +16,13 @@ import {
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-type AccountingMode = "investor" | "trader";
-
-interface PriorBatch {
-  id: string;
-  company_name: string;
-  period_from: string;
-  period_to: string;
-  fy_label?: string | null;
-}
+type AccountingMode = "investor";
 
 interface UploadFormData {
   accountingMode: AccountingMode;
   companyName: string;
   periodFrom: string;
   periodTo: string;
-  priorBatchId: string;
-  openingBalanceSource: "none" | "tally_existing";
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -169,41 +159,9 @@ function StepConfigure({
   onChange: (data: Partial<UploadFormData>) => void;
   onNext: () => void;
 }) {
-  const [priorBatches, setPriorBatches] = useState<PriorBatch[]>([]);
-  const [loadingPrior, setLoadingPrior] = useState(false);
   const [customRangeActive, setCustomRangeActive] = useState(false);
   const isCustomRange = customRangeActive || getSelectedPeriodValue(formData.periodFrom, formData.periodTo) === CUSTOM_RANGE_VALUE;
   const hasPeriodError = isCustomRange && !isValidDateRange(formData.periodFrom, formData.periodTo);
-
-  // Fetch prior batches when company name changes (debounced)
-  useEffect(() => {
-    const name = formData.companyName.trim();
-    const timer = setTimeout(() => {
-      if (!name) {
-        setPriorBatches([]);
-        return;
-      }
-      setLoadingPrior(true);
-      fetch(`/api/batches/prior?company_name=${encodeURIComponent(name)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.batches) {
-            // Dedup: keep only the most recent batch per period range
-            const seen = new Set<string>();
-            const deduped = (data.batches as PriorBatch[]).filter((b) => {
-              const key = `${b.period_from}|${b.period_to}`;
-              if (seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            });
-            setPriorBatches(deduped);
-          }
-        })
-        .catch(() => { /* ignore */ })
-        .finally(() => setLoadingPrior(false));
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [formData.companyName]);
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -221,48 +179,18 @@ function StepConfigure({
         <Label className="text-base font-medium text-gray-800">
           Accounting Mode
         </Label>
-        <div className="grid grid-cols-2 gap-3">
-          {(
-            [
-              {
-                value: "investor",
-                label: "Investor",
-                desc: "Long-term holdings, LTCG/STCG tax treatment",
-              },
-              {
-                value: "trader",
-                label: "Trader",
-                desc: "Frequent trading, business income treatment",
-              },
-            ] as const
-          ).map((mode) => (
-            <button
-              key={mode.value}
-              type="button"
-              onClick={() => onChange({ accountingMode: mode.value })}
-              className={`flex flex-col items-start rounded-lg border p-4 text-left transition-all cursor-pointer ${formData.accountingMode === mode.value
-                ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
-                : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.accountingMode === mode.value
-                    ? "border-indigo-600"
-                    : "border-gray-300"
-                    }`}
-                >
-                  {formData.accountingMode === mode.value && (
-                    <div className="w-2 h-2 rounded-full bg-indigo-600" />
-                  )}
-                </div>
-                <span className="text-base font-semibold text-gray-900">
-                  {mode.label}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 pl-6">{mode.desc}</p>
-            </button>
-          ))}
+        <div className="rounded-lg border border-indigo-500 bg-indigo-50 p-4 ring-1 ring-indigo-500">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-indigo-600">
+              <div className="h-2 w-2 rounded-full bg-indigo-600" />
+            </div>
+            <span className="text-base font-semibold text-gray-900">
+              Investor
+            </span>
+          </div>
+          <p className="pl-6 text-sm text-gray-600">
+            Long-term holdings, LTCG/STCG tax treatment
+          </p>
         </div>
       </div>
 
@@ -346,62 +274,6 @@ function StepConfigure({
             Enter both dates and make sure the From date is earlier than the To date.
           </p>
         )}
-      </div>
-
-      {/* Prior Batch (Opening Balances) */}
-      {priorBatches.length > 0 ? (
-        <div className="space-y-1.5">
-          <Label htmlFor="prior-batch" className="text-base font-medium text-gray-800">
-            Carry Forward from Prior Period (Optional)
-          </Label>
-          <select
-            id="prior-batch"
-            className={SELECT_CLASSES}
-            value={formData.priorBatchId}
-            onChange={(e) => onChange({ priorBatchId: e.target.value })}
-          >
-            <option value="">Start fresh (no opening balances)</option>
-            {priorBatches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.fy_label ? `FY ${b.fy_label}` : `${b.period_from} to ${b.period_to}`}
-                {` — ${b.company_name}`}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm text-gray-600">
-            {loadingPrior
-              ? "Loading prior batches..."
-              : "Select a previous batch to carry forward its closing stock positions as opening balances for this period. Use this when importing month-by-month or quarter-by-quarter so each period picks up where the last left off."}
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-          <p className="text-sm font-medium text-gray-700">Multi-period imports</p>
-          <p className="text-sm text-gray-600 mt-0.5">
-            After your first completed import, you can link subsequent periods here to carry forward closing holdings automatically.
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="opening-balance-source" className="text-base font-medium text-gray-800">
-          If Prior Period Was Not Imported
-        </Label>
-        <select
-          id="opening-balance-source"
-          className={SELECT_CLASSES}
-          value={formData.priorBatchId ? "none" : formData.openingBalanceSource}
-          disabled={Boolean(formData.priorBatchId)}
-          onChange={(e) =>
-            onChange({ openingBalanceSource: e.target.value as UploadFormData["openingBalanceSource"] })
-          }
-        >
-          <option value="none">No opening stock in Tally</option>
-          <option value="tally_existing">Opening stock already exists in Tally</option>
-        </select>
-        <p className="text-sm text-gray-600">
-          Use the Tally option when this FY has sells from holdings already present in Tally. Tradebooks will pass stock-out entries so Tally reduces those balances, while gain/loss remains marked for review.
-        </p>
       </div>
 
       <div className="pt-2">
@@ -1035,8 +907,7 @@ function StepProcessing({
                 </p>
                 <p className="text-xs text-indigo-800 mt-1">
                   Your tradebook doesn’t carry the Zerodha product column
-                  (CNC/MIS/NRML), so we need a hint to decide whether each trade
-                  is an investment or a business trade.
+                  (CNC/MIS/NRML), so we’ll process equity as investment for now.
                 </p>
               </div>
               <Button
@@ -1044,13 +915,6 @@ function StepProcessing({
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 Retry as Investor — treat equity as investment
-              </Button>
-              <Button
-                onClick={() => onRetryWithStrategy('HEURISTIC_SAME_DAY_FLAT_INTRADAY')}
-                variant="outline"
-                className="w-full"
-              >
-                Retry as Trader — infer intraday from same-day netoff
               </Button>
             </div>
           ) : isDisposeLotsError ? (
@@ -1113,7 +977,7 @@ function StepResults({
     if (
       !hasDownloaded &&
       !confirm(
-        "Download both XML files before leaving. Import 01 masters first, then 02 transactions, so Tally preserves Journal voucher numbers as contract note numbers.",
+        "Download both XML files before leaving. Import 01 masters first, then 02 transactions, so Tally receives ledgers before vouchers.",
       )
     ) return;
     router.push(href);
@@ -1238,7 +1102,7 @@ function StepResults({
         </p>
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
           <p className="text-sm font-semibold text-amber-900">
-            Import order is mandatory for Journal voucher numbering.
+            Import order is mandatory for a clean Tally import.
           </p>
           <div className="mt-2 space-y-2">
             {TALLY_IMPORT_STEPS.map((step, idx) => (
@@ -1275,7 +1139,7 @@ function StepResults({
                 Masters XML
               </p>
               <p className="text-sm text-gray-600">
-                Required first: ledger definitions, groups, and Journal numbering update
+                Required first: ledger definitions, groups, stock items, and voucher settings
               </p>
             </div>
             {downloadedMasters ? (
@@ -1339,7 +1203,7 @@ function StepResults({
           </button>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Download both files now. The 01/02 prefixes are intentional and match the Tally import order required to keep Journal voucher numbers aligned with contract note numbers.
+          Download both files now. The 01/02 prefixes are intentional and match the Tally import order: masters first, transactions second.
         </p>
       </div>
 
@@ -1377,8 +1241,6 @@ export default function UploadPage() {
     companyName: "",
     periodFrom: "",
     periodTo: "",
-    priorBatchId: "",
-    openingBalanceSource: "none",
   });
   const [processingResult, setProcessingResult] = useState<ProcessingResult | null>(null);
 
@@ -1401,8 +1263,6 @@ export default function UploadPage() {
         accountingMode: formData.accountingMode,
         periodFrom: formData.periodFrom || undefined,
         periodTo: formData.periodTo || undefined,
-        priorBatchId: formData.priorBatchId || undefined,
-        openingBalanceSource: formData.priorBatchId ? "prior_batch" : formData.openingBalanceSource,
       };
       hook.createBatch(config);
     }
@@ -1411,25 +1271,21 @@ export default function UploadPage() {
 
   const handleProcess = useCallback(async () => {
     setStep(3);
-    const result = await hook.startProcessing({
-      openingBalanceSource: formData.priorBatchId ? "prior_batch" : formData.openingBalanceSource,
-    });
+    const result = await hook.startProcessing();
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
     // If result is null, batchStatus is 'failed' and StepProcessing shows error
-  }, [hook, formData.openingBalanceSource, formData.priorBatchId]);
+  }, [hook]);
 
   const handleRetryProcessing = useCallback(async () => {
-    const result = await hook.startProcessing({
-      openingBalanceSource: formData.priorBatchId ? "prior_batch" : formData.openingBalanceSource,
-    });
+    const result = await hook.startProcessing();
     if (result) {
       setProcessingResult(result);
       setStep(4);
     }
-  }, [hook, formData.openingBalanceSource, formData.priorBatchId]);
+  }, [hook]);
 
   const handleRetryWithStrategy = useCallback(async (
     strategy: 'ASSUME_ALL_EQ_INVESTMENT' | 'HEURISTIC_SAME_DAY_FLAT_INTRADAY',
@@ -1449,8 +1305,6 @@ export default function UploadPage() {
       companyName: "",
       periodFrom: "",
       periodTo: "",
-      priorBatchId: "",
-      openingBalanceSource: "none",
     });
     setProcessingResult(null);
   };
@@ -1466,7 +1320,7 @@ export default function UploadPage() {
           Convert Zerodha exports into reconciled, Tally-importable XML.
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-700">
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Investor / Trader mode</span>
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Investor mode</span>
           <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Exception-first review</span>
           <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Tally Prime / ERP 9 XML</span>
         </div>

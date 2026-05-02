@@ -51,6 +51,6 @@ export const TALLY_IMPORT_STEPS = [
   {
     title: "Why Order Matters",
     detail:
-      "The masters import switches Journal voucher numbering to Manual so Tally keeps the contract note number instead of auto-numbering 1, 2, 3.",
+      "The masters file creates the ledgers, groups, stock items, and voucher settings that the transaction import depends on.",
   },
 ] as const;
