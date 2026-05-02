@@ -156,13 +156,7 @@ function symbolFromSecurityId(securityId: string): string {
   return parts.length > 1 ? parts[1] : securityId;
 }
 
-function stockItemNameFromSecurityId(securityId: string, symbol: string): string {
-  const [prefix, value] = securityId.split(':');
-  const isin = value?.trim().toUpperCase();
-  if (prefix?.trim().toUpperCase() === 'ISIN' && isin) {
-    return `${isin}-SH`;
-  }
-
+function stockItemNameFromSecurityId(_securityId: string, symbol: string): string {
   return `${symbol}-SH`;
 }
 

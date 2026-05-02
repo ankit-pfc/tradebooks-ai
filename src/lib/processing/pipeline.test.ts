@@ -365,13 +365,13 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         expect(result.mastersXml).toContain('<LEDGER NAME="Opening Stock Balance B/F"');
         expect(openingVoucher).toContain('<DATE>20220401</DATE>');
         expect(openingVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
-        expect(openingVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(openingVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
         expect(openingVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
         expect(openingVoucher).toContain('<RATE>80.00/NOS</RATE>');
         expect(openingVoucher).toContain('<LEDGERNAME>Opening Stock Balance B/F</LEDGERNAME>');
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
         expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>80.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
@@ -463,7 +463,7 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
         expect(sellVoucher).not.toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>INE111B01023-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
         expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>120.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>1200.00</AMOUNT>');
@@ -604,7 +604,7 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.eventCount).toBe(3);
         expect(result.voucherCount).toBe(2);
         expect(sellVoucher).toContain('<LEDGERNAME>IRCTC-SH</LEDGERNAME>');
-        expect(sellVoucher).toContain('<STOCKITEMNAME>INE335Y01020-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>IRCTC-SH</STOCKITEMNAME>');
         expect(sellVoucher).toContain('<ACTUALQTY>50 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>840.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>42000.00</AMOUNT>');

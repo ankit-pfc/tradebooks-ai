@@ -578,14 +578,14 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>INE009A01021-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>NOS</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INE009A01021-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -619,10 +619,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <VOUCHERNUMBER>CN-SIMPLE-BUY</VOUCHERNUMBER>
           <REFERENCE>CN-SIMPLE-BUY</REFERENCE>
           <REFERENCEDATE>20240401</REFERENCEDATE>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
@@ -633,7 +633,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1001.49</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INE009A01021-SH</STOCKITEMNAME>
+              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
               <ACTUALQTY>10 NOS</ACTUALQTY>
               <BILLEDQTY>10 NOS</BILLEDQTY>
               <RATE>100.15/NOS</RATE>
@@ -685,10 +685,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>5 shares intraday gain in INFY</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <VOUCHERNUMBER>CN-SAME-DAY</VOUCHERNUMBER>
           <REFERENCE>CN-SAME-DAY</REFERENCE>
           <REFERENCEDATE>20240403</REFERENCEDATE>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -1235,10 +1235,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <EFFECTIVEDATE>20240403</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>5 shares intraday gain in INFY</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <VOUCHERNUMBER>CN-SAME-DAY</VOUCHERNUMBER>
           <REFERENCE>CN-SAME-DAY</REFERENCE>
           <REFERENCEDATE>20240403</REFERENCEDATE>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>ZERODHA - KITE</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>ZERODHA - KITE</LEDGERNAME>
@@ -1719,14 +1719,14 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>INE009A01021-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>NOS</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INE009A01021-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>
@@ -1760,10 +1760,10 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
           <EFFECTIVEDATE>20240401</EFFECTIVEDATE>
           <PERSISTEDVIEW>Accounting Voucher View</PERSISTEDVIEW>
           <NARRATION>Purchase of INFY @ 100 × 10 units | brokerage 0.20, exchange 0.59, SEBI 0.01, stamp 0.61, GST 0.08</NARRATION>
+          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <VOUCHERNUMBER>CN-SIMPLE-BUY</VOUCHERNUMBER>
           <REFERENCE>CN-SIMPLE-BUY</REFERENCE>
           <REFERENCEDATE>20240401</REFERENCEDATE>
-          <VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>
           <PARTYLEDGERNAME>INFY-SH</PARTYLEDGERNAME>
           <LEDGERENTRIES.LIST>
             <LEDGERNAME>INFY-SH</LEDGERNAME>
@@ -1774,7 +1774,7 @@ exports[`Tally handoff pack > generates exact XML snapshots for the three sample
             <REMOVEZEROENTRIES>No</REMOVEZEROENTRIES>
             <AMOUNT>-1001.49</AMOUNT>
             <INVENTORYALLOCATIONS.LIST>
-              <STOCKITEMNAME>INE009A01021-SH</STOCKITEMNAME>
+              <STOCKITEMNAME>INFY-SH</STOCKITEMNAME>
               <ACTUALQTY>10 NOS</ACTUALQTY>
               <BILLEDQTY>10 NOS</BILLEDQTY>
               <RATE>100.15/NOS</RATE>

@@ -323,6 +323,18 @@ describe('VOUCHER conformance', () => {
     const vouchers = getVouchers(xml);
     expect(vouchers[0].VOUCHERNUMBER).toBe('CN-12345');
   });
+
+  it('emits VOUCHERTYPENAME before VOUCHERNUMBER to match Tally voucher exports', () => {
+    const xml = generateVouchersXml(
+      [makeVoucher({ external_reference: 'CNT-24/25-1' })],
+      'Co',
+    );
+
+    expect(xml.indexOf('<VOUCHERTYPENAME>Journal</VOUCHERTYPENAME>')).toBeLessThan(
+      xml.indexOf('<VOUCHERNUMBER>CNT-24/25-1</VOUCHERNUMBER>'),
+    );
+  });
+
   it('has PERSISTEDVIEW matching OBJVIEW', () => {
     const xml = generateVouchersXml([makeVoucher()], 'Co');
     const vouchers = getVouchers(xml);

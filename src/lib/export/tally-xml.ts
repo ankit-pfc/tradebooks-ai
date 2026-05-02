@@ -488,6 +488,8 @@ export function generateVouchersXml(
       voucherEle.ele('NARRATION').txt(voucher.narrative);
     }
 
+    voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
+
     if (voucher.external_reference) {
       // Emit both VOUCHERNUMBER and REFERENCE so the contract note number is
       // visible in Tally even when the Journal voucher type is configured
@@ -503,8 +505,6 @@ export function generateVouchersXml(
       // the contract-note trade date for trade vouchers.
       voucherEle.ele('REFERENCEDATE').txt(tallyDate);
     }
-
-    voucherEle.ele('VOUCHERTYPENAME').txt(tallyVchType);
 
     if (renderConfig.partyLedgerName) {
       voucherEle.ele('PARTYLEDGERNAME').txt(renderConfig.partyLedgerName);

@@ -442,14 +442,14 @@
           </UNIT>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <STOCKITEM NAME="INE009A01021-SH" RESERVEDNAME="" ACTION="Create">
+          <STOCKITEM NAME="INFY-SH" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
-              <NAME>INE009A01021-SH</NAME>
+              <NAME>INFY-SH</NAME>
             </NAME.LIST>
             <BASEUNITS>NOS</BASEUNITS>
             <LANGUAGENAME.LIST>
               <NAME.LIST TYPE="String">
-                <NAME>INE009A01021-SH</NAME>
+                <NAME>INFY-SH</NAME>
               </NAME.LIST>
               <LANGUAGEID> 1033</LANGUAGEID>
             </LANGUAGENAME.LIST>

@@ -84,7 +84,7 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     expect(voucher.invoice_intent).toBe(InvoiceIntent.NONE);
   });
 
-  it('uses ISIN, not display symbol, for the Tally stock item identity', () => {
+  it('uses the display symbol for the visible Tally stock item identity', () => {
     const hdfcEvent = makeBuyEvent({
       security_id: 'ISIN:INE001A01036',
       security_symbol: 'HDFC',
@@ -106,8 +106,8 @@ describe('buildBuyVoucher — investor HYBRID', () => {
     const hdfcStockLine = hdfcVoucher.lines.find((line) => line.quantity !== null);
     const hdfcBankStockLine = hdfcBankVoucher.lines.find((line) => line.quantity !== null);
 
-    expect(hdfcStockLine?.stock_item_name).toBe('INE001A01036-SH');
-    expect(hdfcBankStockLine?.stock_item_name).toBe('INE001A01036-SH');
+    expect(hdfcStockLine?.stock_item_name).toBe('HDFC-SH');
+    expect(hdfcBankStockLine?.stock_item_name).toBe('HDFCBANK-SH');
     expect(hdfcVoucher.narrative).toContain('Purchase of HDFC');
     expect(hdfcBankVoucher.narrative).toContain('Purchase of HDFCBANK');
   });
