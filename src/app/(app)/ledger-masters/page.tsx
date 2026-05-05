@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Plus, Upload, Trash2, FileText } from "lucide-react";
+import { MAX_FILE_SIZE } from "@/lib/upload-constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -81,13 +82,18 @@ export default function LedgerMasterPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > MAX_FILE_SIZE) {
+      alert("File too large (max 50 MB)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
       const res = await fetch("/api/ledger-masters/upload", {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/xml" },
+        body: file,
       });
       const data = await res.json();
       if (!res.ok) {
