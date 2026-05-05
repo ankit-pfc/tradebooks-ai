@@ -75,8 +75,9 @@ export function parseTallyCOA(xml: string): ParsedCOA {
   let parsed: Record<string, unknown>;
   try {
     parsed = parser.parse(xml);
-  } catch {
-    throw new Error('Failed to parse COA XML: invalid XML format');
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    throw new Error(`Failed to parse COA XML: ${detail}`);
   }
 
   const groups: TallyCOAEntry[] = [];
