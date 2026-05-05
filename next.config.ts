@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Tally XML exports can be 20–30 MB. Default 10 MB middleware body cap
+  // truncates them silently. See /api/ledger-masters/upload.
+  experimental: {
+    middlewareClientMaxBodySize: '60mb',
+  },
   async headers() {
     return [
       {
