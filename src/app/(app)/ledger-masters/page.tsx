@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { Plus, Upload, Trash2, FileText } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { toast } from "sonner";
+import { Plus, Upload, Trash2, FileText, Search } from "lucide-react";
 import { MAX_FILE_SIZE } from "@/lib/upload-constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +20,10 @@ interface LedgerEntry {
   name: string;
   group: string;
   source: "system" | "override" | "custom";
+  created_at?: string;
 }
+
+const PAGE_SIZE = 50;
 
 const SOURCE_BADGE_CLASS: Record<LedgerEntry["source"], string> = {
   system: "bg-gray-50 text-gray-600 border-gray-200",
@@ -60,6 +64,8 @@ export default function LedgerMasterPage() {
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState("");
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchLedgers = useCallback(async () => {
@@ -83,10 +89,12 @@ export default function LedgerMasterPage() {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      alert("File too large (max 50 MB)");
+      toast.error("File too large (max 50 MB)");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
+
+    const existingKeys = new Set(ledgers.map((l) => l.key));
 
     setUploading(true);
     try {
@@ -97,12 +105,23 @@ export default function LedgerMasterPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error ?? "Upload failed");
+        toast.error(data.error ?? "Upload failed");
         return;
       }
+      const saved: Array<{ ledger_key: string }> = data.ledgers ?? [];
+      const added = saved.filter((s) => !existingKeys.has(s.ledger_key)).length;
+      const updated = saved.length - added;
+      toast.success(
+        `Imported ${data.imported} ledger${data.imported === 1 ? "" : "s"}`,
+        {
+          description: `${added} new · ${updated} updated`,
+        },
+      );
+      setSearch("");
+      setPage(1);
       await fetchLedgers();
     } catch {
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -130,7 +149,7 @@ export default function LedgerMasterPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error ?? "Failed to add ledger");
+        toast.error(data.error ?? "Failed to add ledger");
         return;
       }
       setSelectedSystemKey("");
@@ -150,9 +169,39 @@ export default function LedgerMasterPage() {
       });
       await fetchLedgers();
     } catch {
-      alert("Failed to delete");
+      toast.error("Failed to delete");
     }
   }
+
+  const sortedLedgers = useMemo(() => {
+    return [...ledgers].sort((a, b) => {
+      const aT = a.created_at ?? "";
+      const bT = b.created_at ?? "";
+      if (aT && bT) return bT.localeCompare(aT);
+      if (aT) return -1;
+      if (bT) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [ledgers]);
+
+  const filteredLedgers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sortedLedgers;
+    return sortedLedgers.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.group.toLowerCase().includes(q),
+    );
+  }, [sortedLedgers, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLedgers.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagedLedgers = filteredLedgers.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -256,6 +305,27 @@ export default function LedgerMasterPage() {
         </Card>
       )}
 
+      {/* Search */}
+      {!loading && ledgers.length > 0 && (
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or parent group…"
+              className="w-full h-10 rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <p className="text-sm text-gray-600">
+            {filteredLedgers.length === ledgers.length
+              ? `${ledgers.length} ledgers`
+              : `${filteredLedgers.length} of ${ledgers.length} ledgers`}
+          </p>
+        </div>
+      )}
+
       {/* Table */}
       <Card className="border-gray-200">
         <CardContent className="p-0">
@@ -296,7 +366,14 @@ export default function LedgerMasterPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ledgers.map((ledger) => (
+                {pagedLedgers.length === 0 && (
+                  <TableRow className="border-gray-100">
+                    <TableCell colSpan={4} className="py-12 text-center text-sm text-gray-600">
+                      No ledgers match &ldquo;{search}&rdquo;.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {pagedLedgers.map((ledger) => (
                   <TableRow key={ledger.key} className="border-gray-100">
                     <TableCell className="pl-6 text-base font-medium text-gray-900">
                       {ledger.name}
@@ -331,6 +408,34 @@ export default function LedgerMasterPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {!loading && filteredLedgers.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filteredLedgers.length)} of {filteredLedgers.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600 px-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
