@@ -68,6 +68,18 @@ const mockBuildCanonicalEvents = vi.fn();
 const mockPairContractNoteData = vi.fn();
 vi.mock('@/lib/engine/canonical-events', () => ({
     buildCanonicalEvents: (...args: unknown[]) => mockBuildCanonicalEvents(...args),
+    buildUnifiedSecurityId: (
+        exchange: string,
+        symbol: string,
+        isin?: string | null,
+        segment?: string,
+    ) => {
+        const isEquity = segment?.trim().toUpperCase() === 'EQ';
+        const cleanIsin = isin?.trim().toUpperCase();
+        if (isEquity && cleanIsin && cleanIsin !== 'NA') return `ISIN:${cleanIsin}`;
+        if (isEquity) return `EQ:${symbol.trim().toUpperCase()}`;
+        return `${exchange.trim().toUpperCase()}:${symbol.trim().toUpperCase()}`;
+    },
     pairContractNoteData: (...args: unknown[]) => mockPairContractNoteData(...args),
 }));
 
