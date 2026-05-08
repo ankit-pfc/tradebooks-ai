@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/ui/logo";
+import { SupportChatFab } from "@/components/agent/support-chat-fab";
 
 const navItems = [
   {
@@ -214,6 +215,8 @@ export default function AppLayout({
       <main className="flex-1 overflow-y-auto">
         <div className="min-h-full">{children}</div>
       </main>
+
+      <SupportChatFab />
     </div>
   );
 }
