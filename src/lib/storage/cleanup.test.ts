@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { BatchRepository } from '@/lib/db/repository';
 import type { FileStorage } from '@/lib/storage/file-storage';
-import { cleanupOrphanBatches } from './cleanup';
+import { cleanupOrphanBatches, deleteBatchUploads } from './cleanup';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -190,5 +190,79 @@ describe('cleanupOrphanBatches', () => {
 
     expect(result.cleaned).toBe(2);
     expect(repo.updateBatchStatus).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('deleteBatchUploads', () => {
+  it('returns deleted=0 when the batch has no files', async () => {
+    const repo = makeRepo();
+    repo.getFilesByBatch.mockResolvedValue([]);
+
+    const result = await deleteBatchUploads('batch-1', { repo, storage: makeStorage() });
+
+    expect(result).toEqual({ deleted: 0, errors: [] });
+  });
+
+  it('deletes every file associated with the batch from storage', async () => {
+    const repo = makeRepo();
+    repo.getFilesByBatch.mockResolvedValue([{ id: 'f1' }, { id: 'f2' }]);
+    repo.resolveUploadedFilePath
+      .mockResolvedValueOnce('user/batch-1/f1.csv')
+      .mockResolvedValueOnce('user/batch-1/f2.xml');
+    const storage = makeStorage();
+
+    const result = await deleteBatchUploads('batch-1', { repo, storage });
+
+    expect(result.deleted).toBe(2);
+    expect(result.errors).toHaveLength(0);
+    expect(storage.delete).toHaveBeenCalledTimes(2);
+    expect(storage.delete).toHaveBeenNthCalledWith(1, 'user/batch-1/f1.csv');
+    expect(storage.delete).toHaveBeenNthCalledWith(2, 'user/batch-1/f2.xml');
+  });
+
+  it('skips files whose storage path cannot be resolved', async () => {
+    const repo = makeRepo();
+    repo.getFilesByBatch.mockResolvedValue([{ id: 'f1' }, { id: 'f2' }]);
+    repo.resolveUploadedFilePath
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('user/batch-1/f2.xml');
+    const storage = makeStorage();
+
+    const result = await deleteBatchUploads('batch-1', { repo, storage });
+
+    expect(result.deleted).toBe(1);
+    expect(storage.delete).toHaveBeenCalledTimes(1);
+    expect(storage.delete).toHaveBeenCalledWith('user/batch-1/f2.xml');
+  });
+
+  it('records storage errors without throwing and continues processing remaining files', async () => {
+    const repo = makeRepo();
+    repo.getFilesByBatch.mockResolvedValue([{ id: 'f1' }, { id: 'f2' }]);
+    repo.resolveUploadedFilePath
+      .mockResolvedValueOnce('user/batch-1/f1.csv')
+      .mockResolvedValueOnce('user/batch-1/f2.xml');
+    const storage = makeStorage();
+    storage.delete
+      .mockRejectedValueOnce(new Error('S3 timeout'))
+      .mockResolvedValueOnce(undefined);
+
+    const result = await deleteBatchUploads('batch-1', { repo, storage });
+
+    expect(result.deleted).toBe(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain('user/batch-1/f1.csv');
+    expect(result.errors[0]).toContain('S3 timeout');
+    expect(storage.delete).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not modify the batch_files DB rows', async () => {
+    const repo = makeRepo();
+    repo.getFilesByBatch.mockResolvedValue([{ id: 'f1' }]);
+    repo.resolveUploadedFilePath.mockResolvedValue('user/batch-1/f1.csv');
+
+    await deleteBatchUploads('batch-1', { repo, storage: makeStorage() });
+
+    expect(repo.deleteFile).not.toHaveBeenCalled();
+    expect(repo.updateFileStatus).not.toHaveBeenCalled();
   });
 });
