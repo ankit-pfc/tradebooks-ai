@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, FileText } from "lucide-react";
+import { Bot, Plus, FileText } from "lucide-react";
+import { TradebookChat } from "@/components/agent/tradebook-chat";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui/table";
 
 type AppBatchStatus =
+  | "uploading"
   | "queued"
   | "running"
   | "succeeded"
@@ -37,6 +40,7 @@ interface BatchRecord {
 }
 
 const STATUS_BADGE_CLASS: Record<AppBatchStatus, string> = {
+  uploading: "bg-gray-50 text-gray-600 border-gray-200",
   succeeded: "bg-emerald-50 text-emerald-700 border-emerald-200",
   failed: "bg-red-50 text-red-700 border-red-200",
   running: "bg-blue-50 text-blue-700 border-blue-200",
@@ -45,6 +49,7 @@ const STATUS_BADGE_CLASS: Record<AppBatchStatus, string> = {
 };
 
 const STATUS_LABELS: Record<AppBatchStatus, string> = {
+  uploading: "Uploading",
   queued: "Queued",
   running: "Running",
   succeeded: "Succeeded",
@@ -54,6 +59,7 @@ const STATUS_LABELS: Record<AppBatchStatus, string> = {
 
 const FILTER_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "all", label: "All Statuses" },
+  { value: "uploading", label: "Uploading" },
   { value: "queued", label: "Queued" },
   { value: "running", label: "Running" },
   { value: "succeeded", label: "Succeeded" },
@@ -80,6 +86,7 @@ export default function BatchesPage() {
   const [batches, setBatches] = useState<BatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     const url =
@@ -103,6 +110,8 @@ export default function BatchesPage() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [statusFilter]);
+
+  const selectedBatch = batches.find((batch) => batch.id === selectedBatchId) ?? null;
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -197,6 +206,9 @@ export default function BatchesPage() {
                   <TableHead className="text-sm font-semibold text-gray-900">
                     Created
                   </TableHead>
+                  <TableHead className="text-right text-sm font-semibold text-gray-900 pr-6">
+                    Assistant
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -224,6 +236,26 @@ export default function BatchesPage() {
                     <TableCell className="text-base text-gray-700">
                       {formatDate(batch.created_at)}
                     </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <Button
+                        type="button"
+                        variant={selectedBatchId === batch.id ? "default" : "outline"}
+                        size="sm"
+                        className={
+                          selectedBatchId === batch.id
+                            ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                            : "border-gray-200 text-gray-700"
+                        }
+                        onClick={() =>
+                          setSelectedBatchId((current) =>
+                            current === batch.id ? null : batch.id,
+                          )
+                        }
+                      >
+                        <Bot className="mr-1.5 h-4 w-4" />
+                        Ask AI
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -231,6 +263,14 @@ export default function BatchesPage() {
           )}
         </CardContent>
       </Card>
+
+      {selectedBatch && (
+        <TradebookChat
+          key={selectedBatch.id}
+          batchId={selectedBatch.id}
+          batchLabel={`${selectedBatch.company_name} · ${formatPeriod(selectedBatch.period_from, selectedBatch.period_to)} · ${STATUS_LABELS[selectedBatch.status] ?? selectedBatch.status}`}
+        />
+      )}
     </div>
   );
 }
