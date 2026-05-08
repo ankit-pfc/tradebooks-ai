@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getBatchRepository } from '@/lib/db';
 import { getFileStorage } from '@/lib/storage/file-storage';
+import { deleteBatchUploads } from '@/lib/storage/cleanup';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { rateLimit } from '@/lib/rate-limit';
 import { runProcessingPipeline } from '@/lib/processing/pipeline';
@@ -166,6 +167,18 @@ export async function POST(
       const msg = pipelineErr instanceof Error ? pipelineErr.message : 'Processing failed';
       await repo.updateBatchStatus(batchId, 'failed', msg);
       return NextResponse.json({ error: msg }, { status: 500 });
+    }
+
+    // Pipeline succeeded — source CSV/XML blobs have been parsed into vouchers
+    // and are no longer needed in object storage. Delete them best-effort so
+    // Supabase Storage doesn't accumulate every batch's source files forever.
+    // Cleanup errors are logged but never block the success response.
+    const cleanup = await deleteBatchUploads(batchId, { repo, storage });
+    if (cleanup.errors.length > 0) {
+      console.warn(
+        `[process] Storage cleanup partial failure for batch ${batchId}:`,
+        cleanup.errors,
+      );
     }
 
     return NextResponse.json({
