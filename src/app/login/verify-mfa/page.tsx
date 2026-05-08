@@ -19,7 +19,7 @@ export default function VerifyMfaPage() {
 function VerifyMfaForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const redirectTo = searchParams.get('redirectTo') ?? '/dashboard';
+    const redirectTo = searchParams?.get('redirectTo') ?? '/dashboard';
 
     const [code, setCode] = useState('');
     const [error, setError] = useState<string | null>(null);
