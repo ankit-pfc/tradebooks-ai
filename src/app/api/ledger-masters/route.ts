@@ -12,6 +12,8 @@ interface LedgerEntry {
     name: string;
     group: string;
     source: 'system' | 'override' | 'custom';
+    /** ISO timestamp present only for override/custom rows (system has none). */
+    created_at?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,6 +40,7 @@ export async function GET() {
                     name: override.name,
                     group: override.parent_group,
                     source: 'override' as const,
+                    created_at: override.created_at,
                 };
             }
             return { ...sys, source: 'system' as const };
@@ -50,6 +53,7 @@ export async function GET() {
                 name: override.name,
                 group: override.parent_group,
                 source: 'custom' as const,
+                created_at: override.created_at,
             });
         }
 
