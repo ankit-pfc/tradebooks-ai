@@ -5,6 +5,7 @@ import { getFileStorage } from '@/lib/storage/file-storage';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import { rateLimit } from '@/lib/rate-limit';
 import { runProcessingPipeline } from '@/lib/processing/pipeline';
+import { maybeCreateRecorder, finalizeTrace } from '@/lib/trace';
 
 export async function POST(
   _request: Request,
@@ -85,6 +86,14 @@ export async function POST(
     // cost-lot mismatches.
     const corporateActions = await repo.getCorporateActions(batchId);
 
+    const recorder = maybeCreateRecorder(batchId, {
+      userId,
+      companyName: batch.company_name,
+      accountingMode: batch.accounting_mode,
+      periodFrom: batch.period_from,
+      periodTo: batch.period_to,
+      priorBatchId: batch.prior_batch_id ?? undefined,
+    });
     let result;
     try {
       result = await runProcessingPipeline({
@@ -97,12 +106,16 @@ export async function POST(
         priorBatchId: batch.prior_batch_id ?? undefined,
         corporateActions,
         files: pipelineFiles,
+        trace: recorder,
       });
     } catch (pipelineErr) {
+      await finalizeTrace(recorder, pipelineErr);
       const msg = pipelineErr instanceof Error ? pipelineErr.message : 'Processing failed';
       await repo.updateBatchStatus(batchId, 'failed', msg);
       return NextResponse.json({ error: msg }, { status: 500 });
     }
+
+    await finalizeTrace(recorder);
 
     return NextResponse.json({
       batchId,

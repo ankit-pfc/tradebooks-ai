@@ -9,6 +9,7 @@ import { runProcessingPipeline } from '@/lib/processing/pipeline';
 import type { PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
+import { maybeCreateRecorder, finalizeTrace, isTraceEnabled } from '@/lib/trace';
 
 export async function POST(
   request: Request,
@@ -121,6 +122,16 @@ export async function POST(
     // and watch the pipeline migrate cost lots accordingly.
     const corporateActions = await repo.getCorporateActions(batchId);
 
+    const recorder = maybeCreateRecorder(batchId, {
+      userId,
+      companyName: batch.company_name,
+      accountingMode: batch.accounting_mode,
+      periodFrom: batch.period_from,
+      periodTo: batch.period_to,
+      priorBatchId: batch.prior_batch_id ?? undefined,
+      classificationStrategy,
+      purchaseMergeMode,
+    });
     let result;
     try {
       result = await runProcessingPipeline({
@@ -135,8 +146,10 @@ export async function POST(
         classificationStrategy,
         corporateActions,
         files: pipelineFiles,
+        trace: recorder,
       });
     } catch (pipelineErr) {
+      await finalizeTrace(recorder, pipelineErr);
       if (isPipelineValidationError(pipelineErr)) {
         await repo.updateBatchStatus(batchId, 'failed', pipelineErr.message);
         return NextResponse.json(
@@ -150,16 +163,25 @@ export async function POST(
       return NextResponse.json({ error: msg }, { status: 500 });
     }
 
+    await finalizeTrace(recorder);
+
     // Pipeline succeeded — source CSV/XML blobs have been parsed into vouchers
     // and are no longer needed in object storage. Delete them best-effort so
     // Supabase Storage doesn't accumulate every batch's source files forever.
     // Cleanup errors are logged but never block the success response.
-    const cleanup = await deleteBatchUploads(batchId, { repo, storage });
-    if (cleanup.errors.length > 0) {
-      console.warn(
-        `[process] Storage cleanup partial failure for batch ${batchId}:`,
-        cleanup.errors,
-      );
+    //
+    // When TRACE_PIPELINE=1 we keep the source files so a debug session can
+    // re-download the exact bytes that produced the traced output.
+    if (!isTraceEnabled()) {
+      const cleanup = await deleteBatchUploads(batchId, { repo, storage });
+      if (cleanup.errors.length > 0) {
+        console.warn(
+          `[process] Storage cleanup partial failure for batch ${batchId}:`,
+          cleanup.errors,
+        );
+      }
+    } else {
+      console.log(`[trace] skipping source-file cleanup for batch ${batchId} (TRACE_PIPELINE=1)`);
     }
 
     return NextResponse.json({
