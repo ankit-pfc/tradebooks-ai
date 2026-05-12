@@ -44,6 +44,7 @@ import type {
   ZerodhaContractNoteCharges,
   ZerodhaDividendRow,
   ZerodhaTaxPnlExitRow,
+  ZerodhaTaxPnlOpenPositionRow,
   ParseMetadata,
   CorporateActionInput,
 } from '@/lib/parsers/zerodha/types';
@@ -122,7 +123,11 @@ interface ParsedFile {
 
 interface ParsedFileSet {
   tradebook?: { rows: ZerodhaTradebookRow[]; metadata: ParseMetadata };
-  taxPnl?: { exits: ZerodhaTaxPnlExitRow[]; metadata: ParseMetadata };
+  taxPnl?: {
+    exits: ZerodhaTaxPnlExitRow[];
+    openPositions: ZerodhaTaxPnlOpenPositionRow[];
+    metadata: ParseMetadata;
+  };
   contractNote?: {
     sheets: ContractNoteSheet[];
     charges: ZerodhaContractNoteCharges[];
@@ -269,14 +274,182 @@ function seedPriorCostLotsFromTaxPnl(params: {
   return seeded;
 }
 
+/**
+ * Subtract one day from a YYYY-MM-DD string and return the result in the
+ * same format. Used to date synthetic opening-position lots so they sort
+ * BEFORE any in-period buys under FIFO.
+ */
+function shiftDateByOneDay(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map((v) => parseInt(v, 10));
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+/**
+ * Build the per-scrip start-of-FY security_id used by the Tax P&L opening
+ * position seeder.
+ *
+ * If the row lacks an ISIN (older Zerodha layouts), `symbolToIsin` provides
+ * a fallback derived from Tradewise Exits — keeping the position-seeded lot
+ * and the exits-seeded lot on the same security_id so the opening voucher
+ * and FIFO disposal both see them as the same scrip.
+ */
+function buildOpenPositionSecurityId(
+  row: ZerodhaTaxPnlOpenPositionRow,
+  symbolToIsin: Map<string, string>,
+): string {
+  const rowIsin = (row.isin ?? '').trim().toUpperCase();
+  if (rowIsin && rowIsin !== 'NA' && rowIsin !== 'N/A' && rowIsin !== '-') {
+    return `ISIN:${rowIsin}`;
+  }
+  const symbolKey = row.symbol.trim().toUpperCase();
+  const fallbackIsin = symbolToIsin.get(symbolKey);
+  if (fallbackIsin) {
+    return `ISIN:${fallbackIsin}`;
+  }
+  return `EQ:${symbolKey}`;
+}
+
+/**
+ * Seed synthetic buy lots for opening shares that are STILL HELD at year-end
+ * (i.e. not covered by a Tradewise Exits row).
+ *
+ * For each start-of-FY Open Positions row we compute:
+ *   still_held_qty = start_position_qty
+ *                  - sum(tradewise_exits.qty for same scrip where entry_date < periodFrom)
+ *
+ * If `still_held_qty > 0`, that's the remainder the Tradewise Exits seed
+ * cannot cover (those exits only represent disposed lots). We add a single
+ * synthetic buy lot for the remainder at the Open Positions per-unit cost.
+ *
+ * Tagged with `TAXPNL-OPENING-POSITION-` so it's distinguishable from the
+ * `TAXPNL-OPENING-` exits-derived seed.
+ */
+function seedPriorOpeningLotsFromTaxPnl(params: {
+  tracker: CostLotTracker;
+  openPositions: ZerodhaTaxPnlOpenPositionRow[] | undefined;
+  exits: ZerodhaTaxPnlExitRow[] | undefined;
+  periodFrom: string;
+  batchId: string;
+  sourceFileId: string;
+}): number {
+  if (!params.openPositions || params.openPositions.length === 0) return 0;
+
+  // Filter to start-of-period equity-shaped rows. Non-equity (F&O, currency,
+  // commodity) lines are skipped because the rest of the pipeline only models
+  // equity inventory.
+  const startRows = params.openPositions.filter((row) => {
+    if (!row.is_start_of_period) return false;
+    if (!row.symbol) return false;
+    const itype = row.instrument_type.toUpperCase();
+    // Allow blank (older files) and explicit "EQ" / equity-like markers; skip
+    // anything that looks like derivative / currency / commodity.
+    if (
+      itype.includes('FUT') ||
+      itype.includes('OPT') ||
+      itype.includes('CURRENCY') ||
+      itype.includes('COMMODITY')
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  if (startRows.length === 0) return 0;
+
+  // Walk Tradewise Exits once to derive two side-effects:
+  //  1. `disposedPriorBySecurityId` — total prior-FY quantity already covered
+  //     by `seedPriorCostLotsFromTaxPnl`, keyed by the same security_id that
+  //     seeder uses (so the keys match what we'll compute below).
+  //  2. `symbolToIsin` — fallback ISIN for Open Positions rows that lack one
+  //     (older Zerodha layouts), so both seeds key the same scrip the same way.
+  const disposedPriorBySecurityId: Map<string, Decimal> = new Map();
+  const symbolToIsin: Map<string, string> = new Map();
+  for (const exit of params.exits ?? []) {
+    if (!exit.entry_date) continue;
+    if (exit.entry_date >= params.periodFrom) continue;
+    const securityId = buildTaxPnlSecurityId(exit);
+    const qty = new Decimal(exit.quantity);
+    disposedPriorBySecurityId.set(
+      securityId,
+      (disposedPriorBySecurityId.get(securityId) ?? new Decimal(0)).add(qty),
+    );
+    const isin = (exit.isin ?? '').trim().toUpperCase();
+    if (isin && isin !== 'NA' && isin !== 'N/A' && isin !== '-') {
+      symbolToIsin.set(exit.symbol.trim().toUpperCase(), isin);
+    }
+  }
+
+  const syntheticAcquisitionDate = shiftDateByOneDay(params.periodFrom);
+  let seeded = 0;
+
+  for (const row of startRows) {
+    const securityId = buildOpenPositionSecurityId(row, symbolToIsin);
+    const startQty = new Decimal(row.quantity);
+    const disposed = disposedPriorBySecurityId.get(securityId) ?? new Decimal(0);
+    const remainder = startQty.sub(disposed);
+    if (!remainder.greaterThan(0)) continue;
+
+    const averagePrice = new Decimal(row.average_price);
+    if (averagePrice.isNegative()) continue;
+    const totalCost = remainder.mul(averagePrice);
+
+    const rowKey = [
+      'taxpnl-opening-position',
+      row.symbol,
+      row.isin ?? '',
+      row.as_of_date,
+      remainder.toFixed(),
+      averagePrice.toFixed(),
+    ].join('|');
+
+    const syntheticBuy: CanonicalEvent = {
+      event_id: crypto.randomUUID(),
+      import_batch_id: params.batchId,
+      event_type: EventType.BUY_TRADE,
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      event_date: syntheticAcquisitionDate,
+      settlement_date: null,
+      security_id: securityId,
+      security_symbol: row.symbol.trim().toUpperCase(),
+      quantity: remainder.toFixed(),
+      rate: averagePrice.toDecimalPlaces(6).toFixed(),
+      gross_amount: totalCost.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2),
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: params.sourceFileId,
+      source_row_ids: [rowKey],
+      contract_note_ref: null,
+      external_ref: `TAXPNL-OPENING-POSITION-${row.as_of_date}`,
+      event_hash: rowKey,
+    };
+
+    params.tracker.addLot(syntheticBuy);
+    seeded += 1;
+  }
+
+  return seeded;
+}
+
 function buildOpeningStockVoucher(params: {
   batchId: string;
   periodFrom: string;
-  priorLots: Record<string, CostLot[]> | null;
+  tracker: CostLotTracker;
   symbolLookup: Map<string, string>;
   tallyProfile: TallyProfile;
 }): BuiltVoucherDraft | null {
-  const openLots = Object.values(params.priorLots ?? {})
+  // Source lots from the live tracker so prior-batch lots, Tax-P&L
+  // exits-derived lots, AND Tax-P&L open-positions-derived lots all flow
+  // into the same opening voucher. The tracker only ever holds open
+  // (quantity > 0) lots after seeding, so no further filtering is needed,
+  // but we keep a defensive `greaterThan(0)` check in case the contract
+  // ever changes.
+  const openLots = Object.values(params.tracker.toJSON().lots)
     .flat()
     .filter((lot) => new Decimal(lot.open_quantity).greaterThan(0));
 
@@ -465,7 +638,11 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       }
       case 'taxpnl': {
         const parsed = parseTaxPnl(f.buffer, f.fileName);
-        parsedFileSet.taxPnl = { exits: parsed.exits, metadata: parsed.metadata };
+        parsedFileSet.taxPnl = {
+          exits: parsed.exits,
+          openPositions: parsed.open_positions,
+          metadata: parsed.metadata,
+        };
         fileIds.taxPnl = f.fileId;
         break;
       }
@@ -548,14 +725,12 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     tracker = new CostLotTracker();
   }
 
-  // Step 7: Build vouchers, collect ledger masters, generate XML
-  const openingVoucher = buildOpeningStockVoucher({
-    batchId,
-    periodFrom,
-    priorLots,
-    symbolLookup: buildEventSymbolLookup(events),
-    tallyProfile,
-  });
+  // Step 7: Seed Tax-P&L-derived prior lots BEFORE the opening voucher is
+  // built — both the Tradewise-Exits seed (covers disposed prior lots) and
+  // the Open-Positions seed (covers still-held prior lots) feed the same
+  // CostLotTracker that drives the opening stock B/F voucher. Order matters:
+  // the voucher must consolidate every prior-period lot, not just the
+  // prior-batch path.
   const seededTaxPnlLots = seedPriorCostLotsFromTaxPnl({
     tracker,
     exits: parsedFileSet.taxPnl?.exits,
@@ -564,6 +739,21 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     batchId,
     sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
     existingTradebookBuyKeys: buildTradebookBuyKeySet(parsedFileSet.tradebook?.rows),
+  });
+  const seededTaxPnlOpeningLots = seedPriorOpeningLotsFromTaxPnl({
+    tracker,
+    openPositions: parsedFileSet.taxPnl?.openPositions,
+    exits: parsedFileSet.taxPnl?.exits,
+    periodFrom,
+    batchId,
+    sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
+  });
+  const openingVoucher = buildOpeningStockVoucher({
+    batchId,
+    periodFrom,
+    tracker,
+    symbolLookup: buildEventSymbolLookup(events),
+    tallyProfile,
   });
   const uncoveredSellTreatment: UncoveredSellTreatment = 'tally_existing_opening';
   const rawVouchers = buildVouchers(
@@ -685,12 +875,23 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     },
   ];
 
-  if (seededTaxPnlLots > 0) {
+  if (seededTaxPnlLots > 0 || seededTaxPnlOpeningLots > 0) {
+    const parts: string[] = [];
+    if (seededTaxPnlLots > 0) {
+      parts.push(
+        `${seededTaxPnlLots} disposed prior-period lot(s) from Tradewise Exits (covers in-FY sales of pre-FY purchases)`,
+      );
+    }
+    if (seededTaxPnlOpeningLots > 0) {
+      parts.push(
+        `${seededTaxPnlOpeningLots} still-held opening position(s) from Open Positions (covers shares carried over but not yet sold)`,
+      );
+    }
     checks.push({
       check_name: 'Tax P&L Cost Basis',
       status: 'PASSED',
       details:
-        `Seeded ${seededTaxPnlLots} prior-period acquisition lot(s) from Zerodha Tax P&L so current-period sells can compute capital gain/loss instead of going to suspense.`,
+        `Seeded ${parts.join(' and ')} from Zerodha Tax P&L so the Tally Opening Stock B/F voucher reflects full prior-FY inventory.`,
     });
   }
 

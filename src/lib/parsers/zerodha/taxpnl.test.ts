@@ -141,4 +141,126 @@ describe('parseTaxPnl', () => {
     const result = parseTaxPnl(buf, 'test.xlsx');
     expect(result.metadata.parser_version).toBe(PARSER_VERSION);
   });
+
+  // -------------------------------------------------------------------------
+  // Open Positions — real-shape coverage. The actual Zerodha export layout
+  // these tests target is:
+  //
+  //   ... metadata rows (Client ID / Name / PAN) ...
+  //   "Open Positions for Equity"
+  //   <blank>
+  //   Symbol | Trade Date | Exchange | Instrument Type | Open Quantity |
+  //     Average Price | Previous Closing Price | Unrealized Profit
+  //   <data rows...>
+  //   <blank>
+  //   "Open Positions for F&O"
+  //   <blank>
+  //   <column headers>
+  //   <data rows...>  (may be empty)
+  //   ... more sections ...
+  //
+  // The sheet name carries the as-of date ("Open Positions as of 2022-03-31").
+  // -------------------------------------------------------------------------
+
+  it('parses Open Positions from start-of-period sheet with equity section', () => {
+    const buf = buildXlsxBuffer({
+      'Open Positions as of 2022-04-01': [
+        ['Client ID', 'FC9134'],
+        [null],
+        ['Open Positions for Equity'],
+        [null],
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        ['INFY', '2021-08-18', 'NSE', 'EQ', 20, 1500, 1600, 2000],
+        [null],
+        ['Open Positions for F&O'],
+        [null],
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+      ],
+      'Open Positions as of 2023-03-31': [
+        ['Open Positions for Equity'],
+        [null],
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        ['INFY', '2021-08-18', 'NSE', 'EQ', 15, 1500, 1700, 3000],
+      ],
+    });
+    const result = parseTaxPnl(buf, 'test.xlsx');
+    expect(result.open_positions).toHaveLength(2);
+
+    const startRow = result.open_positions.find((r) => r.is_start_of_period)!;
+    expect(startRow.symbol).toBe('INFY');
+    expect(startRow.quantity).toBe('20');
+    expect(startRow.average_price).toBe('1500');
+    // Derived buy_value = qty × average_price
+    expect(startRow.buy_value).toBe('30000');
+    expect(startRow.as_of_date).toBe('2022-04-01');
+    expect(startRow.instrument_type).toBe('EQ');
+    expect(startRow.trade_date).toBe('2021-08-18');
+
+    const endRow = result.open_positions.find((r) => !r.is_start_of_period)!;
+    expect(endRow.symbol).toBe('INFY');
+    expect(endRow.quantity).toBe('15');
+    expect(endRow.as_of_date).toBe('2023-03-31');
+  });
+
+  it('treats no-data Open Positions sheets (F&O/currency/commodity sections only) as empty', () => {
+    // Mirrors the real FC9134 files: section headers exist but no data rows.
+    const buf = buildXlsxBuffer({
+      'Open Positions as of 2024-04-01': [
+        ['Open Positions for F&O'],
+        [null],
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        [null],
+        ['Open Positions for Currency'],
+        [null],
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        [null],
+        ['Open Positions for Commodity'],
+        [null],
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+      ],
+    });
+    const result = parseTaxPnl(buf, 'test.xlsx');
+    // No data rows in any section => zero positions, not a crash.
+    expect(result.open_positions).toHaveLength(0);
+  });
+
+  it('classifies the earlier-dated Open Positions sheet as start-of-period', () => {
+    // Reverse the workbook order to prove sorting is by date, not sheet order.
+    const buf = buildXlsxBuffer({
+      'Open Positions as of 2023-03-31': [
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        ['INFY', '2021-08-18', 'NSE', 'EQ', 15, 1500, 1700, 3000],
+      ],
+      'Open Positions as of 2022-04-01': [
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        ['INFY', '2021-08-18', 'NSE', 'EQ', 20, 1500, 1600, 2000],
+      ],
+    });
+    const result = parseTaxPnl(buf, 'test.xlsx');
+    const startRows = result.open_positions.filter((r) => r.is_start_of_period);
+    const endRows = result.open_positions.filter((r) => !r.is_start_of_period);
+    expect(startRows).toHaveLength(1);
+    expect(startRows[0].as_of_date).toBe('2022-04-01');
+    expect(endRows).toHaveLength(1);
+    expect(endRows[0].as_of_date).toBe('2023-03-31');
+  });
+
+  it('exposes open_positions on the parseTaxPnl result alongside exits', () => {
+    const buf = buildXlsxBuffer({
+      'Tradewise Exits': [
+        ['Symbol', 'ISIN', 'Entry Date', 'Exit Date', 'Quantity', 'Buy Value', 'Sell Value', 'Profit', 'Period of Holding', 'Fair Market Value', 'Taxable Profit', 'Turnover'],
+        ['INFY', 'INE009A01021', '2021-08-18', '2022-06-15', '5', '7500', '8000', '500', '301', '0', '500', '8000'],
+      ],
+      'Open Positions as of 2022-04-01': [
+        ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+        ['INFY', '2021-08-18', 'NSE', 'EQ', 20, 1500, 1600, 2000],
+      ],
+    });
+    const result = parseTaxPnl(buf, 'test.xlsx');
+    expect(result.exits).toHaveLength(1);
+    expect(result.open_positions).toHaveLength(1);
+    expect(result.open_positions[0].symbol).toBe('INFY');
+    // Row count rolls up exits + open positions so callers can sanity-check totals.
+    expect(result.metadata.row_count).toBe(2);
+  });
 });

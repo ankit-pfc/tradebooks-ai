@@ -24,6 +24,7 @@ import type {
   ZerodhaTaxPnlChargeRow,
   ZerodhaTaxPnlDividendRow,
   ZerodhaTaxPnlEquitySummaryRow,
+  ZerodhaTaxPnlOpenPositionRow,
   TaxPnlParseResult,
 } from './types';
 
@@ -287,6 +288,138 @@ function parseEquitySummary(workbook: XLSX.WorkBook): ZerodhaTaxPnlEquitySummary
   return results;
 }
 
+/**
+ * Parse all "Open Positions as of YYYY-MM-DD" sheets in the workbook.
+ *
+ * Zerodha Tax P&L files always carry two of these sheets — one for the start
+ * of the period and one for the end. Each sheet contains sub-sections per
+ * segment (Equity, F&O, Currency, Commodity), all sharing the same column
+ * layout: Symbol | Trade Date | Exchange | Instrument Type | Open Quantity |
+ * Average Price | Previous Closing Price | Unrealized Profit.
+ *
+ * `as_of_date` is parsed from the sheet name and the earlier-dated sheet is
+ * flagged as start-of-period so downstream consumers can pick the right one.
+ */
+function parseOpenPositions(workbook: XLSX.WorkBook): ZerodhaTaxPnlOpenPositionRow[] {
+  const sheetNames = workbook.SheetNames.filter((n) =>
+    n.toLowerCase().includes('open position'),
+  );
+  if (sheetNames.length === 0) return [];
+
+  // Derive as-of-dates from sheet names, then mark the earlier one as start.
+  const named: Array<{ sheetName: string; asOfDate: string }> = [];
+  for (const sheetName of sheetNames) {
+    const match = sheetName.match(/(\d{4}-\d{2}-\d{2})/);
+    named.push({ sheetName, asOfDate: match ? match[1] : '' });
+  }
+  const datedSheets = named.filter((s) => s.asOfDate);
+  let startSheetName: string | null = null;
+  if (datedSheets.length >= 2) {
+    const sorted = [...datedSheets].sort((a, b) =>
+      a.asOfDate.localeCompare(b.asOfDate),
+    );
+    startSheetName = sorted[0].sheetName;
+  } else if (datedSheets.length === 1) {
+    // Only one dated sheet — best-effort: treat it as start-of-period because
+    // that's what the opening-stock seeder cares about.
+    startSheetName = datedSheets[0].sheetName;
+  }
+
+  const results: ZerodhaTaxPnlOpenPositionRow[] = [];
+
+  for (const { sheetName, asOfDate } of named) {
+    const rows = toStringGrid(workbook.Sheets[sheetName]);
+    const isStart = sheetName === startSheetName;
+
+    // The sheet is sectioned: "Open Positions for <segment>" header,
+    // then a column header row, then data rows, then a blank row, then the
+    // next section. We walk through, locating each column-header row and
+    // reading data rows until we hit the next section header or end of sheet.
+    let i = 0;
+    while (i < rows.length) {
+      const row = rows[i];
+
+      // Detect a column header row by its leading "Symbol" + the
+      // distinctive "Open Quantity" / "Average Price" combination so we
+      // don't accidentally match unrelated tables.
+      const lowerCells = row.map((c) => c.trim().toLowerCase());
+      const isHeader =
+        lowerCells.includes('symbol') &&
+        lowerCells.includes('open quantity') &&
+        lowerCells.includes('average price');
+
+      if (!isHeader) {
+        i += 1;
+        continue;
+      }
+
+      const colMap = buildColMap(row);
+      i += 1;
+
+      // Read data rows until a blank row or another section header.
+      while (i < rows.length) {
+        const dataRow = rows[i];
+        if (isEmptyRow(dataRow)) {
+          i += 1;
+          break;
+        }
+        // Stop if we've reached the next "Open Positions for <X>" section
+        // header (no data follows immediately, but the column header row
+        // for the next section is what we'll resume on in the outer loop).
+        const dataFirst = dataRow[0]?.trim() ?? '';
+        if (
+          dataFirst.toLowerCase().startsWith('open positions for') ||
+          dataRow.map((c) => c.trim().toLowerCase()).includes('symbol')
+        ) {
+          break;
+        }
+
+        const symbol = cell(dataRow, colMap, 'symbol');
+        if (!symbol || symbol.toLowerCase() === 'symbol') {
+          i += 1;
+          continue;
+        }
+
+        const quantity = cell(dataRow, colMap, 'open quantity');
+        if (!quantity) {
+          i += 1;
+          continue;
+        }
+
+        const isin = cell(dataRow, colMap, 'isin');
+        const tradeDate = cell(dataRow, colMap, 'trade date');
+        const exchange = cell(dataRow, colMap, 'exchange');
+        const instrumentType = cell(dataRow, colMap, 'instrument type');
+        const averagePrice = cell(dataRow, colMap, 'average price');
+        const previousClosing = cell(dataRow, colMap, 'previous closing price');
+        const unrealized = cell(dataRow, colMap, 'unrealized profit');
+
+        const qtyDec = new Decimal(num(quantity));
+        const priceDec = new Decimal(num(averagePrice));
+        const buyValue = qtyDec.mul(priceDec).toDecimalPlaces(6).toString();
+
+        results.push({
+          symbol,
+          isin: isin || undefined,
+          trade_date: normDate(tradeDate),
+          exchange,
+          instrument_type: instrumentType,
+          quantity: num(quantity),
+          average_price: num(averagePrice),
+          buy_value: buyValue,
+          previous_closing_price: num(previousClosing),
+          unrealized_profit: num(unrealized),
+          as_of_date: asOfDate,
+          is_start_of_period: isStart,
+        });
+        i += 1;
+      }
+    }
+  }
+
+  return results;
+}
+
 // ---------------------------------------------------------------------------
 // Date range derivation
 // ---------------------------------------------------------------------------
@@ -340,14 +473,17 @@ export function parseTaxPnl(
   const charges = parseCharges(workbook);
   const dividends = parseDividends(workbook);
   const equity_summary = parseEquitySummary(workbook);
+  const open_positions = parseOpenPositions(workbook);
 
-  const totalRows = exits.length + charges.length + dividends.length + equity_summary.length;
+  const totalRows =
+    exits.length + charges.length + dividends.length + equity_summary.length + open_positions.length;
 
   return {
     exits,
     charges,
     dividends,
     equity_summary,
+    open_positions,
     metadata: {
       row_count: totalRows,
       date_range: deriveDateRange(exits, charges),

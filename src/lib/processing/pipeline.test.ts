@@ -363,6 +363,149 @@ describe('runProcessingPipeline — Tax P&L prior cost basis', () => {
     });
 });
 
+describe('runProcessingPipeline — Tax P&L opening positions (partial-sell + still-held)', () => {
+    function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
+        const voucher = transactionsXml
+            .split('<VOUCHER ')
+            .map((chunk) => `<VOUCHER ${chunk}`)
+            .find((chunk) => chunk.includes(`<NARRATION>${narrationPrefix}`));
+        expect(voucher).toBeDefined();
+        return voucher!;
+    }
+
+    it('emits opening voucher covering both disposed (Tradewise Exits) and still-held (Open Positions) prior shares', async () => {
+        // Scenario: prior FY acquired 50 INFY shares @ ₹1500. During current FY,
+        // 30 are sold; 20 remain at year-end.
+        //
+        // - Tradewise Exits row: entry_date < periodFrom, exit_date in-period
+        //   for the 30 disposed shares (seeded by seedPriorCostLotsFromTaxPnl).
+        // - Open Positions row: 50 shares at start-of-FY (still-held remainder
+        //   of 20 shares must be seeded by seedPriorOpeningLotsFromTaxPnl).
+        //
+        // The opening voucher should reflect 50 shares total at start-of-FY;
+        // the sell voucher should still compute correct STCG (₹2000 profit on
+        // 30 shares); the closing snapshot should carry 20 shares forward.
+        const { buildXlsxBuffer } = await import('../../tests/helpers/factories');
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-08-15,NSE,EQ,INFY,INE009A01021,SELL,30,1600.00,CNC,T700,ORD700,09:15:00',
+        ].join('\n'));
+        const taxPnlBuffer = buildXlsxBuffer({
+            'Tradewise Exits': [
+                ['Symbol', 'ISIN', 'Entry Date', 'Exit Date', 'Quantity', 'Buy Value', 'Sell Value', 'Profit', 'Period of Holding', 'Fair Market Value', 'Taxable Profit', 'Turnover'],
+                ['INFY', 'INE009A01021', '2021-08-18', '2022-08-15', '30', '45000', '48000', '3000', '362', '0', '3000', '48000'],
+            ],
+            'Open Positions as of 2022-04-01': [
+                ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+                ['INFY', '2021-08-18', 'NSE', 'EQ', 50, 1500, 1600, 5000],
+            ],
+            'Open Positions as of 2023-03-31': [
+                ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+                ['INFY', '2021-08-18', 'NSE', 'EQ', 20, 1500, 1700, 4000],
+            ],
+        });
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-taxpnl-partial-with-opening',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            files: [
+                {
+                    fileId: 'file-infy-sell',
+                    fileName: 'tradebook-fy22-infy.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+                {
+                    fileId: 'file-taxpnl-infy',
+                    fileName: 'tax_pnl-FC9134.xlsx',
+                    buffer: taxPnlBuffer,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+            ],
+        });
+
+        const openingVoucher = findVoucherXml(
+            result.transactionsXml,
+            'Opening stock brought forward from previous FY',
+        );
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of INFY');
+
+        // 1) Opening voucher exists and is dated periodFrom (2022-04-01 → 20220401).
+        expect(openingVoucher).toContain('<DATE>20220401</DATE>');
+        // 2) Opening voucher covers the full 50 shares: one line for the 30
+        //    Tradewise-Exits-seeded lot, one line for the 20 still-held
+        //    Open-Positions-seeded lot. The contra credit equals their sum
+        //    (50 × 1500 = 75000).
+        expect(openingVoucher).toContain('<STOCKITEMNAME>INFY-SH</STOCKITEMNAME>');
+        expect(openingVoucher).toContain('<ACTUALQTY>30 NOS</ACTUALQTY>');
+        expect(openingVoucher).toContain('<ACTUALQTY>20 NOS</ACTUALQTY>');
+        expect(openingVoucher).toContain('<RATE>1500.00/NOS</RATE>');
+        // The contra credit posts to the Opening Stock Balance B/F ledger.
+        // (Total = 45000 + 30000 = 75000.)
+        expect(openingVoucher).toContain('<LEDGERNAME>Opening Stock Balance B/F</LEDGERNAME>');
+        // The contra credit on the Opening Stock Balance B/F line is the only
+        // place a positive-signed 75000.00 amount appears in the voucher.
+        expect(openingVoucher).toMatch(/Opening Stock Balance B\/F[\s\S]*?<AMOUNT>75000\.00<\/AMOUNT>/);
+
+        // 3) Sell voucher for the 30 shares still computes STCG (sell value
+        //    48000 − cost basis 45000 = 3000 gain).
+        expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
+        expect(sellVoucher).toContain('<LEDGERNAME>INFY-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>45000.00</AMOUNT>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON INFY</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>3000.00</AMOUNT>');
+
+        // 4) Closing snapshot saved via saveClosingLots shows 20 shares
+        //    remaining at year-end (50 opening − 30 disposed = 20).
+        const closingLots = mockRepo.saveClosingLots.mock.calls[0][1] as Record<
+            string,
+            Array<{ open_quantity: string; effective_unit_cost: string }>
+        >;
+        const infyLots = closingLots['ISIN:INE009A01021'];
+        expect(infyLots).toBeDefined();
+        const totalRemaining = infyLots.reduce(
+            (sum, lot) => sum + parseFloat(lot.open_quantity),
+            0,
+        );
+        expect(totalRemaining).toBe(20);
+    });
+
+    it('falls back to tally_existing_opening for sells of opening shares when no Tax P&L is provided', async () => {
+        // Regression guard: pre-bug behavior must survive — tradebook-only
+        // sell of a scrip that has no in-FY buy must still route through the
+        // "Opening stock assumed in Tally" path, NOT seed any opening lots.
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-08-15,NSE,EQ,INFY,INE009A01021,SELL,30,1600.00,CNC,T800,ORD800,09:15:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-tally-fallback',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            files: [
+                {
+                    fileId: 'file-fallback-sell',
+                    fileName: 'tradebook-fallback.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of INFY');
+        // No opening voucher should be emitted — tracker is empty without
+        // prior batch or Tax P&L data.
+        expect(result.transactionsXml).not.toContain('Opening stock brought forward from previous FY');
+        // The sell follows the existing tally_existing_opening treatment.
+        expect(sellVoucher).toContain('Opening stock assumed in Tally');
+        expect(sellVoucher).not.toContain('<LEDGERNAME>STCG ON INFY</LEDGERNAME>');
+    });
+});
+
 describe('runProcessingPipeline — multi-FY opening lots', () => {
     function findVoucherXml(transactionsXml: string, narrationPrefix: string): string {
         const voucher = transactionsXml
