@@ -583,12 +583,12 @@ describe('buildCanonicalEvents', () => {
     }
   });
 
-  it('strips the /ISIN suffix from XLSX-format CN descriptions when extracting symbol', () => {
+  it('strips the /ISIN suffix and trailing series code from XLSX-format CN descriptions when extracting symbol', () => {
     // Real Zerodha XLSX CN format observed in production:
     //   "GEMENVIRO-M/INE0RUJ01013"
-    // Previously the symbol extractor returned the entire string unchanged
-    // (no whitespace to split on), so the Tally stock item became
-    // "GEMENVIRO-M/INE0RUJ01013-SH" — unusable.
+    // The "-M" is the BSE series code (exchange metadata), not part of the
+    // ticker. Leaving it in produced Tally stock items like "GEMENVIRO-M-SH"
+    // that did not reconcile with the user's existing "GEMENVIRO-SH" ledger.
     const events = contractNoteToEvents(
       [
         makeCnTrade({
@@ -606,7 +606,7 @@ describe('buildCanonicalEvents', () => {
       (e) => e.event_type === EventType.BUY_TRADE || e.event_type === EventType.SELL_TRADE,
     );
     expect(tradeEvent).toBeDefined();
-    expect(tradeEvent!.security_symbol).toBe('GEMENVIRO-M');
+    expect(tradeEvent!.security_symbol).toBe('GEMENVIRO');
     expect(tradeEvent!.security_id).toBe('ISIN:INE0RUJ01013');
   });
 });
