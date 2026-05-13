@@ -238,6 +238,38 @@ export function makeVoucherDraft(
 // File buffer builders
 // ---------------------------------------------------------------------------
 
+/**
+ * Build a Zerodha-shaped holdings XLSX buffer. Wraps `buildXlsxBuffer` with
+ * the Equity sheet header columns the parser looks for and lets the caller
+ * supply each row's values via `ZerodhaHoldingsRow` overrides.
+ */
+export function buildHoldingsXlsx(opts: {
+  statementDate?: string;
+  rows: Partial<ZerodhaHoldingsRow>[];
+}): Buffer {
+  const titleRow = opts.statementDate
+    ? [`Equity Holdings Statement as on ${opts.statementDate}`]
+    : ['Equity Holdings Statement'];
+  const equity: (string | number)[][] = [
+    titleRow,
+    [],
+    [
+      'Symbol', 'ISIN', 'Sector', 'Quantity Available', 'Quantity Discrepant',
+      'Quantity Long Term', 'Quantity Pledged (Margin)', 'Quantity Pledged (Loan)',
+      'Average Price', 'Previous Closing Price', 'Unrealized P&L', 'Unrealized P&L Pct.',
+    ],
+  ];
+  for (const partial of opts.rows) {
+    const row = makeHoldingsRow(partial);
+    equity.push([
+      row.symbol, row.isin, row.sector, row.quantity_available, row.quantity_discrepant,
+      row.quantity_long_term, row.quantity_pledged_margin, row.quantity_pledged_loan,
+      row.average_price, row.previous_closing_price, row.unrealized_pnl, row.unrealized_pnl_pct,
+    ]);
+  }
+  return buildXlsxBuffer({ Equity: equity });
+}
+
 /** Create an in-memory XLSX buffer from sheet data (array-of-arrays per sheet). */
 export function buildXlsxBuffer(sheets: Record<string, (string | number | null)[][]>): Buffer {
   const wb = XLSX.utils.book_new();

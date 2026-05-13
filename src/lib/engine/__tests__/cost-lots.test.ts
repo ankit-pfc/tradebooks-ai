@@ -10,11 +10,13 @@ describe('CostLotTracker', () => {
     it('creates a lot with correct fields from BUY_TRADE', () => {
       const tracker = new CostLotTracker();
       tracker.addLot(makeBuyEvent({ security_id: 'NSE:RELIANCE', quantity: '10', rate: '2500' }));
+      // Legacy NSE:/BSE: equity keys canonicalize to the bare symbol so
+      // BSE↔NSE lots merge into a single FIFO queue.
       const lots = tracker.getOpenLots('NSE:RELIANCE');
       expect(lots).toHaveLength(1);
       expect(lots[0].open_quantity).toBe('10');
       expect(lots[0].original_quantity).toBe('10');
-      expect(lots[0].security_id).toBe('NSE:RELIANCE');
+      expect(lots[0].security_id).toBe('RELIANCE');
       expect(lots[0].acquisition_date).toBe('2024-06-15');
     });
 
@@ -239,10 +241,87 @@ describe('CostLotTracker', () => {
         },
       });
 
+      // Non-EQ legacy `BSE:ADSL` collapses to bare `ADSL`. Lookups go through
+      // the same normalizer so both spellings resolve to the merged bucket.
       const lots = tracker.getOpenLots('ADSL');
       expect(lots).toHaveLength(2);
-      expect(tracker.getOpenLots('BSE:ADSL')).toHaveLength(0);
+      expect(tracker.getOpenLots('BSE:ADSL')).toHaveLength(2);
       expect(lots.every((lot) => lot.security_id === 'ADSL')).toBe(true);
+    });
+
+    it('matches legacy EQ-prefixed carryforward lots against current EQ-prefixed sells', () => {
+      // Regression for codex review: persisted lot keyed `EQ:ADSL` must be
+      // disposed by a new-year sell whose event.security_id is also `EQ:ADSL`.
+      // Before normalizing the disposal side, the sell missed the lot map
+      // entirely and the entire qty became an uncovered zero-cost disposal.
+      const tracker = CostLotTracker.fromJSON({
+        lots: {
+          'EQ:ADSL': [
+            {
+              cost_lot_id: 'lot-legacy-eq',
+              security_id: 'EQ:ADSL',
+              source_buy_event_id: 'buy-legacy',
+              open_quantity: '10',
+              original_quantity: '10',
+              effective_unit_cost: '100.000000',
+              acquisition_date: '2023-03-01',
+            },
+          ],
+        },
+      });
+
+      const disposals = tracker.disposeLots(
+        makeSellEvent({ security_id: 'EQ:ADSL', quantity: '-4', rate: '150' }),
+        'FIFO',
+      );
+
+      expect(disposals).toHaveLength(1);
+      expect(disposals[0].lot_id).toBe('lot-legacy-eq');
+      expect(disposals[0].quantity_sold).toBe('4');
+      expect(disposals[0].unit_cost).toBe('100.000000');
+      // gain = (150 - 100) * 4 = 200
+      expect(disposals[0].gain_or_loss).toBe('200.00');
+
+      // Remaining open lot must still hold 6 shares.
+      const remaining = tracker.getOpenLots('EQ:ADSL');
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].open_quantity).toBe('6');
+    });
+
+    it('matches legacy BSE-prefixed carryforward lots against current EQ-prefixed sells', () => {
+      // Older serialized batches keyed equity lots as `BSE:SYMBOL` /
+      // `NSE:SYMBOL` before the EQ unification. The pipeline now emits sells
+      // as `EQ:SYMBOL` for the same scrip — both sides must canonicalize to
+      // a shared key so the carryforward cost basis isn't lost.
+      const tracker = CostLotTracker.fromJSON({
+        lots: {
+          'BSE:ADSL': [
+            {
+              cost_lot_id: 'lot-legacy-bse',
+              security_id: 'BSE:ADSL',
+              source_buy_event_id: 'buy-legacy',
+              open_quantity: '10',
+              original_quantity: '10',
+              effective_unit_cost: '100.000000',
+              acquisition_date: '2023-03-01',
+            },
+          ],
+        },
+      });
+
+      const disposals = tracker.disposeLots(
+        makeSellEvent({ security_id: 'ADSL', quantity: '-4', rate: '150' }),
+        'FIFO',
+      );
+
+      // Both sides canonicalize to `ADSL`; the legacy lot must be consumed
+      // with its prior-FY cost basis rather than the sell being treated as
+      // uncovered.
+      const covered = disposals.find((d) => d.lot_id === 'lot-legacy-bse');
+      expect(covered).toBeDefined();
+      expect(covered!.quantity_sold).toBe('4');
+      expect(covered!.unit_cost).toBe('100.000000');
+      expect(disposals.find((d) => d.lot_id === 'uncovered')).toBeUndefined();
     });
   });
 
@@ -293,7 +372,8 @@ describe('CostLotTracker', () => {
       expect(tracker.getOpenLots('NSE:OLDCO')).toHaveLength(0);
       const newLots = tracker.getOpenLots('NSE:NEWCO');
       expect(newLots).toHaveLength(1);
-      expect(newLots[0].security_id).toBe('NSE:NEWCO');
+      // Legacy NSE: prefix canonicalizes to bare symbol on both sides.
+      expect(newLots[0].security_id).toBe('NEWCO');
       expect(newLots[0].acquisition_date).toBe('2024-09-01');
     });
 

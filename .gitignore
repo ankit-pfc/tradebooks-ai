@@ -60,3 +60,4 @@ public/Subject.png
 
 # local test data (client financial data — never commit)
 TEST */
+continuous period files/

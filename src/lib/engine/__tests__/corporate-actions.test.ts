@@ -155,7 +155,9 @@ describe('CostLotTracker.adjustLots', () => {
     expect(tracker.getOpenLots('NSE:OLDCO')).toHaveLength(0);
     const newLots = tracker.getOpenLots('NSE:NEWCO');
     expect(newLots).toHaveLength(1);
-    expect(newLots[0].security_id).toBe('NSE:NEWCO');
+    // Legacy NSE:/BSE: equity keys canonicalize to bare symbol so cross-
+    // exchange carryforward lots merge into one FIFO queue.
+    expect(newLots[0].security_id).toBe('NEWCO');
     expect(newLots[0].acquisition_date).toBe('2025-06-01');
   });
 

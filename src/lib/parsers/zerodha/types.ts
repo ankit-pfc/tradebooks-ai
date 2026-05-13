@@ -113,11 +113,55 @@ export interface ZerodhaTaxPnlEquitySummaryRow {
   realized_pnl: string;
 }
 
+/**
+ * One row from the Tax P&L "Open Positions as of YYYY-MM-DD" sheet.
+ *
+ * The sheet contains sub-sections per segment (Equity, F&O, Currency,
+ * Commodity), each with the same column layout:
+ *   Symbol | Trade Date | Exchange | Instrument Type | Open Quantity |
+ *   Average Price | Previous Closing Price | Unrealized Profit
+ *
+ * `as_of_date` is parsed from the sheet name and tells callers whether the
+ * row represents start-of-period or end-of-period holdings.
+ *
+ * `buy_value` is derived as `quantity * average_price`; the sheet itself
+ * does not expose a buy-value column, but downstream consumers (opening
+ * stock seeder) need both the per-unit cost and the total cost.
+ *
+ * `isin` is optional because older Zerodha exports do not include it; when
+ * absent the seeder falls back to a symbol-keyed security_id.
+ */
+export interface ZerodhaTaxPnlOpenPositionRow {
+  symbol: string;
+  /** Optional — only present in newer Zerodha exports. */
+  isin?: string;
+  /** Original acquisition date (oldest lot for that scrip). */
+  trade_date: string;
+  exchange: string;
+  /** "EQ", "FUTIDX", "OPTSTK", etc. — used to filter equity-only rows. */
+  instrument_type: string;
+  /** Numeric string — open quantity carried into / out of the FY. */
+  quantity: string;
+  /** Numeric string — weighted average per-unit acquisition cost. */
+  average_price: string;
+  /** Numeric string — buy_value = quantity * average_price (derived). */
+  buy_value: string;
+  /** Numeric string — informational, not used for cost basis. */
+  previous_closing_price: string;
+  /** Numeric string — informational, not used for cost basis. */
+  unrealized_profit: string;
+  /** ISO date parsed from the sheet name, e.g. "2024-04-01" or "2025-03-31". */
+  as_of_date: string;
+  /** true if `as_of_date` is the start of the period; false if it's the end. */
+  is_start_of_period: boolean;
+}
+
 export interface TaxPnlParseResult {
   exits: ZerodhaTaxPnlExitRow[];
   charges: ZerodhaTaxPnlChargeRow[];
   dividends: ZerodhaTaxPnlDividendRow[];
   equity_summary: ZerodhaTaxPnlEquitySummaryRow[];
+  open_positions: ZerodhaTaxPnlOpenPositionRow[];
   metadata: ParseMetadata;
 }
 

@@ -321,4 +321,48 @@ describe('POST /api/batches/[batchId]/process', () => {
     expect(res.status).toBe(400);
     expect(body.code).toBe('E_INVALID_CLASSIFICATION_STRATEGY');
   });
+
+  // ---------------------------------------------------------------------------
+  // Regression: reprocessing after successful processing
+  // ---------------------------------------------------------------------------
+  // The route deletes source uploads from object storage on success (see
+  // deleteBatchUploads call at the end of POST). The codex adversarial review
+  // flagged this as a risk to reprocessing flows — corporate-action edits and
+  // the batch assistant both re-download `uploaded` source files on demand.
+  // These two tests pin the current behavior in place so changes to the
+  // source-retention contract surface as test failures and force a
+  // conscious decision.
+  // ---------------------------------------------------------------------------
+
+  it('on a successful first run, asks storage to delete every uploaded source blob', async () => {
+    const { request, params } = makeRequest();
+    await POST(request, { params });
+
+    // deleteBatchUploads → storage.delete per resolved file path. The
+    // SAMPLE_FILES fixture has a single file with path /storage/path/file-1.
+    expect(mockStorage.delete).toHaveBeenCalledWith('/storage/path/file-1');
+  });
+
+  it('a second processing run after a successful first run fails when storage no longer has the source blob', async () => {
+    // First run completes happily and deletes the source upload.
+    const first = makeRequest();
+    const firstRes = await POST(first.request, { params: first.params });
+    expect(firstRes.status).toBe(200);
+    expect(mockStorage.delete).toHaveBeenCalledWith('/storage/path/file-1');
+
+    // Database state survives the cleanup — files still appear `uploaded`,
+    // and resolveUploadedFilePath still resolves to the now-deleted path.
+    // The second run downloads it and storage rejects.
+    mockStorage.download.mockRejectedValueOnce(new Error('NoSuchKey'));
+
+    const second = makeRequest();
+    const res = await POST(second.request, { params: second.params });
+    const body = await res.json();
+
+    // The route currently returns a 500 because the download throws
+    // before the pipeline runs. The recovery contract is a known gap —
+    // see the codex adversarial review for the broader fix plan.
+    expect(res.status).toBe(500);
+    expect(body.error).toContain('NoSuchKey');
+  });
 });
