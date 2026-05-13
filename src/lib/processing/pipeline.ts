@@ -50,6 +50,7 @@ import type {
   ParseMetadata,
   CorporateActionInput,
 } from '@/lib/parsers/zerodha/types';
+import type { TraceRecorder } from '@/lib/trace';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -89,6 +90,12 @@ export interface PipelineInput {
    */
   corporateActions?: CorporateActionInput[];
   files: PipelineFileInput[];
+  /**
+   * Optional pipeline tracer. When provided, each stage records its
+   * inputs/outputs into the recorder so a downstream debugger can rebuild
+   * the row → event → voucher → XML lineage. Pre-GA only.
+   */
+  trace?: TraceRecorder;
 }
 
 export interface PipelineOutput {
@@ -200,6 +207,15 @@ function buildTradebookBuyKeySet(rows: ZerodhaTradebookRow[] | undefined): Set<s
     keys.add(`${securityId}|${normalizeComparableDate(row.trade_date)}`);
   }
   return keys;
+}
+
+function countByKey<T, K extends keyof T>(items: T[], key: K): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of items) {
+    const k = String(item[key]);
+    out[k] = (out[k] ?? 0) + 1;
+  }
+  return out;
 }
 
 function buildTaxPnlSecurityId(row: ZerodhaTaxPnlExitRow): string {
@@ -652,6 +668,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     purchaseMergeMode = 'same_rate',
     corporateActions = [],
     files,
+    trace,
   } = input;
 
   // Default classification strategy is derived from accountingMode so that
@@ -694,6 +711,13 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       fileName: f.fileName,
       buffer: f.buffer,
       mimeType: f.mimeType,
+      detectedType,
+    });
+    trace?.attachFile({
+      fileId: f.fileId,
+      fileName: f.fileName,
+      mimeType: f.mimeType,
+      buffer: f.buffer,
       detectedType,
     });
 
@@ -781,6 +805,28 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     );
   }
 
+  if (trace) {
+    trace.stage(
+      'parse',
+      () => ({
+        files: parsedFileSet.files.map((f) => ({
+          fileId: f.fileId,
+          fileName: f.fileName,
+          detectedType: f.detectedType,
+        })),
+        tradebookRows: parsedFileSet.tradebook?.rows ?? [],
+        contractNoteSheets: parsedFileSet.contractNote?.sheets ?? [],
+        contractNoteCharges: parsedFileSet.contractNote?.charges ?? [],
+        fundsRows: parsedFileSet.fundsStatement?.rows ?? [],
+        dividendRows: parsedFileSet.dividends?.rows ?? [],
+        taxPnlExits: parsedFileSet.taxPnl?.exits ?? [],
+        taxPnlOpenPositions: parsedFileSet.taxPnl?.openPositions ?? [],
+        holdingsRows: parsedFileSet.holdings?.equity ?? [],
+      }),
+      { diagnostics: parsedFileSet.contractNote?.diagnostics },
+    );
+  }
+
   // Step 3: Build canonical events
   const contractNoteSymbolByDescription = buildContractNoteSymbolLookup(parsedFileSet.tradebook?.rows);
   const events = buildCanonicalEvents({
@@ -801,6 +847,15 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     deterministicIds: true,
   });
 
+  if (trace) {
+    trace.indexEvents(events);
+    trace.stage('canonical-events', () => ({
+      events,
+      byType: countByKey(events, 'event_type'),
+      symbolLookup: Object.fromEntries(contractNoteSymbolByDescription),
+    }));
+  }
+
   // Step 4: Trade matching (when both tradebook and contract notes are present)
   let matchResult: ReturnType<typeof matchTrades> | undefined;
   if (parsedFileSet.tradebook && parsedFileSet.contractNote) {
@@ -808,6 +863,13 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       sheet.trades.map((trade) => ({ trade, tradeDate: sheet.charges.trade_date })),
     );
     matchResult = matchTrades(parsedFileSet.tradebook.rows, cnTradesWithDate);
+    if (trace) {
+      trace.stage('trade-match', () => ({
+        matched: matchResult!.matched,
+        unmatchedTradebook: matchResult!.unmatchedTradebook,
+        unmatchedContractNote: matchResult!.unmatchedContractNote,
+      }));
+    }
   }
 
   // Step 5: Load user settings and resolve accounting profile
@@ -882,6 +944,18 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     tallyProfile,
   });
   const uncoveredSellTreatment: UncoveredSellTreatment = 'tally_existing_opening';
+
+  if (trace) {
+    trace.stage('opening-seed', () => ({
+      priorLots,
+      seededTaxPnlLots,
+      seededTaxPnlOpeningLots,
+      openingVoucher,
+      uncoveredSellTreatment,
+      mergedLots: tracker.toJSON().lots,
+    }));
+  }
+
   const rawVouchers = buildVouchers(
     events,
     profile,
@@ -955,6 +1029,18 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     baseUnit: 'NOS',
   }));
 
+  if (trace) {
+    trace.indexVouchers(vouchers);
+    trace.stage('vouchers', () => ({
+      rawTradeVoucherCount: rawVouchers.length,
+      mergedTradeVoucherCount: mergedVouchers.length,
+      finalVoucherCount: vouchers.length,
+      vouchers,
+      ledgers,
+      stockItemNames: Array.from(stockItemNames),
+    }));
+  }
+
   const { mastersXml, transactionsXml } = generateFullExport(
     vouchers,
     ledgers,
@@ -962,6 +1048,19 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     tallyProfile.customGroups,
     stockItems,
   );
+
+  if (trace) {
+    trace.stage('export-xml', () => ({
+      mastersXmlBytes: mastersXml.length,
+      transactionsXmlBytes: transactionsXml.length,
+    }));
+    trace.attachArtifact('events', events);
+    trace.attachArtifact('vouchers', vouchers);
+    trace.attachArtifact('ledgers', ledgers);
+    trace.attachArtifact('stockItems', stockItems);
+    trace.attachArtifact('mastersXml', mastersXml);
+    trace.attachArtifact('transactionsXml', transactionsXml);
+  }
 
   // Step 8: Build reconciliation checks
   const imbalancedVouchers = vouchers.filter((v) => v.total_debit !== v.total_credit);
@@ -1094,6 +1193,27 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   const tradeCount =
     (parsedFileSet.tradebook?.rows.length ?? 0) +
     (parsedFileSet.contractNote?.sheets.reduce((s, sh) => s + sh.trades.length, 0) ?? 0);
+
+  if (trace) {
+    trace.recordOutputs({
+      tradeCount,
+      eventCount: events.length,
+      voucherCount: vouchers.length,
+      ledgerCount: ledgers.length,
+      checks,
+      summary: { passed, warnings, failed },
+      classificationSummary,
+      chargeSource: parsedFileSet.contractNote ? 'contract_note' : 'none',
+      fyLabel: fyLabel || undefined,
+      matchResult: matchResult
+        ? {
+          matched: matchResult.matched.length,
+          unmatchedTradebook: matchResult.unmatchedTradebook.length,
+          unmatchedContractNote: matchResult.unmatchedContractNote.length,
+        }
+        : undefined,
+    });
+  }
 
   return {
     tradeCount,
