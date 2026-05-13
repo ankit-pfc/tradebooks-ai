@@ -5,6 +5,7 @@ import { parseContractNotesXml } from '@/lib/parsers/zerodha/contract-notes-xml'
 import { parseFundsStatement } from '@/lib/parsers/zerodha/funds-statement';
 import { parseDividends } from '@/lib/parsers/zerodha/dividends';
 import { parseTaxPnl } from '@/lib/parsers/zerodha/taxpnl';
+import { parseHoldings } from '@/lib/parsers/zerodha/holdings';
 import {
   buildCanonicalEvents,
   buildUnifiedSecurityId,
@@ -43,6 +44,7 @@ import type {
   ZerodhaFundsStatementRow,
   ZerodhaContractNoteCharges,
   ZerodhaDividendRow,
+  ZerodhaHoldingsRow,
   ZerodhaTaxPnlExitRow,
   ZerodhaTaxPnlOpenPositionRow,
   ParseMetadata,
@@ -136,6 +138,7 @@ interface ParsedFileSet {
   };
   fundsStatement?: { rows: ZerodhaFundsStatementRow[]; metadata: ParseMetadata };
   dividends?: { rows: ZerodhaDividendRow[]; metadata: ParseMetadata };
+  holdings?: { equity: ZerodhaHoldingsRow[]; statementDate: string | null; metadata: ParseMetadata };
   files: ParsedFile[];
 }
 
@@ -436,6 +439,101 @@ function seedPriorOpeningLotsFromTaxPnl(params: {
   return seeded;
 }
 
+/**
+ * Seed synthetic buy lots from a holdings snapshot (Zerodha "Holdings" XLSX).
+ *
+ * Each `Equity` row represents a still-held position entering the batch
+ * period: quantity_available shares at average_price effective unit cost.
+ * We register one synthetic buy lot per row, dated just before periodFrom
+ * so it sorts ahead of in-period activity under FIFO.
+ *
+ * Skipped:
+ * - Rows whose security_id is already represented by Tax-P&L opening
+ *   positions (those carry the same information; we don't want double-
+ *   counting when the user uploads both files).
+ * - Rows with zero/negative quantity_available or negative average_price.
+ *
+ * This complements `seedPriorOpeningLotsFromTaxPnl` — users who do NOT have
+ * a Tax P&L file can still establish prior-period cost basis via the
+ * holdings snapshot. When both files are present, Tax P&L wins because it
+ * is dated and survives partial-FY uploads.
+ */
+function seedPriorOpeningLotsFromHoldings(params: {
+  tracker: CostLotTracker;
+  holdings: ZerodhaHoldingsRow[] | undefined;
+  periodFrom: string;
+  batchId: string;
+  sourceFileId: string;
+}): number {
+  if (!params.holdings || params.holdings.length === 0) return 0;
+
+  // Avoid double-seeding: a scrip already covered by a Tax-P&L open position
+  // (or carried forward from a prior batch) shows up as an open lot here.
+  const alreadySeededIds = new Set<string>();
+  for (const [securityId, lots] of params.tracker.getAllOpenLots()) {
+    if (lots.length > 0) alreadySeededIds.add(securityId);
+  }
+
+  const syntheticAcquisitionDate = shiftDateByOneDay(params.periodFrom);
+  let seeded = 0;
+
+  for (const row of params.holdings) {
+    const symbol = row.symbol?.trim().toUpperCase();
+    if (!symbol) continue;
+
+    const quantity = new Decimal(row.quantity_available || '0');
+    if (!quantity.greaterThan(0)) continue;
+
+    const averagePrice = new Decimal(row.average_price || '0');
+    if (averagePrice.isNegative()) continue;
+
+    const isin = row.isin?.trim().toUpperCase();
+    const securityId =
+      isin && isin !== 'NA' && isin !== 'N/A' && isin !== '-'
+        ? `ISIN:${isin}`
+        : `EQ:${symbol}`;
+
+    if (alreadySeededIds.has(securityId)) continue;
+
+    const totalCost = quantity.mul(averagePrice);
+    const rowKey = [
+      'holdings-opening',
+      symbol,
+      isin ?? '',
+      row.quantity_available,
+      row.average_price,
+    ].join('|');
+
+    const syntheticBuy: CanonicalEvent = {
+      event_id: crypto.randomUUID(),
+      import_batch_id: params.batchId,
+      event_type: EventType.BUY_TRADE,
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      event_date: syntheticAcquisitionDate,
+      settlement_date: null,
+      security_id: securityId,
+      security_symbol: symbol,
+      quantity: quantity.toFixed(),
+      rate: averagePrice.toDecimalPlaces(6).toFixed(),
+      gross_amount: totalCost.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2),
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: params.sourceFileId,
+      source_row_ids: [rowKey],
+      contract_note_ref: null,
+      external_ref: `HOLDINGS-OPENING-${symbol}`,
+      event_hash: rowKey,
+    };
+
+    params.tracker.addLot(syntheticBuy);
+    alreadySeededIds.add(securityId);
+    seeded += 1;
+  }
+
+  return seeded;
+}
+
 function buildOpeningStockVoucher(params: {
   batchId: string;
   periodFrom: string;
@@ -585,6 +683,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     contractNote?: string;
     taxPnl?: string;
     dividends?: string;
+    holdings?: string;
     corporateActions?: string;
   } = {};
 
@@ -644,6 +743,22 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
           metadata: parsed.metadata,
         };
         fileIds.taxPnl = f.fileId;
+        break;
+      }
+      case 'holdings': {
+        // Holdings snapshot is an opening-balance source: the equity sheet
+        // tells us what scrips the user held entering this batch's period
+        // and at what average cost. It does NOT carry per-lot history, so
+        // each holding becomes a single synthetic buy lot. Mutual-fund rows
+        // are parsed but not seeded — the rest of the pipeline only models
+        // equity inventory.
+        const parsed = parseHoldings(f.buffer, f.fileName);
+        parsedFileSet.holdings = {
+          equity: parsed.equity,
+          statementDate: parsed.metadata.date_range?.from ?? null,
+          metadata: parsed.metadata,
+        };
+        fileIds.holdings = f.fileId;
         break;
       }
       case 'pnl': {
@@ -747,6 +862,17 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodFrom,
     batchId,
     sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
+  });
+  // Holdings snapshot seeding runs AFTER Tax-P&L seeding so a scrip already
+  // covered by Tax P&L is left alone (the seeder skips security_ids that
+  // already have open lots). Users without a Tax P&L file can still seed
+  // opening cost basis by uploading the Zerodha holdings export.
+  seedPriorOpeningLotsFromHoldings({
+    tracker,
+    holdings: parsedFileSet.holdings?.equity,
+    periodFrom,
+    batchId,
+    sourceFileId: fileIds.holdings ?? 'holdings:unknown',
   });
   const openingVoucher = buildOpeningStockVoucher({
     batchId,

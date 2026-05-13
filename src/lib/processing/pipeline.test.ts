@@ -472,6 +472,152 @@ describe('runProcessingPipeline — Tax P&L opening positions (partial-sell + st
         expect(totalRemaining).toBe(20);
     });
 
+    it('seeds opening lots from a holdings snapshot when no Tax P&L is provided', async () => {
+        // Regression for codex review: a user uploading a tradebook with only
+        // sells PLUS the Zerodha holdings snapshot expects opening cost basis
+        // to come from the holdings file. Previously the pipeline dropped the
+        // holdings file silently and routed every sell to tally_existing_opening.
+        const { buildHoldingsXlsx } = await import('../../tests/helpers/factories');
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-08-15,NSE,EQ,INFY,INE009A01021,SELL,10,1600.00,CNC,T900,ORD900,09:15:00',
+        ].join('\n'));
+        const holdingsBuffer = buildHoldingsXlsx({
+            statementDate: '2022-04-01',
+            rows: [
+                {
+                    symbol: 'INFY',
+                    isin: 'INE009A01021',
+                    quantity_available: '50',
+                    average_price: '1500.00',
+                },
+            ],
+        });
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-holdings-opening',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            files: [
+                {
+                    fileId: 'file-infy-sell',
+                    fileName: 'tradebook-fy22-holdings.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+                {
+                    fileId: 'file-holdings-snapshot',
+                    fileName: 'holdings-FC9134.xlsx',
+                    buffer: holdingsBuffer,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+            ],
+        });
+
+        // 1) Holdings file is recognised and surfaced in filesSummary.
+        expect(
+            result.filesSummary.find((f) => f.fileName === 'holdings-FC9134.xlsx')?.detectedType,
+        ).toBe('holdings');
+
+        // 2) Opening voucher emitted with the full 50-share opening at ₹1500.
+        const openingVoucher = findVoucherXml(
+            result.transactionsXml,
+            'Opening stock brought forward from previous FY',
+        );
+        expect(openingVoucher).toContain('<STOCKITEMNAME>INFY-SH</STOCKITEMNAME>');
+        expect(openingVoucher).toContain('<ACTUALQTY>50 NOS</ACTUALQTY>');
+        expect(openingVoucher).toContain('<RATE>1500.00/NOS</RATE>');
+        expect(openingVoucher).toMatch(
+            /Opening Stock Balance B\/F[\s\S]*?<AMOUNT>75000\.00<\/AMOUNT>/,
+        );
+
+        // 3) The sell consumes from the holdings-seeded lot — cost basis is
+        //    10 × 1500 = 15000 and gain is 10 × (1600 − 1500) = 1000.
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of INFY');
+        expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
+        expect(sellVoucher).not.toContain('Opening stock assumed in Tally');
+        expect(sellVoucher).toContain('<LEDGERNAME>INFY-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>15000.00</AMOUNT>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON INFY</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>1000.00</AMOUNT>');
+
+        // 4) Closing lots carry 40 shares forward (50 opening − 10 disposed).
+        const closingLots = mockRepo.saveClosingLots.mock.calls[0][1] as Record<
+            string,
+            Array<{ open_quantity: string; effective_unit_cost: string }>
+        >;
+        const infyLots = closingLots['ISIN:INE009A01021'];
+        expect(infyLots).toBeDefined();
+        const totalRemaining = infyLots.reduce(
+            (sum, lot) => sum + parseFloat(lot.open_quantity),
+            0,
+        );
+        expect(totalRemaining).toBe(40);
+    });
+
+    it('prefers Tax P&L opening positions over holdings for the same scrip', async () => {
+        // When both files are present, Tax P&L wins for any scrip it already
+        // covers (it carries the disposed history in addition to still-held
+        // quantity). The holdings seeder must not double-count.
+        const { buildXlsxBuffer, buildHoldingsXlsx } = await import('../../tests/helpers/factories');
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-08-15,NSE,EQ,INFY,INE009A01021,SELL,10,1600.00,CNC,T901,ORD901,09:15:00',
+        ].join('\n'));
+        const taxPnlBuffer = buildXlsxBuffer({
+            'Open Positions as of 2022-04-01': [
+                ['Symbol', 'ISIN', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+                ['INFY', 'INE009A01021', '2021-08-18', 'NSE', 'EQ', 50, 1500, 1600, 5000],
+            ],
+        });
+        // Holdings reports a DIFFERENT average price; if the holdings seed
+        // ran it would corrupt the cost basis. Asserting the sell uses 1500
+        // (Tax-P&L price) proves the dedup gate works.
+        const holdingsBuffer = buildHoldingsXlsx({
+            statementDate: '2022-04-01',
+            rows: [
+                {
+                    symbol: 'INFY',
+                    isin: 'INE009A01021',
+                    quantity_available: '50',
+                    average_price: '9999.00',
+                },
+            ],
+        });
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-holdings-vs-taxpnl',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            files: [
+                {
+                    fileId: 'file-sell',
+                    fileName: 'tradebook-mixed.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+                {
+                    fileId: 'file-taxpnl',
+                    fileName: 'tax_pnl-FC9134.xlsx',
+                    buffer: taxPnlBuffer,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+                {
+                    fileId: 'file-holdings',
+                    fileName: 'holdings-FC9134.xlsx',
+                    buffer: holdingsBuffer,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of INFY');
+        expect(sellVoucher).toContain('<AMOUNT>15000.00</AMOUNT>'); // 10 × 1500 from Tax P&L
+        expect(sellVoucher).not.toContain('99990.00'); // 10 × 9999 would mean holdings won
+    });
+
     it('falls back to tally_existing_opening for sells of opening shares when no Tax P&L is provided', async () => {
         // Regression guard: pre-bug behavior must survive — tradebook-only
         // sell of a scrip that has no in-FY buy must still route through the

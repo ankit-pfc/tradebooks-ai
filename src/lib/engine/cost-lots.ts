@@ -9,6 +9,31 @@
 import Decimal from 'decimal.js';
 import { EventType, type CanonicalEvent, type CostLot } from '../types/events';
 
+/**
+ * Equity-cash exchange prefixes that legacy persisted lots may carry. These
+ * are fungible across exchanges for the same scrip, so a `BSE:ADSL` lot must
+ * match an `NSE:ADSL` or `EQ:ADSL` sell after the unified-ID rollout.
+ */
+const LEGACY_EQUITY_EXCHANGE_PREFIXES = new Set(['BSE', 'NSE']);
+
+/**
+ * Canonicalize a security_id for the lot tracker's internal map.
+ *
+ * Persisted lots from older batches used `EXCHANGE:SYMBOL` keys (e.g.
+ * `BSE:ADSL`, `NSE:ADSL`) for equity, but the current pipeline emits
+ * `EQ:SYMBOL` (or `ISIN:...`). Without normalization on BOTH the persisted
+ * side AND the in-memory lookup side, a sell event keyed `EQ:ADSL` would
+ * fail to find lots reloaded from `BSE:ADSL`.
+ *
+ * Rules:
+ * - `ISIN:...` → preserved verbatim (canonical equity key).
+ * - `EQ:SYMBOL` → preserved (current equity key without ISIN).
+ * - Legacy equity exchanges (`BSE:`, `NSE:`) → collapsed to bare SYMBOL so
+ *   carryforward lots match current sells. The disposal path normalizes
+ *   the sell's security_id the same way so old + new keys converge.
+ * - Other exchange prefixes (NFO/BFO/CDS/MCX/…) → preserved verbatim
+ *   because contracts are specific to the exchange and must NOT be merged.
+ */
 function normalizeLegacySecurityId(securityId: string): string {
   const trimmed = securityId.trim().toUpperCase();
   const parts = trimmed.split(':');
@@ -16,8 +41,10 @@ function normalizeLegacySecurityId(securityId: string): string {
 
   const [prefix, value] = parts;
   if (prefix === 'ISIN') return `ISIN:${value}`;
+  if (prefix === 'EQ') return `EQ:${value}`;
+  if (LEGACY_EQUITY_EXCHANGE_PREFIXES.has(prefix)) return value;
 
-  return value;
+  return trimmed;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,9 +133,10 @@ export class CostLotTracker {
       ? new Decimal(0)
       : totalCost.div(qty);
 
+    const canonicalId = normalizeLegacySecurityId(event.security_id);
     const lot: CostLot = {
       cost_lot_id: crypto.randomUUID(),
-      security_id: event.security_id,
+      security_id: canonicalId,
       security_symbol: event.security_symbol ?? null,
       source_buy_event_id: event.event_id,
       open_quantity: qty.toFixed(),
@@ -122,10 +150,10 @@ export class CostLotTracker {
       remaining_total_cost: totalCost.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2),
     };
 
-    if (!this.lots.has(event.security_id)) {
-      this.lots.set(event.security_id, []);
+    if (!this.lots.has(canonicalId)) {
+      this.lots.set(canonicalId, []);
     }
-    this.lots.get(event.security_id)!.push(lot);
+    this.lots.get(canonicalId)!.push(lot);
   }
 
   // -------------------------------------------------------------------------
@@ -164,7 +192,11 @@ export class CostLotTracker {
     // Sell quantity is stored as a negative decimal string; take absolute value.
     const sellQtyRemaining = new Decimal(sellEvent.quantity).abs();
     const sellRate = new Decimal(sellEvent.rate);
-    const securityId = sellEvent.security_id;
+    // Canonicalize to match the form addLot / fromJSON store under. Legacy
+    // persisted batches keyed equity lots `BSE:SYMBOL` / `NSE:SYMBOL` while
+    // the current pipeline emits sells as `EQ:SYMBOL`; without this both
+    // sides went through different code paths and missed each other.
+    const securityId = normalizeLegacySecurityId(sellEvent.security_id);
 
     if (method === 'FIFO') {
       return this._disposeFifo(securityId, sellQtyRemaining, sellRate, sellEvent.event_date);
@@ -179,7 +211,8 @@ export class CostLotTracker {
 
   /** Return a snapshot of all open lots for the given security. */
   getOpenLots(securityId: string): CostLot[] {
-    return (this.lots.get(securityId) ?? []).filter((lot) =>
+    const canonicalId = normalizeLegacySecurityId(securityId);
+    return (this.lots.get(canonicalId) ?? []).filter((lot) =>
       new Decimal(lot.open_quantity).greaterThan(0),
     );
   }
@@ -210,7 +243,8 @@ export class CostLotTracker {
     preserveAcquisitionDate: boolean;
     actionDate?: string;
   }): void {
-    const openLots = this.lots.get(params.securityId);
+    const canonicalId = normalizeLegacySecurityId(params.securityId);
+    const openLots = this.lots.get(canonicalId);
     if (!openLots || openLots.length === 0) return;
 
     const multiplier = new Decimal(params.quantityMultiplier);
@@ -238,14 +272,15 @@ export class CostLotTracker {
 
     // For merger/demerger: transfer lots from old securityId to new
     if (params.newSecurityId && params.newSecurityId !== params.securityId) {
+      const canonicalNewId = normalizeLegacySecurityId(params.newSecurityId);
       // Update security_id on each lot
       for (const lot of openLots) {
-        lot.security_id = params.newSecurityId;
+        lot.security_id = canonicalNewId;
       }
       // Move to new key in the map
-      const existingNewLots = this.lots.get(params.newSecurityId) ?? [];
-      this.lots.set(params.newSecurityId, [...existingNewLots, ...openLots]);
-      this.lots.delete(params.securityId);
+      const existingNewLots = this.lots.get(canonicalNewId) ?? [];
+      this.lots.set(canonicalNewId, [...existingNewLots, ...openLots]);
+      this.lots.delete(canonicalId);
     }
   }
 
