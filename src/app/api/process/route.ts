@@ -15,6 +15,7 @@ import type { OpeningBalanceSource } from '@/lib/processing/pipeline';
 import type { BatchFileType } from '@/lib/types/domain';
 import { TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { isPipelineValidationError } from '@/lib/errors/pipeline-validation';
+import { maybeCreateRecorder, finalizeTrace } from '@/lib/trace';
 
 // ---------------------------------------------------------------------------
 // Route handler — legacy one-shot upload + process
@@ -227,6 +228,15 @@ export async function POST(request: NextRequest) {
     await repo.addUploadedFiles(batch.id, uploadedFileMeta);
 
     // Run the shared pipeline
+    const recorder = maybeCreateRecorder(batch.id, {
+      userId,
+      companyName,
+      accountingMode: accountingMode as 'investor' | 'trader',
+      periodFrom: resolvedPeriodFrom,
+      periodTo: resolvedPeriodTo,
+      priorBatchId: priorBatchId ?? undefined,
+      classificationStrategy,
+    });
     let result;
     try {
       result = await runProcessingPipeline({
@@ -240,8 +250,10 @@ export async function POST(request: NextRequest) {
         openingBalanceSource,
         classificationStrategy,
         files: pipelineFiles,
+        trace: recorder,
       });
     } catch (pipelineErr) {
+      await finalizeTrace(recorder, pipelineErr);
       if (isPipelineValidationError(pipelineErr)) {
         await repo.updateBatchStatus(batch.id, 'failed', pipelineErr.message);
         return NextResponse.json(
@@ -254,6 +266,8 @@ export async function POST(request: NextRequest) {
       await repo.updateBatchStatus(batch.id, 'failed', msg);
       return NextResponse.json({ error: msg }, { status: 500 });
     }
+
+    await finalizeTrace(recorder);
 
     return NextResponse.json({
       batchId: batch.id,
