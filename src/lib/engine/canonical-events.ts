@@ -522,22 +522,34 @@ function extractIsinFromDescription(description: string): string | null {
  * Extract a clean trading symbol from a Zerodha CN security description.
  *
  * Handles both formats Zerodha emits:
- *   - XLSX cash-equity:  "GEMENVIRO-M/INE0RUJ01013"   → "GEMENVIRO-M"
+ *   - XLSX cash-equity:  "GEMENVIRO-M/INE0RUJ01013"   → "GEMENVIRO"
  *   - PDF/XML format:    "RELIANCE - EQ / INE002A01018" → "RELIANCE"
  *   - F&O format:        "NIFTY24DECFUT" (no ISIN)    → "NIFTY24DECFUT"
  *
- * Strips any trailing /ISIN before taking the first whitespace-delimited
- * token. The previous implementation split on whitespace only, which left
- * the slash-separated XLSX format unparsed and produced bad stock item
- * names like "GEMENVIRO-M/INE0RUJ01013-SH" in the Tally export.
+ * Strips any trailing /ISIN, then strips a trailing "-<SERIES>" where
+ * SERIES is a recognised NSE/BSE series code (EQ, BE, A, B, M, …). The
+ * series code is exchange metadata, not part of the user's Tally ledger
+ * name — leaking it produces stock items like "BOSCHLTD-EQ-SH" that do
+ * not reconcile with the user's existing "BOSCHLTD-SH" ledger.
+ *
+ * Only strips when the trailing token after the final hyphen is a known
+ * series code, so genuinely-hyphenated symbols (e.g. "M&M" today, or any
+ * future "FOO-BAR" where BAR is not a series code) survive untouched.
  */
 export function extractCleanSymbolFromCnDescription(description: string): string {
   const cleaned = description.trim().toUpperCase();
   // Strip trailing "/ISIN" or " / ISIN"
   const withoutIsin = cleaned.replace(/\s*\/\s*IN[A-Z0-9]{10}\s*$/i, '').trim();
+  // Strip a trailing "-<SERIES>" code emitted by Zerodha XLSX CNs. The
+  // series list mirrors the NSE/BSE cash-segment codes seen in real
+  // production data; keep this in sync if new series appear.
+  const withoutSeries = withoutIsin.replace(
+    /-(?:EQ|BE|BL|BT|BZ|A|B|C|D|E|F|G|M|T|X|Y|Z|IL|IT|SM)$/i,
+    '',
+  );
   // Strip the optional " - SEGMENT" suffix on the PDF format and any other
   // trailing " - X" tokens. Take the first whitespace-delimited token.
-  const firstToken = withoutIsin.split(/\s+/)[0] || withoutIsin;
+  const firstToken = withoutSeries.split(/\s+/)[0] || withoutSeries;
   return firstToken;
 }
 
@@ -603,8 +615,15 @@ export function buildSecurityIdFromDescription(
  * different ticker symbols (e.g. NSE "HDFC" vs BSE "HDFC-A"). Without
  * unification, the Tally export creates a separate stock item per symbol
  * even though they refer to the same security, breaking inventory tracking
- * and FIFO across exchanges. This map ensures the FIRST symbol seen for a
- * given ISIN becomes the canonical symbol for every subsequent event.
+ * and FIFO across exchanges. This map ensures one canonical symbol per
+ * ISIN is shared by every event.
+ *
+ * Precedence: tradebook rows are walked FIRST because their `symbol`
+ * column is a clean trading symbol (e.g. "BOSCHLTD") with the NSE/BSE
+ * series code held separately in `row.series`. Contract-note descriptions
+ * embed the series ("BOSCHLTD-EQ/INE…"), and even after stripping it the
+ * tradebook value is the canonical source. CN sheets are walked SECOND
+ * to fill in ISINs that have no tradebook row in this batch.
  *
  * Trade rows without an extractable ISIN are not added to the map — they
  * fall through to per-row symbol extraction.
@@ -614,6 +633,13 @@ export function buildIsinSymbolMap(opts: {
   tradebookRows?: ZerodhaTradebookRow[];
 }): Map<string, string> {
   const map = new Map<string, string>();
+  for (const row of opts.tradebookRows ?? []) {
+    const isin = row.isin?.trim().toUpperCase();
+    if (!isin || isin === 'NA' || isin === 'N/A' || isin === '-') continue;
+    if (map.has(isin)) continue;
+    const symbol = row.symbol?.trim().toUpperCase();
+    if (symbol) map.set(isin, symbol);
+  }
   for (const sheet of opts.contractNoteSheets ?? []) {
     for (const trade of sheet.trades) {
       // Prefer the explicit ISIN column (FY21-22 layout) when present, else
@@ -627,13 +653,6 @@ export function buildIsinSymbolMap(opts: {
       const symbol = extractCleanSymbolFromCnDescription(trade.security_description);
       if (symbol) map.set(isin, symbol);
     }
-  }
-  for (const row of opts.tradebookRows ?? []) {
-    const isin = row.isin?.trim().toUpperCase();
-    if (!isin || isin === 'NA' || isin === 'N/A' || isin === '-') continue;
-    if (map.has(isin)) continue;
-    const symbol = row.symbol?.trim().toUpperCase();
-    if (symbol) map.set(isin, symbol);
   }
   return map;
 }
