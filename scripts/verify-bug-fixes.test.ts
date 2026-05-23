@@ -72,6 +72,10 @@ vi.mock('@/lib/db', () => ({
     bulkUpsertOverrides: vi.fn(),
     deleteOverride: vi.fn(),
   }),
+  getStockItemRepository: () => ({
+    listStockItems: vi.fn().mockResolvedValue([]),
+    bulkUpsertStockItems: vi.fn(),
+  }),
 }));
 
 const ROOT = resolve(__dirname, '..');
@@ -87,7 +91,7 @@ function loadFile(rel: string, mimeType: string, fileId: string) {
 }
 
 describe.skipIf(!HAS_FILES)('Photo regression: FY 24-25 continuous-period files', () => {
-  it('produces clean ledger names and an Opening Stock B/F voucher', async () => {
+  it('produces clean ledger names without duplicating Tally opening balances', async () => {
     const input: PipelineInput = {
       userId: 'verify-user',
       batchId: 'verify-fy24-25',
@@ -178,16 +182,17 @@ describe.skipIf(!HAS_FILES)('Photo regression: FY 24-25 continuous-period files'
       }
     }
 
-    // ---- ASSERTION 3: Opening Stock B/F voucher exists if Tax P&L had data ----
-    // The pipeline's Tax P&L Cost Basis check tells us whether any opening
-    // lots were seeded. If yes, the opening voucher MUST be in the output.
+    // ---- ASSERTION 3: Tax P&L is cost-basis evidence, not opening import ----
+    // Default workflow assumes the user's Tally company already has opening
+    // balances, so Tax P&L lots should support gain/cost calculation without
+    // emitting an Opening Stock B/F voucher.
     const costBasisCheck = result.checks.find((c) => c.check_name === 'Tax P&L Cost Basis');
     const seededLots = costBasisCheck?.status === 'PASSED';
     if (seededLots) {
-      expect(result.transactionsXml).toContain(
+      expect(result.transactionsXml).not.toContain(
         'Opening stock brought forward from previous FY',
       );
-      expect(result.mastersXml).toContain('Opening Stock Balance B/F');
+      expect(result.mastersXml).not.toContain('Opening Stock Balance B/F');
     } else {
       console.warn('[verify] Tax P&L Cost Basis check did not pass — no opening lots seeded');
     }

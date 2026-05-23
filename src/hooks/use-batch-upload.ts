@@ -176,7 +176,7 @@ export interface BatchUploadConfig {
   periodFrom?: string;
   periodTo?: string;
   priorBatchId?: string;
-  openingBalanceSource?: 'none' | 'prior_batch' | 'tally_existing';
+  openingBalanceSource?: 'none' | 'prior_batch' | 'tally_existing' | 'import_opening_voucher';
 }
 
 export type PurchaseMergeMode = 'same_rate' | 'daily_summary';
@@ -344,7 +344,7 @@ export function useBatchUpload() {
   const startProcessing = useCallback(async (
     options?: {
       classificationStrategy?: string;
-      openingBalanceSource?: 'none' | 'prior_batch' | 'tally_existing';
+      openingBalanceSource?: 'none' | 'prior_batch' | 'tally_existing' | 'import_opening_voucher';
     },
   ): Promise<ProcessingResult | null> => {
     const { batchId, batchStatus } = stateRef.current;

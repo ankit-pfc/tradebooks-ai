@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     if (
       openingBalanceSourceRaw === 'none' ||
       openingBalanceSourceRaw === 'prior_batch' ||
-      openingBalanceSourceRaw === 'tally_existing'
+      openingBalanceSourceRaw === 'tally_existing' ||
+      openingBalanceSourceRaw === 'import_opening_voucher'
     ) {
       openingBalanceSource = openingBalanceSourceRaw;
     } else if (openingBalanceSourceRaw) {

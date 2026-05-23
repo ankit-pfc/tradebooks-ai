@@ -555,6 +555,10 @@ export function mergeOverridesIntoProfile(
       case 'BANK':
         profile.bank = { name: o.name, group: o.parent_group };
         break;
+      case 'INVESTMENT':
+      case 'INVESTMENT_TEMPLATE':
+        profile.investment = { ...profile.investment, template: o.name, group: o.parent_group };
+        break;
       case 'STCG_PROFIT':
         profile.stcg = { ...profile.stcg, template: o.name, group: o.parent_group };
         break;

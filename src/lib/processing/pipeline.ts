@@ -25,9 +25,10 @@ import {
 import { AccountingMode } from '@/lib/types/accounting';
 import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
 import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
-import { getBatchRepository, getSettingsRepository, getLedgerRepository } from '@/lib/db';
+import { getBatchRepository, getSettingsRepository, getLedgerRepository, getStockItemRepository } from '@/lib/db';
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, disambiguateVoucherNumbers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
+import { buildStockIdentityResolver } from '@/lib/engine/stock-identity-resolver';
 import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
 import { EventType, type CanonicalEvent, type CostLot } from '@/lib/types/events';
 import { TradeClassification, TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
@@ -63,7 +64,11 @@ export interface PipelineFileInput {
   mimeType: string;
 }
 
-export type OpeningBalanceSource = 'none' | 'prior_batch' | 'tally_existing';
+export type OpeningBalanceSource =
+  | 'none'
+  | 'prior_batch'
+  | 'tally_existing'
+  | 'import_opening_voucher';
 
 export interface PipelineInput {
   userId: string;
@@ -187,6 +192,53 @@ function buildEventSymbolLookup(events: Array<{ security_id: string | null; secu
     }
   }
   return lookup;
+}
+
+function inferSymbolForVoucherLine(
+  line: VoucherLine,
+  symbolLookup: Map<string, string>,
+): string {
+  if (line.security_id) {
+    const known = symbolLookup.get(line.security_id);
+    if (known) return known;
+    return symbolFromSecurityId(line.security_id);
+  }
+  const stockName = line.stock_item_name ?? line.ledger_name;
+  return stockName.replace(/-SH$/i, '').trim();
+}
+
+function applyTallyMasterStockIdentities(params: {
+  vouchers: BuiltVoucherDraft[];
+  symbolLookup: Map<string, string>;
+  resolver: ReturnType<typeof buildStockIdentityResolver>;
+}): {
+  stockItemInfo: Map<string, { baseUnit: string; existsInTally: boolean }>;
+  stockLedgerGroups: Map<string, string>;
+} {
+  const stockItemInfo = new Map<string, { baseUnit: string; existsInTally: boolean }>();
+  const stockLedgerGroups = new Map<string, string>();
+
+  for (const voucher of params.vouchers) {
+    for (const line of voucher.lines ?? []) {
+      if (line.quantity === null || line.rate === null) continue;
+
+      const symbol = inferSymbolForVoucherLine(line, params.symbolLookup);
+      const identity = params.resolver.resolve({
+        symbol,
+        securityId: line.security_id,
+      });
+
+      line.ledger_name = identity.investmentLedgerName;
+      line.stock_item_name = identity.stockItemName;
+      stockLedgerGroups.set(identity.investmentLedgerName, identity.investmentLedgerGroup);
+      stockItemInfo.set(identity.stockItemName, {
+        baseUnit: identity.stockItemBaseUnit,
+        existsInTally: identity.stockItemExistsInTally,
+      });
+    }
+  }
+
+  return { stockItemInfo, stockLedgerGroups };
 }
 
 function normalizeComparableDate(raw: string): string {
@@ -665,6 +717,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     periodFrom,
     periodTo,
     priorBatchId,
+    openingBalanceSource,
     purchaseMergeMode = 'same_rate',
     corporateActions = [],
     files,
@@ -888,9 +941,17 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     accountingMode === 'trader' ? AccountingMode.TRADER : AccountingMode.INVESTOR,
   );
   const ledgerOverrides = await getLedgerRepository().listOverrides(userId);
+  const tallyStockItems = await getStockItemRepository().listStockItems(userId);
   const tallyProfile = ledgerOverrides.length > 0
     ? mergeOverridesIntoProfile(baseTallyProfile, ledgerOverrides)
     : baseTallyProfile;
+  const stockIdentityResolver = buildStockIdentityResolver({
+    tallyProfile,
+    stockItems: tallyStockItems,
+    ledgerOverrides,
+  });
+  const effectiveOpeningBalanceSource: OpeningBalanceSource =
+    openingBalanceSource ?? (priorBatchId ? 'import_opening_voucher' : 'tally_existing');
 
   // Step 6: Load prior batch closing lots as opening balances (multi-FY)
   let tracker: CostLotTracker;
@@ -908,41 +969,53 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   // CostLotTracker that drives the opening stock B/F voucher. Order matters:
   // the voucher must consolidate every prior-period lot, not just the
   // prior-batch path.
-  const seededTaxPnlLots = seedPriorCostLotsFromTaxPnl({
-    tracker,
-    exits: parsedFileSet.taxPnl?.exits,
-    periodFrom,
-    periodTo,
-    batchId,
-    sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
-    existingTradebookBuyKeys: buildTradebookBuyKeySet(parsedFileSet.tradebook?.rows),
-  });
-  const seededTaxPnlOpeningLots = seedPriorOpeningLotsFromTaxPnl({
-    tracker,
-    openPositions: parsedFileSet.taxPnl?.openPositions,
-    exits: parsedFileSet.taxPnl?.exits,
-    periodFrom,
-    batchId,
-    sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
-  });
+  const seededTaxPnlLots = effectiveOpeningBalanceSource === 'none'
+    ? 0
+    : seedPriorCostLotsFromTaxPnl({
+        tracker,
+        exits: parsedFileSet.taxPnl?.exits,
+        periodFrom,
+        periodTo,
+        batchId,
+        sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
+        existingTradebookBuyKeys: buildTradebookBuyKeySet(parsedFileSet.tradebook?.rows),
+      });
+  const seededTaxPnlOpeningLots = effectiveOpeningBalanceSource === 'none'
+    ? 0
+    : seedPriorOpeningLotsFromTaxPnl({
+        tracker,
+        openPositions: parsedFileSet.taxPnl?.openPositions,
+        exits: parsedFileSet.taxPnl?.exits,
+        periodFrom,
+        batchId,
+        sourceFileId: fileIds.taxPnl ?? 'taxpnl:unknown',
+      });
   // Holdings snapshot seeding runs AFTER Tax-P&L seeding so a scrip already
   // covered by Tax P&L is left alone (the seeder skips security_ids that
   // already have open lots). Users without a Tax P&L file can still seed
   // opening cost basis by uploading the Zerodha holdings export.
-  seedPriorOpeningLotsFromHoldings({
-    tracker,
-    holdings: parsedFileSet.holdings?.equity,
-    periodFrom,
-    batchId,
-    sourceFileId: fileIds.holdings ?? 'holdings:unknown',
-  });
-  const openingVoucher = buildOpeningStockVoucher({
-    batchId,
-    periodFrom,
-    tracker,
-    symbolLookup: buildEventSymbolLookup(events),
-    tallyProfile,
-  });
+  if (effectiveOpeningBalanceSource !== 'none') {
+    seedPriorOpeningLotsFromHoldings({
+      tracker,
+      holdings: parsedFileSet.holdings?.equity,
+      periodFrom,
+      batchId,
+      sourceFileId: fileIds.holdings ?? 'holdings:unknown',
+    });
+  }
+  const shouldImportOpeningVoucher =
+    effectiveOpeningBalanceSource === 'import_opening_voucher' ||
+    effectiveOpeningBalanceSource === 'prior_batch';
+  const eventSymbolLookup = buildEventSymbolLookup(events);
+  const openingVoucher = shouldImportOpeningVoucher
+    ? buildOpeningStockVoucher({
+        batchId,
+        periodFrom,
+        tracker,
+        symbolLookup: eventSymbolLookup,
+        tallyProfile,
+      })
+    : null;
   const uncoveredSellTreatment: UncoveredSellTreatment = 'tally_existing_opening';
 
   if (trace) {
@@ -951,6 +1024,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       seededTaxPnlLots,
       seededTaxPnlOpeningLots,
       openingVoucher,
+      openingBalanceSource: effectiveOpeningBalanceSource,
       uncoveredSellTreatment,
       mergedLots: tracker.toJSON().lots,
     }));
@@ -972,6 +1046,11 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     ...(openingVoucher ? [openingVoucher] : []),
     ...disambiguateVoucherNumbers(mergedVouchers),
   ];
+  const { stockItemInfo, stockLedgerGroups } = applyTallyMasterStockIdentities({
+    vouchers,
+    symbolLookup: eventSymbolLookup,
+    resolver: stockIdentityResolver,
+  });
   const openingLedgerMasters: LedgerMasterInput[] = openingVoucher
     ? [
         {
@@ -983,14 +1062,21 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
           .filter((line) => line.quantity !== null && line.rate !== null)
           .map((line) => ({
             name: line.ledger_name,
-            parent_group: tallyProfile.investment.group,
+            parent_group: stockLedgerGroups.get(line.ledger_name) ?? tallyProfile.investment.group,
             affects_stock: true,
           })),
       ]
     : [];
+  const voucherStockLedgerMasters: LedgerMasterInput[] = Array.from(stockLedgerGroups.entries()).map(
+    ([name, parent_group]) => ({
+      name,
+      parent_group,
+      affects_stock: true,
+    }),
+  );
   const ledgers = mergeLedgerMasters(
     collectRequiredLedgers(events, profile, { tallyProfile }),
-    openingLedgerMasters,
+    [...openingLedgerMasters, ...voucherStockLedgerMasters],
   );
 
   const classificationSummary: NonNullable<BatchProcessingResult['summary']['classification_summary']> = {
@@ -1024,10 +1110,12 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       }
     }
   }
-  const stockItems: StockItemMasterInput[] = Array.from(stockItemNames).map((name) => ({
-    name,
-    baseUnit: 'NOS',
-  }));
+  const stockItems: StockItemMasterInput[] = Array.from(stockItemNames)
+    .filter((name) => !stockItemInfo.get(name)?.existsInTally)
+    .map((name) => ({
+      name,
+      baseUnit: stockItemInfo.get(name)?.baseUnit ?? 'NOS',
+    }));
 
   if (trace) {
     trace.indexVouchers(vouchers);
@@ -1038,6 +1126,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       vouchers,
       ledgers,
       stockItemNames: Array.from(stockItemNames),
+      generatedStockItems: stockItems,
     }));
   }
 
@@ -1116,7 +1205,10 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       check_name: 'Tax P&L Cost Basis',
       status: 'PASSED',
       details:
-        `Seeded ${parts.join(' and ')} from Zerodha Tax P&L so the Tally Opening Stock B/F voucher reflects full prior-FY inventory.`,
+        `Used ${parts.join(' and ')} from Zerodha Tax P&L as cost-basis evidence. ` +
+        (openingVoucher
+          ? 'Opening Stock B/F was imported because the batch is configured to create opening balances.'
+          : 'Opening Stock B/F was not imported; Tally opening balances are assumed to already exist.'),
     });
   }
 

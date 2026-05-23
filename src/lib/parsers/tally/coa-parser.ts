@@ -22,9 +22,20 @@ export interface TallyCOAEntry {
   type: 'GROUP' | 'LEDGER';
 }
 
+export interface TallyStockItemEntry {
+  name: string;
+  baseUnit: string;
+}
+
+export interface TallyUnitEntry {
+  name: string;
+}
+
 export interface ParsedCOA {
   groups: TallyCOAEntry[];
   ledgers: TallyCOAEntry[];
+  stockItems: TallyStockItemEntry[];
+  units: TallyUnitEntry[];
 }
 
 export interface COAMatchResult {
@@ -46,7 +57,9 @@ const parser = new XMLParser({
   isArray: (tagName: string) =>
     tagName === 'TALLYMESSAGE' ||
     tagName === 'GROUP' ||
-    tagName === 'LEDGER',
+    tagName === 'LEDGER' ||
+    tagName === 'STOCKITEM' ||
+    tagName === 'UNIT',
 });
 
 /** Normalise the NAME field which can be a string or a {NAME: string} object. */
@@ -69,7 +82,7 @@ function extractName(nameField: unknown): string {
  */
 export function parseTallyCOA(xml: string): ParsedCOA {
   if (!xml || xml.trim().length === 0) {
-    return { groups: [], ledgers: [] };
+    return { groups: [], ledgers: [], stockItems: [], units: [] };
   }
 
   let parsed: Record<string, unknown>;
@@ -82,6 +95,8 @@ export function parseTallyCOA(xml: string): ParsedCOA {
 
   const groups: TallyCOAEntry[] = [];
   const ledgers: TallyCOAEntry[] = [];
+  const stockItems: TallyStockItemEntry[] = [];
+  const units: TallyUnitEntry[] = [];
 
   // Navigate to TALLYMESSAGE array — may be at different nesting levels
   const messages = findTallyMessages(parsed);
@@ -109,9 +124,32 @@ export function parseTallyCOA(xml: string): ParsedCOA {
         }
       }
     }
+
+    if (msg.UNIT) {
+      const unitList = Array.isArray(msg.UNIT) ? msg.UNIT : [msg.UNIT];
+      for (const u of unitList) {
+        const name = extractName(u['NAME.LIST']) || u['@_NAME'] || u.NAME || '';
+        if (name) {
+          units.push({ name: String(name) });
+        }
+      }
+    }
+
+    if (msg.STOCKITEM) {
+      const stockItemList = Array.isArray(msg.STOCKITEM) ? msg.STOCKITEM : [msg.STOCKITEM];
+      for (const s of stockItemList) {
+        const name = extractName(s['NAME.LIST']) || s['@_NAME'] || '';
+        const baseUnit = typeof s.BASEUNITS === 'string' && s.BASEUNITS.trim()
+          ? s.BASEUNITS.trim()
+          : 'NOS';
+        if (name) {
+          stockItems.push({ name, baseUnit });
+        }
+      }
+    }
   }
 
-  return { groups, ledgers };
+  return { groups, ledgers, stockItems, units };
 }
 
 /** Recursively find TALLYMESSAGE arrays in the parsed XML. */
