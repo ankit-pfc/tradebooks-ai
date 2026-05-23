@@ -34,6 +34,11 @@ import {
     localLedgerRepository,
     supabaseLedgerRepository,
 } from '@/lib/db/ledger-repository';
+import type { StockItemRepository } from '@/lib/db/stock-item-repository';
+import {
+    localStockItemRepository,
+    supabaseStockItemRepository,
+} from '@/lib/db/stock-item-repository';
 
 const LOCAL_RECENT_BATCHES_LIMIT = 10;
 
@@ -167,4 +172,11 @@ export function getLedgerRepository(): LedgerRepository {
         return supabaseLedgerRepository;
     }
     return localLedgerRepository;
+}
+
+export function getStockItemRepository(): StockItemRepository {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        return supabaseStockItemRepository;
+    }
+    return localStockItemRepository;
 }

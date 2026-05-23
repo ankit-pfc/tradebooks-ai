@@ -209,6 +209,22 @@ describe('parseTallyCOA', () => {
     expect(result.ledgers[1].name).toBe('INFY-SH');
   });
 
+  it('parses stock items and units from Tally Master XML', () => {
+    const result = parseTallyCOA(`<?xml version="1.0"?>
+      <ENVELOPE><BODY><IMPORTDATA><REQUESTDATA>
+        <TALLYMESSAGE><UNIT NAME="NOS"><NAME.LIST><NAME>NOS</NAME></NAME.LIST></UNIT></TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <STOCKITEM NAME="INFY-SH">
+            <NAME.LIST><NAME>INFY-SH</NAME></NAME.LIST>
+            <BASEUNITS>NOS</BASEUNITS>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+      </REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`);
+
+    expect(result.units).toEqual([{ name: 'NOS' }]);
+    expect(result.stockItems).toEqual([{ name: 'INFY-SH', baseUnit: 'NOS' }]);
+  });
+
   it('parses a full Capital Account COA', () => {
     const result = parseTallyCOA(CAPITAL_ACCOUNT_COA_XML);
 
@@ -311,7 +327,7 @@ describe('matchCOAToProfile', () => {
   });
 
   it('handles empty COA gracefully', () => {
-    const coa: ParsedCOA = { groups: [], ledgers: [] };
+    const coa: ParsedCOA = { groups: [], ledgers: [], stockItems: [], units: [] };
     const result = matchCOAToProfile(coa);
 
     expect(result.confidence).toBe(0);
@@ -325,6 +341,8 @@ describe('matchCOAToProfile', () => {
       ledgers: [
         { name: 'Zerodha Broking', parent: 'Sundry Creditors', type: 'LEDGER' },
       ],
+      stockItems: [],
+      units: [],
     };
 
     const simpleResult = matchCOAToProfile(simpleCOA);

@@ -18,6 +18,10 @@ vi.mock('@/lib/db', () => ({
         bulkUpsertOverrides: vi.fn(),
         deleteOverride: vi.fn(),
     }),
+    getStockItemRepository: () => ({
+        listStockItems: vi.fn().mockResolvedValue([]),
+        bulkUpsertStockItems: vi.fn(),
+    }),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({

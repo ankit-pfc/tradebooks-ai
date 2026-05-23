@@ -29,6 +29,16 @@ const mockRepo = {
     deleteFile: vi.fn(),
     findDuplicateFile: vi.fn(),
 };
+const mockLedgerRepo = {
+    listOverrides: vi.fn().mockResolvedValue([]),
+    upsertOverride: vi.fn(),
+    bulkUpsertOverrides: vi.fn(),
+    deleteOverride: vi.fn(),
+};
+const mockStockItemRepo = {
+    listStockItems: vi.fn().mockResolvedValue([]),
+    bulkUpsertStockItems: vi.fn(),
+};
 
 vi.mock('@/lib/db', () => ({
     getBatchRepository: () => mockRepo,
@@ -36,12 +46,8 @@ vi.mock('@/lib/db', () => ({
         getSettings: vi.fn().mockResolvedValue(null),
         upsertSettings: vi.fn(),
     }),
-    getLedgerRepository: () => ({
-        listOverrides: vi.fn().mockResolvedValue([]),
-        upsertOverride: vi.fn(),
-        bulkUpsertOverrides: vi.fn(),
-        deleteOverride: vi.fn(),
-    }),
+    getLedgerRepository: () => mockLedgerRepo,
+    getStockItemRepository: () => mockStockItemRepo,
 }));
 
 // ---------------------------------------------------------------------------
@@ -82,6 +88,8 @@ beforeEach(() => {
     mockRepo.updateBatchStatus.mockResolvedValue(undefined);
     mockRepo.saveProcessingOutput.mockResolvedValue(undefined);
     mockRepo.getClosingLots.mockResolvedValue(null);
+    mockLedgerRepo.listOverrides.mockResolvedValue([]);
+    mockStockItemRepo.listStockItems.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------
@@ -410,6 +418,7 @@ describe('runProcessingPipeline — Tax P&L opening positions (partial-sell + st
             batchId: 'batch-taxpnl-partial-with-opening',
             periodFrom: '2022-04-01',
             periodTo: '2023-03-31',
+            openingBalanceSource: 'import_opening_voucher',
             files: [
                 {
                     fileId: 'file-infy-sell',
@@ -472,6 +481,80 @@ describe('runProcessingPipeline — Tax P&L opening positions (partial-sell + st
         expect(totalRemaining).toBe(20);
     });
 
+    it('uses Tax P&L as cost-basis evidence without duplicating Tally opening balances by default', async () => {
+        const { buildXlsxBuffer } = await import('../../tests/helpers/factories');
+        mockLedgerRepo.listOverrides.mockResolvedValueOnce([
+            {
+                id: 'ledger-infy',
+                user_id: 'user-001',
+                ledger_key: 'INFY_SH',
+                name: 'INFY-SH',
+                parent_group: 'INVESTMENT IN SHARES-ZERODHA',
+                is_custom: true,
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        mockStockItemRepo.listStockItems.mockResolvedValueOnce([
+            {
+                id: 'stock-infy',
+                user_id: 'user-001',
+                name: 'INFY-SH',
+                base_unit: 'NOS',
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+
+        const sellOnlyTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2022-08-15,NSE,EQ,INFY,INE009A01021,SELL,30,1600.00,CNC,T701,ORD701,09:15:00',
+        ].join('\n'));
+        const taxPnlBuffer = buildXlsxBuffer({
+            'Tradewise Exits': [
+                ['Symbol', 'ISIN', 'Entry Date', 'Exit Date', 'Quantity', 'Buy Value', 'Sell Value', 'Profit', 'Period of Holding', 'Fair Market Value', 'Taxable Profit', 'Turnover'],
+                ['INFY', 'INE009A01021', '2021-08-18', '2022-08-15', '30', '45000', '48000', '3000', '362', '0', '3000', '48000'],
+            ],
+            'Open Positions as of 2022-04-01': [
+                ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+                ['INFY', '2021-08-18', 'NSE', 'EQ', 50, 1500, 1600, 5000],
+            ],
+            'Open Positions as of 2023-03-31': [
+                ['Symbol', 'Trade Date', 'Exchange', 'Instrument Type', 'Open Quantity', 'Average Price', 'Previous Closing Price', 'Unrealized Profit'],
+                ['INFY', '2021-08-18', 'NSE', 'EQ', 20, 1500, 1700, 4000],
+            ],
+        });
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-taxpnl-tally-existing',
+            periodFrom: '2022-04-01',
+            periodTo: '2023-03-31',
+            files: [
+                {
+                    fileId: 'file-infy-sell-existing',
+                    fileName: 'tradebook-fy22-infy.csv',
+                    buffer: sellOnlyTradebook,
+                    mimeType: 'text/csv',
+                },
+                {
+                    fileId: 'file-taxpnl-infy-existing',
+                    fileName: 'tax_pnl-FC9134.xlsx',
+                    buffer: taxPnlBuffer,
+                    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+            ],
+        });
+
+        const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of INFY');
+
+        expect(result.transactionsXml).not.toContain('Opening stock brought forward from previous FY');
+        expect(result.mastersXml).not.toContain('<STOCKITEM NAME="INFY-SH"');
+        expect(sellVoucher).toContain('<LEDGERNAME>INFY-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>INFY-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>45000.00</AMOUNT>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON INFY</LEDGERNAME>');
+        expect(sellVoucher).toContain('<AMOUNT>3000.00</AMOUNT>');
+    });
+
     it('seeds opening lots from a holdings snapshot when no Tax P&L is provided', async () => {
         // Regression for codex review: a user uploading a tradebook with only
         // sells PLUS the Zerodha holdings snapshot expects opening cost basis
@@ -499,6 +582,7 @@ describe('runProcessingPipeline — Tax P&L opening positions (partial-sell + st
             batchId: 'batch-holdings-opening',
             periodFrom: '2022-04-01',
             periodTo: '2023-03-31',
+            openingBalanceSource: 'import_opening_voucher',
             files: [
                 {
                     fileId: 'file-infy-sell',
