@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, feat/*]
   pull_request:
-    branches: [main]
+    branches: [main, feat/*]
 
 jobs:
   build:
@@ -12,18 +12,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 20
-          cache: npm
+          bun-version: latest
 
-      - run: npm ci
+      - run: bun install --frozen-lockfile
 
-      - run: npm run lint
+      - run: bun run lint
 
-      - run: npm run test
+      - run: bun run test:run
 
-      - run: npm run build
+      - run: bun run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder

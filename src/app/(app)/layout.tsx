@@ -124,7 +124,7 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const [userEmail, setUserEmail] = useState<string>("Accountant");
 
   useEffect(() => {
