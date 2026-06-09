@@ -39,6 +39,11 @@ import {
     localStockItemRepository,
     supabaseStockItemRepository,
 } from '@/lib/db/stock-item-repository';
+import type { StockMappingRepository } from '@/lib/db/stock-mapping-repository';
+import {
+    localStockMappingRepository,
+    supabaseStockMappingRepository,
+} from '@/lib/db/stock-mapping-repository';
 
 const LOCAL_RECENT_BATCHES_LIMIT = 10;
 
@@ -179,4 +184,11 @@ export function getStockItemRepository(): StockItemRepository {
         return supabaseStockItemRepository;
     }
     return localStockItemRepository;
+}
+
+export function getStockMappingRepository(): StockMappingRepository {
+    if (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        return supabaseStockMappingRepository;
+    }
+    return localStockMappingRepository;
 }

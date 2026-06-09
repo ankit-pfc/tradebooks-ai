@@ -22,6 +22,11 @@ vi.mock('@/lib/db', () => ({
         listStockItems: vi.fn().mockResolvedValue([]),
         bulkUpsertStockItems: vi.fn(),
     }),
+    getStockMappingRepository: () => ({
+        listMappings: vi.fn().mockResolvedValue([]),
+        upsertMapping: vi.fn(),
+        bulkUpsertMappings: vi.fn(),
+    }),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({

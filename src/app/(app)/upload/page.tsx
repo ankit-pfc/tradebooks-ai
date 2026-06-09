@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,46 @@ import {
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 type AccountingMode = "investor";
+
+type MappingConfidence = 'saved' | 'exact' | 'alias' | 'pattern' | 'generated' | 'unmatched';
+type MappingStatus = 'saved' | 'suggested' | 'needs_review' | 'missing';
+
+interface TallyMappingCandidate {
+  name: string;
+  group: string;
+}
+
+interface TallyMappingPreviewRow {
+  broker_symbol: string;
+  security_id: string | null;
+  isin: string | null;
+  suggested_ledger_name: string | null;
+  suggested_ledger_group: string | null;
+  suggested_stock_item_name: string | null;
+  base_unit: string;
+  confidence: MappingConfidence;
+  status: MappingStatus;
+  candidates: TallyMappingCandidate[];
+}
+
+interface TallyMappingPreviewResponse {
+  rows: TallyMappingPreviewRow[];
+  summary: {
+    total: number;
+    saved: number;
+    suggested: number;
+    needsReview: number;
+    missing: number;
+  };
+}
+
+interface MappingDraft {
+  tally_ledger_name: string;
+  tally_ledger_group: string;
+  tally_stock_item_name: string;
+  base_unit: string;
+  match_source: 'manual' | 'tally_alias' | 'auto_exact' | 'auto_pattern';
+}
 
 interface UploadFormData {
   accountingMode: AccountingMode;
@@ -77,8 +117,9 @@ function downloadXml(xml: string, filename: string) {
 const STEPS = [
   { num: 1, label: "Configure" },
   { num: 2, label: "Upload Files" },
-  { num: 3, label: "Processing" },
-  { num: 4, label: "Results" },
+  { num: 3, label: "Review Matches" },
+  { num: 4, label: "Processing" },
+  { num: 5, label: "Results" },
 ];
 
 function StepIndicator({
@@ -321,13 +362,13 @@ const STATUS_BADGE: Record<string, string> = {
 function StepUpload({
   batchUpload,
   onBack,
-  onProcess,
+  onReview,
   formData,
   onFormChange,
 }: {
   batchUpload: ReturnType<typeof useBatchUpload>;
   onBack: () => void;
-  onProcess: () => Promise<void>;
+  onReview: () => void;
   formData: UploadFormData;
   onFormChange: (d: Partial<UploadFormData>) => void;
 }) {
@@ -591,11 +632,11 @@ function StepUpload({
           Back
         </Button>
         <Button
-          onClick={onProcess}
+          onClick={onReview}
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
           disabled={!canProcess || !hasTradebook}
         >
-          Process Files
+          Review Tally Matches
           <svg
             width="16"
             height="16"
@@ -610,6 +651,501 @@ function StepUpload({
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
           </svg>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: Review Tally Matches ────────────────────────────────────────────
+
+const MATCH_BADGE_CLASS: Record<MappingStatus, string> = {
+  saved: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  suggested: "bg-blue-50 text-blue-700 border-blue-200",
+  needs_review: "bg-amber-50 text-amber-700 border-amber-200",
+  missing: "bg-red-50 text-red-700 border-red-200",
+};
+
+const LEDGER_PICKER_PAGE_SIZE = 25;
+const LEDGER_PICKER_DEBOUNCE_MS = 180;
+
+function mappingRowKey(row: Pick<TallyMappingPreviewRow, 'broker_symbol' | 'security_id' | 'isin'>): string {
+  return `${row.broker_symbol}|${row.security_id ?? ''}|${row.isin ?? ''}`;
+}
+
+function normalizeLedgerSearch(value: string): string {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ');
+}
+
+function candidateKey(candidate: TallyMappingCandidate): string {
+  return `${candidate.name}||${candidate.group}`;
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timeout);
+  }, [value, delayMs]);
+
+  return debounced;
+}
+
+function sourceFromConfidence(confidence: MappingConfidence): MappingDraft['match_source'] {
+  if (confidence === 'exact') return 'auto_exact';
+  if (confidence === 'alias') return 'tally_alias';
+  if (confidence === 'pattern') return 'auto_pattern';
+  return 'manual';
+}
+
+function generatedLedgerFor(row: TallyMappingPreviewRow): MappingDraft {
+  const name = row.suggested_ledger_name || `${row.broker_symbol}-SH`;
+  return {
+    tally_ledger_name: name,
+    tally_ledger_group: row.suggested_ledger_group || 'INVESTMENT IN SHARES-ZERODHA',
+    tally_stock_item_name: row.suggested_stock_item_name || name,
+    base_unit: row.base_unit || 'NOS',
+    match_source: 'manual',
+  };
+}
+
+function SearchableLedgerPicker({
+  rowKey,
+  candidates,
+  draft,
+  onSelect,
+  onClear,
+}: {
+  rowKey: string;
+  candidates: TallyMappingCandidate[];
+  draft: MappingDraft | undefined;
+  onSelect: (candidate: TallyMappingCandidate) => void;
+  onClear: () => void;
+}) {
+  const selectedCandidate = draft?.tally_ledger_name && draft.tally_ledger_group
+    ? { name: draft.tally_ledger_name, group: draft.tally_ledger_group }
+    : null;
+  const selectedName = selectedCandidate?.name ?? '';
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(selectedName);
+  const [visibleLimit, setVisibleLimit] = useState(LEDGER_PICKER_PAGE_SIZE);
+  const debouncedQuery = useDebouncedValue(query, LEDGER_PICKER_DEBOUNCE_MS);
+  const listboxId = `tally-ledger-options-${rowKey.replace(/[^A-Za-z0-9_-]/g, '-')}`;
+  const inputValue = open ? query : selectedName;
+
+  const filteredCandidates = useMemo(() => {
+    const normalizedQuery = normalizeLedgerSearch(debouncedQuery);
+    if (!normalizedQuery) return candidates;
+
+    const queryTerms = normalizedQuery.split(' ').filter(Boolean);
+    return candidates.filter((candidate) => {
+      const haystack = normalizeLedgerSearch(`${candidate.name} ${candidate.group}`);
+      return queryTerms.every((term) => haystack.includes(term));
+    });
+  }, [candidates, debouncedQuery]);
+
+  const selectedIsInCandidates = selectedCandidate
+    ? candidates.some((candidate) => candidateKey(candidate) === candidateKey(selectedCandidate))
+    : false;
+  const visibleCandidates = filteredCandidates.slice(0, visibleLimit);
+  const hasMore = filteredCandidates.length > visibleCandidates.length;
+
+  function handleSelect(candidate: TallyMappingCandidate) {
+    onSelect(candidate);
+    setQuery(candidate.name);
+    setOpen(false);
+  }
+
+  return (
+    <div className="w-80 max-w-full">
+      <div className="relative">
+        <input
+          type="search"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          value={inputValue}
+          onFocus={() => {
+            setQuery(selectedName);
+            setVisibleLimit(LEDGER_PICKER_PAGE_SIZE);
+            setOpen(true);
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setVisibleLimit(LEDGER_PICKER_PAGE_SIZE);
+            setOpen(true);
+          }}
+          className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 pr-20 text-sm text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+          placeholder="Search Tally ledger..."
+        />
+        {draft?.tally_ledger_name && (
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              onClear();
+              setQuery('');
+              setOpen(true);
+            }}
+            className="absolute right-2 top-1.5 h-7 rounded-md px-2 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {draft?.tally_ledger_group && (
+        <p className="mt-1 text-xs text-gray-500">{draft.tally_ledger_group}</p>
+      )}
+
+      {open && (
+        <div
+          id={listboxId}
+          role="listbox"
+          className="mt-2 max-h-80 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm"
+        >
+          {selectedCandidate && !selectedIsInCandidates && (
+            <button
+              type="button"
+              role="option"
+              aria-selected="true"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => handleSelect(selectedCandidate)}
+              className="flex w-full flex-col border-b border-gray-100 px-3 py-2 text-left text-sm hover:bg-indigo-50"
+            >
+              <span className="font-medium text-gray-900">{selectedCandidate.name}</span>
+              <span className="text-xs text-gray-500">{selectedCandidate.group}</span>
+              <span className="mt-1 text-xs font-medium text-indigo-600">Current selection</span>
+            </button>
+          )}
+
+          {visibleCandidates.length > 0 ? (
+            <>
+              {visibleCandidates.map((candidate) => {
+                const isSelected = selectedCandidate
+                  ? candidateKey(candidate) === candidateKey(selectedCandidate)
+                  : false;
+                return (
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    key={candidateKey(candidate)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelect(candidate)}
+                    className={`flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-indigo-50 ${isSelected ? 'bg-indigo-50' : ''
+                      }`}
+                  >
+                    <span className="font-medium text-gray-900">{candidate.name}</span>
+                    <span className="text-xs text-gray-500">{candidate.group}</span>
+                  </button>
+                );
+              })}
+              <div className="border-t border-gray-100 px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-500">
+                    Showing {visibleCandidates.length} of {filteredCandidates.length}
+                  </span>
+                  {hasMore && (
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => setVisibleLimit((current) => current + LEDGER_PICKER_PAGE_SIZE)}
+                      className="h-8 rounded-md border border-gray-200 px-2.5 text-xs font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                    >
+                      Show more
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="px-3 py-4 text-sm text-gray-600">
+              No ledger found. Use generated only if this should create a new Tally ledger.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StepReviewTallyMatches({
+  batchId,
+  onBack,
+  onProcess,
+}: {
+  batchId: string | null;
+  onBack: () => void;
+  onProcess: () => Promise<void>;
+}) {
+  const [preview, setPreview] = useState<TallyMappingPreviewResponse | null>(null);
+  const [drafts, setDrafts] = useState<Map<string, MappingDraft>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreview() {
+      if (!batchId) {
+        setError('No active batch found.');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/batches/${batchId}/tally-mapping-preview`);
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error ?? 'Failed to load Tally mapping preview');
+        }
+        if (cancelled) return;
+
+        const nextPreview = data as TallyMappingPreviewResponse;
+        const nextDrafts = new Map<string, MappingDraft>();
+        for (const row of nextPreview.rows) {
+          if (!row.suggested_ledger_name || !row.suggested_ledger_group) continue;
+          nextDrafts.set(mappingRowKey(row), {
+            tally_ledger_name: row.suggested_ledger_name,
+            tally_ledger_group: row.suggested_ledger_group,
+            tally_stock_item_name: row.suggested_stock_item_name || row.suggested_ledger_name,
+            base_unit: row.base_unit || 'NOS',
+            match_source: sourceFromConfidence(row.confidence),
+          });
+        }
+        setPreview(nextPreview);
+        setDrafts(nextDrafts);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load Tally mapping preview');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [batchId]);
+
+  const rows = preview?.rows ?? [];
+  const unresolvedCount = rows.filter((row) => row.status !== 'saved').length;
+  const allRowsMapped = rows.length > 0 && rows.every((row) => {
+    const draft = drafts.get(mappingRowKey(row));
+    return Boolean(
+      draft?.tally_ledger_name.trim() &&
+        draft.tally_ledger_group.trim() &&
+        draft.tally_stock_item_name.trim(),
+    );
+  });
+
+  function updateDraft(row: TallyMappingPreviewRow, patch: Partial<MappingDraft>) {
+    const key = mappingRowKey(row);
+    setDrafts((current) => {
+      const next = new Map(current);
+      const existing = next.get(key) ?? generatedLedgerFor(row);
+      next.set(key, { ...existing, ...patch });
+      return next;
+    });
+  }
+
+  function handleCandidateSelect(row: TallyMappingPreviewRow, candidate: TallyMappingCandidate) {
+    updateDraft(row, {
+      tally_ledger_name: candidate.name,
+      tally_ledger_group: candidate.group,
+      tally_stock_item_name: candidate.name,
+      match_source: 'manual',
+    });
+  }
+
+  function clearCandidate(row: TallyMappingPreviewRow) {
+    updateDraft(row, {
+      tally_ledger_name: '',
+      tally_ledger_group: '',
+      tally_stock_item_name: '',
+      match_source: 'manual',
+    });
+  }
+
+  async function handleSaveAndProcess() {
+    if (!allRowsMapped) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const mappings = rows.map((row) => {
+        const draft = drafts.get(mappingRowKey(row));
+        if (!draft) throw new Error(`Missing mapping for ${row.broker_symbol}`);
+        return {
+          security_id: row.security_id,
+          broker_symbol: row.broker_symbol,
+          isin: row.isin,
+          tally_ledger_name: draft.tally_ledger_name,
+          tally_ledger_group: draft.tally_ledger_group,
+          tally_stock_item_name: draft.tally_stock_item_name,
+          base_unit: draft.base_unit || 'NOS',
+          match_source: draft.match_source,
+        };
+      });
+
+      const res = await fetch('/api/ledger-masters/security-mappings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappings }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? 'Failed to save Tally mappings');
+      }
+
+      await onProcess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save Tally mappings');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Review Tally Matches</h2>
+        <p className="mt-1 text-base text-gray-700">
+          Confirm each broker security against the exact ledger name in your uploaded Tally master.
+        </p>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {!loading && preview && (
+        <>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: 'Total', value: preview.summary.total, className: 'border-slate-200 bg-slate-50 text-slate-700' },
+              { label: 'Saved', value: preview.summary.saved, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+              { label: 'Suggested', value: preview.summary.suggested, className: 'border-blue-200 bg-blue-50 text-blue-700' },
+              { label: 'Needs Input', value: preview.summary.needsReview + preview.summary.missing, className: 'border-amber-200 bg-amber-50 text-amber-700' },
+            ].map((item) => (
+              <div key={item.label} className={`rounded-lg border px-4 py-3 ${item.className}`}>
+                <p className="text-2xl font-bold">{item.value}</p>
+                <p className="text-sm font-medium">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {rows.length === 0 ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              No traded securities were found in the uploaded files. Upload a Zerodha tradebook before continuing.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Broker Security</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Tally Ledger</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Stock Item</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {rows.map((row) => {
+                    const key = mappingRowKey(row);
+                    const draft = drafts.get(key);
+
+                    return (
+                      <tr key={key}>
+                        <td className="px-4 py-3 align-top">
+                          <p className="text-sm font-semibold text-gray-900">{row.broker_symbol}</p>
+                          <p className="mt-1 text-xs text-gray-500">{row.isin ?? row.security_id ?? '-'}</p>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <SearchableLedgerPicker
+                            rowKey={key}
+                            candidates={row.candidates}
+                            draft={draft}
+                            onSelect={(candidate) => handleCandidateSelect(row, candidate)}
+                            onClear={() => clearCandidate(row)}
+                          />
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <input
+                            value={draft?.tally_stock_item_name ?? ''}
+                            onChange={(event) => updateDraft(row, {
+                              tally_stock_item_name: event.target.value,
+                              match_source: 'manual',
+                            })}
+                            className="h-10 w-64 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                            placeholder="Stock item name"
+                          />
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${MATCH_BADGE_CLASS[row.status]}`}>
+                            {row.status.replace('_', ' ')}
+                          </span>
+                          <p className="mt-1 text-xs text-gray-500">{row.confidence}</p>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <button
+                            type="button"
+                            onClick={() => updateDraft(row, generatedLedgerFor(row))}
+                            className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            Use generated
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {unresolvedCount > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              First-time matches must be saved before processing. Saved rows will be reused in future imports.
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="flex gap-3 pt-2">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="border-gray-200 text-gray-700"
+          disabled={saving}
+        >
+          Back
+        </Button>
+        <Button
+          onClick={handleSaveAndProcess}
+          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+          disabled={!preview || !allRowsMapped || saving || loading}
+        >
+          {saving ? 'Saving mappings…' : 'Save mappings and process'}
         </Button>
       </div>
     </div>
@@ -1270,11 +1806,11 @@ export default function UploadPage() {
   }, [step]);
 
   const handleProcess = useCallback(async () => {
-    setStep(3);
+    setStep(4);
     const result = await hook.startProcessing();
     if (result) {
       setProcessingResult(result);
-      setStep(4);
+      setStep(5);
     }
     // If result is null, batchStatus is 'failed' and StepProcessing shows error
   }, [hook]);
@@ -1283,7 +1819,7 @@ export default function UploadPage() {
     const result = await hook.startProcessing();
     if (result) {
       setProcessingResult(result);
-      setStep(4);
+      setStep(5);
     }
   }, [hook]);
 
@@ -1293,9 +1829,19 @@ export default function UploadPage() {
     const result = await hook.startProcessing({ classificationStrategy: strategy });
     if (result) {
       setProcessingResult(result);
-      setStep(4);
+      setStep(5);
     }
   }, [hook]);
+
+  useEffect(() => {
+    if (
+      step === 4 &&
+      hook.state.batchStatus === 'failed' &&
+      hook.state.errorCode === 'E_TALLY_STOCK_MAPPING_UNRESOLVED'
+    ) {
+      setStep(3);
+    }
+  }, [hook.state.batchStatus, hook.state.errorCode, step]);
 
   const handleReset = () => {
     hook.reset();
@@ -1343,12 +1889,19 @@ export default function UploadPage() {
             <StepUpload
               batchUpload={hook}
               onBack={() => { hook.reset(); setStep(1); }}
-              onProcess={handleProcess}
+              onReview={() => setStep(3)}
               formData={formData}
               onFormChange={handleFormChange}
             />
           )}
           {step === 3 && (
+            <StepReviewTallyMatches
+              batchId={hook.state.batchId}
+              onBack={() => setStep(2)}
+              onProcess={handleProcess}
+            />
+          )}
+          {step === 4 && (
             <StepProcessing
               batchStatus={hook.state.batchStatus === 'running' ? 'running' : 'failed'}
               errorMessage={hook.state.error}
@@ -1358,7 +1911,7 @@ export default function UploadPage() {
               onRetryWithStrategy={handleRetryWithStrategy}
             />
           )}
-          {step === 4 && processingResult && (
+          {step === 5 && processingResult && (
             <StepResults
               result={processingResult}
               onStartOver={handleReset}
