@@ -67,6 +67,7 @@ export async function POST(request: Request) {
             coa.stockItems.map((item) => ({
                 name: item.name,
                 base_unit: item.baseUnit,
+                aliases: item.aliases,
             })),
         );
 

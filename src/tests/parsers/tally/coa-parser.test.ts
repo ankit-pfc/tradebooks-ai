@@ -225,6 +225,28 @@ describe('parseTallyCOA', () => {
     expect(result.stockItems).toEqual([{ name: 'INFY-SH', baseUnit: 'NOS' }]);
   });
 
+  it('preserves stock item aliases from NAME.LIST', () => {
+    const result = parseTallyCOA(`<?xml version="1.0"?>
+      <ENVELOPE><BODY><IMPORTDATA><REQUESTDATA>
+        <TALLYMESSAGE>
+          <STOCKITEM NAME="Motilal Oswal Financial Services Ltd">
+            <NAME.LIST>
+              <NAME>Motilal Oswal Financial Services Ltd</NAME>
+              <NAME>MOTILALOFS</NAME>
+              <NAME>INE338I01027</NAME>
+            </NAME.LIST>
+            <BASEUNITS>NOS</BASEUNITS>
+          </STOCKITEM>
+        </TALLYMESSAGE>
+      </REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`);
+
+    expect(result.stockItems[0]).toEqual({
+      name: 'Motilal Oswal Financial Services Ltd',
+      baseUnit: 'NOS',
+      aliases: ['MOTILALOFS', 'INE338I01027'],
+    });
+  });
+
   it('parses a full Capital Account COA', () => {
     const result = parseTallyCOA(CAPITAL_ACCOUNT_COA_XML);
 
@@ -299,6 +321,38 @@ describe('matchCOAToProfile', () => {
 
     // Pooled dividend (single ledger, not per-scrip)
     expect(result.profile.dividend?.template).toBe('Dividend Income');
+  });
+
+  it('prefers broker pooled capital-gain ledgers over historical per-scrip ledgers', () => {
+    const coa = parseTallyCOA(`<?xml version="1.0" encoding="UTF-8"?>
+      <ENVELOPE><BODY><IMPORTDATA><REQUESTDATA>
+        <TALLYMESSAGE>
+          <LEDGER NAME="STCG ON RELIANCE" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <LEDGER NAME="STCG ON WIPRO" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <LEDGER NAME="STCG ON SALE OF SHARES-ZERODHA" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <LEDGER NAME="STCL ON SALE OF SHARES - ZERODHA" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`);
+
+    const result = matchCOAToProfile(coa);
+
+    expect(result.profile.perScripCapitalGains).toBe(false);
+    expect(result.profile.stcg?.template).toBe('STCG ON SALE OF SHARES-ZERODHA');
+    expect(result.profile.stcl?.template).toBe('STCL ON SALE OF SHARES - ZERODHA');
   });
 
   it('detects charge ledgers by keyword matching', () => {
