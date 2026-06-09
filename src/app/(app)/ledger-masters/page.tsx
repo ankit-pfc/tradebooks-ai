@@ -21,6 +21,18 @@ interface LedgerEntry {
   source: "system" | "override" | "custom";
 }
 
+interface SecurityMappingEntry {
+  id: string;
+  security_id: string | null;
+  broker_symbol: string;
+  isin: string | null;
+  tally_ledger_name: string;
+  tally_ledger_group: string;
+  tally_stock_item_name: string;
+  base_unit: string;
+  match_source: string;
+}
+
 const SOURCE_BADGE_CLASS: Record<LedgerEntry["source"], string> = {
   system: "bg-gray-50 text-gray-600 border-gray-200",
   override: "bg-amber-50 text-amber-700 border-amber-200",
@@ -53,22 +65,37 @@ const SYSTEM_LEDGER_OPTIONS = [
 
 export default function LedgerMasterPage() {
   const [ledgers, setLedgers] = useState<LedgerEntry[]>([]);
+  const [securityMappings, setSecurityMappings] = useState<SecurityMappingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showMappingForm, setShowMappingForm] = useState(false);
   const [selectedSystemKey, setSelectedSystemKey] = useState("");
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState("");
+  const [mappingSymbol, setMappingSymbol] = useState("");
+  const [mappingIsin, setMappingIsin] = useState("");
+  const [mappingLedger, setMappingLedger] = useState("");
+  const [mappingGroup, setMappingGroup] = useState("INVESTMENT IN SHARES-ZERODHA");
+  const [mappingStockItem, setMappingStockItem] = useState("");
+  const [mappingUnit, setMappingUnit] = useState("NOS");
   const [saving, setSaving] = useState(false);
+  const [savingMapping, setSavingMapping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchLedgers = useCallback(async () => {
     try {
-      const res = await fetch("/api/ledger-masters");
-      const data = await res.json();
-      setLedgers(data.ledgers ?? []);
+      const [ledgerRes, mappingRes] = await Promise.all([
+        fetch("/api/ledger-masters"),
+        fetch("/api/ledger-masters/security-mappings"),
+      ]);
+      const ledgerData = await ledgerRes.json();
+      const mappingData = await mappingRes.json();
+      setLedgers(ledgerData.ledgers ?? []);
+      setSecurityMappings(mappingData.mappings ?? []);
     } catch {
       setLedgers([]);
+      setSecurityMappings([]);
     } finally {
       setLoading(false);
     }
@@ -140,6 +167,46 @@ export default function LedgerMasterPage() {
       await fetchLedgers();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleAddMapping(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mappingSymbol.trim() || !mappingLedger.trim() || !mappingGroup.trim() || !mappingStockItem.trim()) {
+      return;
+    }
+
+    setSavingMapping(true);
+    try {
+      const securityId = mappingIsin.trim() ? `ISIN:${mappingIsin.trim().toUpperCase()}` : undefined;
+      const res = await fetch("/api/ledger-masters/security-mappings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          security_id: securityId,
+          broker_symbol: mappingSymbol.trim(),
+          isin: mappingIsin.trim(),
+          tally_ledger_name: mappingLedger.trim(),
+          tally_ledger_group: mappingGroup.trim(),
+          tally_stock_item_name: mappingStockItem.trim(),
+          base_unit: mappingUnit.trim() || "NOS",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Failed to save mapping");
+        return;
+      }
+      setMappingSymbol("");
+      setMappingIsin("");
+      setMappingLedger("");
+      setMappingGroup("INVESTMENT IN SHARES-ZERODHA");
+      setMappingStockItem("");
+      setMappingUnit("NOS");
+      setShowMappingForm(false);
+      await fetchLedgers();
+    } finally {
+      setSavingMapping(false);
     }
   }
 
@@ -323,6 +390,186 @@ export default function LedgerMasterPage() {
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Security Mappings</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Match broker symbols to the exact Tally ledger and stock item names.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowMappingForm(!showMappingForm)}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Mapping
+        </button>
+      </div>
+
+      {showMappingForm && (
+        <Card className="border-indigo-200 bg-indigo-50/30">
+          <CardContent className="p-4">
+            <form onSubmit={handleAddMapping} className="grid gap-4 lg:grid-cols-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Broker Symbol
+                </label>
+                <input
+                  type="text"
+                  value={mappingSymbol}
+                  onChange={(e) => setMappingSymbol(e.target.value)}
+                  placeholder="MOTILALOFS"
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ISIN
+                </label>
+                <input
+                  type="text"
+                  value={mappingIsin}
+                  onChange={(e) => setMappingIsin(e.target.value)}
+                  placeholder="INE338I01027"
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tally Ledger
+                </label>
+                <input
+                  type="text"
+                  value={mappingLedger}
+                  onChange={(e) => {
+                    const nextLedger = e.target.value;
+                    setMappingLedger(nextLedger);
+                    if (!mappingStockItem || mappingStockItem === mappingLedger) {
+                      setMappingStockItem(nextLedger);
+                    }
+                  }}
+                  placeholder="Motilal Oswal Financial Services Ltd"
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Parent Group
+                </label>
+                <input
+                  type="text"
+                  value={mappingGroup}
+                  onChange={(e) => setMappingGroup(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unit
+                </label>
+                <input
+                  type="text"
+                  value={mappingUnit}
+                  onChange={(e) => setMappingUnit(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div className="lg:col-span-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tally Stock Item
+                </label>
+                <input
+                  type="text"
+                  value={mappingStockItem}
+                  onChange={(e) => setMappingStockItem(e.target.value)}
+                  placeholder="Motilal Oswal Financial Services Ltd"
+                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  required
+                />
+              </div>
+              <div className="flex items-end gap-2 lg:col-span-2">
+                <button
+                  type="submit"
+                  disabled={savingMapping}
+                  className="h-10 rounded-lg bg-indigo-600 px-5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {savingMapping ? "Saving..." : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMappingForm(false)}
+                  className="h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="border-gray-200">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-sm text-gray-600">Loading mappings...</p>
+            </div>
+          ) : securityMappings.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-sm text-gray-600">No security mappings saved.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-200 bg-gray-50/50">
+                  <TableHead className="text-sm font-semibold text-gray-900 pl-6">
+                    Broker Symbol
+                  </TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-900">
+                    ISIN
+                  </TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-900">
+                    Tally Ledger
+                  </TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-900">
+                    Stock Item
+                  </TableHead>
+                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
+                    Source
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {securityMappings.map((mapping) => (
+                  <TableRow key={mapping.id} className="border-gray-100">
+                    <TableCell className="pl-6 text-base font-medium text-gray-900">
+                      {mapping.broker_symbol}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-700">
+                      {mapping.isin ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-base text-gray-800">
+                      {mapping.tally_ledger_name}
+                    </TableCell>
+                    <TableCell className="text-base text-gray-800">
+                      {mapping.tally_stock_item_name}
+                    </TableCell>
+                    <TableCell className="pr-6">
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                        {mapping.match_source}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))}

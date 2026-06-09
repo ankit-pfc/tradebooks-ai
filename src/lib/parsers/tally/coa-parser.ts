@@ -20,11 +20,13 @@ export interface TallyCOAEntry {
   name: string;
   parent: string;
   type: 'GROUP' | 'LEDGER';
+  aliases?: string[];
 }
 
 export interface TallyStockItemEntry {
   name: string;
   baseUnit: string;
+  aliases?: string[];
 }
 
 export interface TallyUnitEntry {
@@ -64,16 +66,41 @@ const parser = new XMLParser({
 
 /** Normalise the NAME field which can be a string or a {NAME: string} object. */
 function extractName(nameField: unknown): string {
-  if (typeof nameField === 'string') return nameField;
+  return extractNames(nameField)[0] ?? '';
+}
+
+/** Normalise Tally NAME.LIST into a de-duplicated array of names/aliases. */
+function extractNames(nameField: unknown): string[] {
+  const names: string[] = [];
+
+  function push(value: unknown): void {
+    if (typeof value !== 'string') return;
+    const trimmed = value.trim();
+    if (trimmed && !names.includes(trimmed)) names.push(trimmed);
+  }
+
+  if (typeof nameField === 'string') {
+    push(nameField);
+    return names;
+  }
+
   if (nameField && typeof nameField === 'object') {
     const obj = nameField as Record<string, unknown>;
     if ('NAME' in obj) {
       const inner = obj.NAME;
-      if (typeof inner === 'string') return inner;
-      if (Array.isArray(inner)) return String(inner[0]);
+      if (Array.isArray(inner)) {
+        inner.forEach(push);
+      } else {
+        push(inner);
+      }
     }
   }
-  return '';
+  return names;
+}
+
+function aliasesFor(primary: string, names: string[]): string[] | undefined {
+  const aliases = names.filter((name) => name !== primary);
+  return aliases.length > 0 ? aliases : undefined;
 }
 
 /**
@@ -106,10 +133,11 @@ export function parseTallyCOA(xml: string): ParsedCOA {
     if (msg.GROUP) {
       const groupList = Array.isArray(msg.GROUP) ? msg.GROUP : [msg.GROUP];
       for (const g of groupList) {
-        const name = extractName(g['NAME.LIST']) || g['@_NAME'] || '';
+        const names = extractNames(g['NAME.LIST']);
+        const name = names[0] || g['@_NAME'] || '';
         const parent = g.PARENT || '';
         if (name) {
-          groups.push({ name, parent, type: 'GROUP' });
+          groups.push({ name, parent, type: 'GROUP', aliases: aliasesFor(name, names) });
         }
       }
     }
@@ -117,10 +145,16 @@ export function parseTallyCOA(xml: string): ParsedCOA {
     if (msg.LEDGER) {
       const ledgerList = Array.isArray(msg.LEDGER) ? msg.LEDGER : [msg.LEDGER];
       for (const l of ledgerList) {
-        const name = extractName(l['NAME.LIST']) || l['@_NAME'] || '';
+        const names = extractNames(l['NAME.LIST']);
+        const attrName = typeof l['@_NAME'] === 'string' ? l['@_NAME'] : '';
+        const name = names[0] || attrName || '';
         const parent = l.PARENT || '';
         if (name) {
-          ledgers.push({ name, parent, type: 'LEDGER' });
+          const aliasNames = [...names];
+          if (attrName && attrName !== name && !aliasNames.includes(attrName)) {
+            aliasNames.push(attrName);
+          }
+          ledgers.push({ name, parent, type: 'LEDGER', aliases: aliasesFor(name, aliasNames) });
         }
       }
     }
@@ -138,12 +172,18 @@ export function parseTallyCOA(xml: string): ParsedCOA {
     if (msg.STOCKITEM) {
       const stockItemList = Array.isArray(msg.STOCKITEM) ? msg.STOCKITEM : [msg.STOCKITEM];
       for (const s of stockItemList) {
-        const name = extractName(s['NAME.LIST']) || s['@_NAME'] || '';
+        const names = extractNames(s['NAME.LIST']);
+        const attrName = typeof s['@_NAME'] === 'string' ? s['@_NAME'] : '';
+        const name = names[0] || attrName || '';
         const baseUnit = typeof s.BASEUNITS === 'string' && s.BASEUNITS.trim()
           ? s.BASEUNITS.trim()
           : 'NOS';
         if (name) {
-          stockItems.push({ name, baseUnit });
+          const aliasNames = [...names];
+          if (attrName && attrName !== name && !aliasNames.includes(attrName)) {
+            aliasNames.push(attrName);
+          }
+          stockItems.push({ name, baseUnit, aliases: aliasesFor(name, aliasNames) });
         }
       }
     }
@@ -313,6 +353,18 @@ export function matchCOAToProfile(coa: ParsedCOA): COAMatchResult {
     );
 
     if (matchingLedgers.length > 0) {
+      const pooledLedger = findPreferredPooledGainLedger(matchingLedgers);
+      if (pooledLedger) {
+        (profile as Record<string, unknown>)[field] = {
+          template: pooledLedger.name,
+          group: pooledLedger.parent,
+        } satisfies NamingTemplate;
+        profile.perScripCapitalGains = false;
+        matched.add(pooledLedger.name);
+        matchedFields++;
+        continue;
+      }
+
       const symbols = extractSymbolsFromNames(matchingLedgers.map((l) => l.name));
       const template = matchingLedgers.length >= 2
         ? detectPerScripPattern(matchingLedgers.map((l) => l.name), symbols)
@@ -419,6 +471,32 @@ export function matchCOAToProfile(coa: ParsedCOA): COAMatchResult {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+function findPreferredPooledGainLedger(ledgers: TallyCOAEntry[]): TallyCOAEntry | undefined {
+  const scored = ledgers
+    .map((ledger) => ({ ledger, score: pooledGainLedgerScore(ledger.name) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.ledger;
+}
+
+function pooledGainLedgerScore(name: string): number {
+  const normalized = name.toLowerCase().replace(/\s+/g, ' ').trim();
+  let score = 0;
+
+  if (normalized.includes('sale of shares')) score += 4;
+  if (normalized.includes('zerodha') || normalized.includes('kite')) score += 4;
+  if (normalized.includes('shares')) score += 1;
+
+  // Avoid old per-scrip ledgers such as "STCG ON RELIANCE" when a pooled
+  // broker/FY ledger exists in the same Tally master.
+  if (/^(stcg|ltcg|stcl|ltcl)\s+on\s+[a-z0-9 .&]+$/i.test(name) && !normalized.includes('sale of shares')) {
+    score -= 4;
+  }
+
+  return score;
+}
 
 /**
  * Try to extract stock symbols from a list of ledger names.

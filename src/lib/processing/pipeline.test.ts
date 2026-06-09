@@ -39,6 +39,11 @@ const mockStockItemRepo = {
     listStockItems: vi.fn().mockResolvedValue([]),
     bulkUpsertStockItems: vi.fn(),
 };
+const mockStockMappingRepo = {
+    listMappings: vi.fn().mockResolvedValue([]),
+    upsertMapping: vi.fn(),
+    bulkUpsertMappings: vi.fn(),
+};
 
 vi.mock('@/lib/db', () => ({
     getBatchRepository: () => mockRepo,
@@ -48,6 +53,7 @@ vi.mock('@/lib/db', () => ({
     }),
     getLedgerRepository: () => mockLedgerRepo,
     getStockItemRepository: () => mockStockItemRepo,
+    getStockMappingRepository: () => mockStockMappingRepo,
 }));
 
 // ---------------------------------------------------------------------------
@@ -83,6 +89,15 @@ const BASE_INPUT: PipelineInput = {
     ],
 };
 
+function extractVoucherXml(transactionsXml: string, narrationPrefix: string): string {
+    const voucher = transactionsXml
+        .split('<VOUCHER ')
+        .map((chunk) => `<VOUCHER ${chunk}`)
+        .find((chunk) => chunk.includes(`<NARRATION>${narrationPrefix}`));
+    expect(voucher).toBeDefined();
+    return voucher!;
+}
+
 beforeEach(() => {
     vi.clearAllMocks();
     mockRepo.updateBatchStatus.mockResolvedValue(undefined);
@@ -90,6 +105,7 @@ beforeEach(() => {
     mockRepo.getClosingLots.mockResolvedValue(null);
     mockLedgerRepo.listOverrides.mockResolvedValue([]);
     mockStockItemRepo.listStockItems.mockResolvedValue([]);
+    mockStockMappingRepo.listMappings.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------
@@ -170,6 +186,90 @@ describe('runProcessingPipeline — happy path (tradebook)', () => {
         expect(result.mastersXml).toContain('GOLDPETAL-SH');
         expect(result.mastersXml).toContain('Trading Sales');
         expect(result.mastersXml).toContain('STCG ON SBIN');
+    });
+});
+
+describe('runProcessingPipeline — Tally security master mapping', () => {
+    const customNameTradebook = Buffer.from([
+        'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+        '2024-06-15,NSE,EQ,MOTILALOFS,INE338I01027,BUY,10,1000.00,CNC,T800,ORD800,09:15:00',
+        '2024-08-20,NSE,EQ,MOTILALOFS,INE338I01027,SELL,10,1100.00,CNC,T801,ORD801,10:30:00',
+    ].join('\n'));
+
+    it('uses confirmed Tally ledger and stock item names instead of generated broker-symbol names', async () => {
+        mockStockMappingRepo.listMappings.mockResolvedValueOnce([
+            {
+                id: 'mapping-motilal',
+                user_id: 'user-001',
+                security_id: 'ISIN:INE338I01027',
+                broker_symbol: 'MOTILALOFS',
+                isin: 'INE338I01027',
+                tally_ledger_name: 'Motilal Oswal Financial Services Ltd',
+                tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+                tally_stock_item_name: 'Motilal Oswal Financial Services Ltd',
+                base_unit: 'NOS',
+                match_source: 'manual',
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-custom-tally-name',
+            files: [
+                {
+                    fileId: 'file-custom-name',
+                    fileName: 'custom-name-tradebook.csv',
+                    buffer: customNameTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        const buyVoucher = extractVoucherXml(result.transactionsXml, 'Purchase of MOTILALOFS');
+        const sellVoucher = extractVoucherXml(result.transactionsXml, 'Sale of MOTILALOFS');
+
+        expect(buyVoucher).toContain('<LEDGERNAME>Motilal Oswal Financial Services Ltd</LEDGERNAME>');
+        expect(buyVoucher).toContain('<STOCKITEMNAME>Motilal Oswal Financial Services Ltd</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<LEDGERNAME>Motilal Oswal Financial Services Ltd</LEDGERNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>Motilal Oswal Financial Services Ltd</STOCKITEMNAME>');
+
+        expect(result.mastersXml).toContain(
+            '<LEDGER NAME="Motilal Oswal Financial Services Ltd" RESERVEDNAME="" ACTION="Create">',
+        );
+        expect(result.mastersXml).not.toContain('MOTILALOFS-SH');
+        expect(result.transactionsXml).not.toContain('MOTILALOFS-SH');
+    });
+
+    it('fails safely when uploaded Tally stock masters exist but a traded security is unresolved', async () => {
+        mockStockItemRepo.listStockItems.mockResolvedValueOnce([
+            {
+                id: 'stock-other',
+                user_id: 'user-001',
+                name: 'Some Existing Tally Stock',
+                base_unit: 'NOS',
+                aliases: [],
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+
+        await expect(
+            runProcessingPipeline({
+                ...BASE_INPUT,
+                batchId: 'batch-unresolved-tally-name',
+                files: [
+                    {
+                        fileId: 'file-unresolved-name',
+                        fileName: 'unresolved-name-tradebook.csv',
+                        buffer: customNameTradebook,
+                        mimeType: 'text/csv',
+                    },
+                ],
+            }),
+        ).rejects.toMatchObject({
+            code: 'E_TALLY_STOCK_MAPPING_UNRESOLVED',
+        });
     });
 });
 

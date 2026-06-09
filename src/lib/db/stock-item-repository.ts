@@ -7,12 +7,14 @@ export interface TallyStockItemMapping {
     user_id: string;
     name: string;
     base_unit: string;
+    aliases?: string[];
     created_at: string;
 }
 
 export interface TallyStockItemInput {
     name: string;
     base_unit?: string;
+    aliases?: string[];
 }
 
 export interface StockItemRepository {
@@ -69,6 +71,7 @@ export const localStockItemRepository: StockItemRepository = {
                 user_id: userId,
                 name,
                 base_unit: input.base_unit?.trim() || current?.base_unit || 'NOS',
+                aliases: normalizeAliases(input.aliases, name, current?.aliases),
                 created_at: current?.created_at ?? new Date().toISOString(),
             };
             byName.set(key, entry);
@@ -100,6 +103,7 @@ export const supabaseStockItemRepository: StockItemRepository = {
                 user_id: userId,
                 name: input.name.trim(),
                 base_unit: input.base_unit?.trim() || 'NOS',
+                aliases: normalizeAliases(input.aliases, input.name),
             }))
             .filter((row) => row.name.length > 0);
 
@@ -118,3 +122,18 @@ export const supabaseStockItemRepository: StockItemRepository = {
         return (data ?? []) as TallyStockItemMapping[];
     },
 };
+
+function normalizeAliases(
+    aliases: string[] | undefined,
+    primaryName: string,
+    fallback?: string[],
+): string[] {
+    const primary = primaryName.trim().toUpperCase();
+    const out = new Set<string>();
+    for (const alias of aliases ?? fallback ?? []) {
+        const trimmed = alias.trim();
+        if (!trimmed || trimmed.toUpperCase() === primary) continue;
+        out.add(trimmed);
+    }
+    return Array.from(out);
+}

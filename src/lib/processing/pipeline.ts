@@ -25,7 +25,13 @@ import {
 import { AccountingMode } from '@/lib/types/accounting';
 import { collectRequiredLedgers } from '@/lib/export/ledger-masters';
 import { generateFullExport, type StockItemMasterInput } from '@/lib/export/tally-xml';
-import { getBatchRepository, getSettingsRepository, getLedgerRepository, getStockItemRepository } from '@/lib/db';
+import {
+  getBatchRepository,
+  getSettingsRepository,
+  getLedgerRepository,
+  getStockItemRepository,
+  getStockMappingRepository,
+} from '@/lib/db';
 import { matchTrades } from '@/lib/engine/trade-matcher';
 import { mergePurchaseVouchers, disambiguateVoucherNumbers, type PurchaseMergeMode } from '@/lib/engine/voucher-merger';
 import { buildStockIdentityResolver } from '@/lib/engine/stock-identity-resolver';
@@ -33,6 +39,7 @@ import type { BatchFileType, BatchProcessingResult } from '@/lib/types/domain';
 import { EventType, type CanonicalEvent, type CostLot } from '@/lib/types/events';
 import { TradeClassification, TradeClassificationStrategy } from '@/lib/engine/trade-classifier';
 import { checkMtfExposureWarning } from '@/lib/reconciliation/checks';
+import { PipelineValidationError } from '@/lib/errors/pipeline-validation';
 import { resolveInvestmentLedger } from '@/lib/engine/ledger-resolver';
 import { InvoiceIntent, VoucherStatus, VoucherType, type VoucherLine } from '@/lib/types/vouchers';
 import type { BuiltVoucherDraft, UncoveredSellTreatment } from '@/lib/engine/voucher-builder';
@@ -211,12 +218,15 @@ function applyTallyMasterStockIdentities(params: {
   vouchers: BuiltVoucherDraft[];
   symbolLookup: Map<string, string>;
   resolver: ReturnType<typeof buildStockIdentityResolver>;
+  requireTallyMasterMatch: boolean;
 }): {
   stockItemInfo: Map<string, { baseUnit: string; existsInTally: boolean }>;
   stockLedgerGroups: Map<string, string>;
+  unresolved: Array<{ symbol: string; securityId: string | null; generatedName: string }>;
 } {
   const stockItemInfo = new Map<string, { baseUnit: string; existsInTally: boolean }>();
   const stockLedgerGroups = new Map<string, string>();
+  const unresolvedByKey = new Map<string, { symbol: string; securityId: string | null; generatedName: string }>();
 
   for (const voucher of params.vouchers) {
     for (const line of voucher.lines ?? []) {
@@ -228,6 +238,15 @@ function applyTallyMasterStockIdentities(params: {
         securityId: line.security_id,
       });
 
+      if (params.requireTallyMasterMatch && identity.matchConfidence === 'generated') {
+        const key = line.security_id ?? symbol;
+        unresolvedByKey.set(key, {
+          symbol,
+          securityId: line.security_id,
+          generatedName: identity.investmentLedgerName,
+        });
+      }
+
       line.ledger_name = identity.investmentLedgerName;
       line.stock_item_name = identity.stockItemName;
       stockLedgerGroups.set(identity.investmentLedgerName, identity.investmentLedgerGroup);
@@ -238,7 +257,11 @@ function applyTallyMasterStockIdentities(params: {
     }
   }
 
-  return { stockItemInfo, stockLedgerGroups };
+  return {
+    stockItemInfo,
+    stockLedgerGroups,
+    unresolved: Array.from(unresolvedByKey.values()),
+  };
 }
 
 function normalizeComparableDate(raw: string): string {
@@ -942,6 +965,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
   );
   const ledgerOverrides = await getLedgerRepository().listOverrides(userId);
   const tallyStockItems = await getStockItemRepository().listStockItems(userId);
+  const tallySecurityMappings = await getStockMappingRepository().listMappings(userId);
   const tallyProfile = ledgerOverrides.length > 0
     ? mergeOverridesIntoProfile(baseTallyProfile, ledgerOverrides)
     : baseTallyProfile;
@@ -949,6 +973,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     tallyProfile,
     stockItems: tallyStockItems,
     ledgerOverrides,
+    securityMappings: tallySecurityMappings,
   });
   const effectiveOpeningBalanceSource: OpeningBalanceSource =
     openingBalanceSource ?? (priorBatchId ? 'import_opening_voucher' : 'tally_existing');
@@ -1046,11 +1071,27 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     ...(openingVoucher ? [openingVoucher] : []),
     ...disambiguateVoucherNumbers(mergedVouchers),
   ];
-  const { stockItemInfo, stockLedgerGroups } = applyTallyMasterStockIdentities({
+  const hasTallyMasterContext =
+    tallyStockItems.length > 0 ||
+    tallySecurityMappings.length > 0 ||
+    ledgerOverrides.some((override) => override.is_custom);
+  const { stockItemInfo, stockLedgerGroups, unresolved } = applyTallyMasterStockIdentities({
     vouchers,
     symbolLookup: eventSymbolLookup,
     resolver: stockIdentityResolver,
+    requireTallyMasterMatch: hasTallyMasterContext,
   });
+
+  if (unresolved.length > 0) {
+    throw new PipelineValidationError(
+      'E_TALLY_STOCK_MAPPING_UNRESOLVED',
+      'One or more traded securities could not be matched to the uploaded Tally master. ' +
+        'Confirm a Tally ledger/stock-item mapping before generating XML, otherwise Tally may create duplicate masters.',
+      {
+        unresolved,
+      },
+    );
+  }
   const openingLedgerMasters: LedgerMasterInput[] = openingVoucher
     ? [
         {
@@ -1074,8 +1115,12 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       affects_stock: true,
     }),
   );
+  const usedStockLedgerNames = new Set(stockLedgerGroups.keys());
+  const profileLedgers = collectRequiredLedgers(events, profile, { tallyProfile }).filter(
+    (ledger) => !ledger.affects_stock || usedStockLedgerNames.has(ledger.name),
+  );
   const ledgers = mergeLedgerMasters(
-    collectRequiredLedgers(events, profile, { tallyProfile }),
+    profileLedgers,
     [...openingLedgerMasters, ...voucherStockLedgerMasters],
   );
 
