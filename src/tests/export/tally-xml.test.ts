@@ -163,11 +163,10 @@ describe('generateVouchersXml', () => {
     const xml = generateVouchersXml([voucher], 'Co');
     expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
     expect(xml).toContain('<ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>');
-    // ACTUALQTY/BILLEDQTY are always absolute — stock-out direction comes
-    // from the parent ledger's CR, not from a negative qty. Tally double-
-    // negates negative CR quantities and INCREASES holdings on sale.
-    expect(xml).toContain('10 NOS');  // qty with UOM (always positive)
-    expect(xml).not.toMatch(/<(ACTUALQTY|BILLEDQTY)>-/);
+    // Stock-out direction must be explicit on ACTUALQTY/BILLEDQTY; otherwise
+    // Tally can post only value and leave inventory units unchanged.
+    expect(xml).toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>-10 NOS</BILLEDQTY>');
   });
 
   it('handles empty vouchers array', () => {
@@ -192,7 +191,7 @@ describe('Tally numeric formatting guards', () => {
   it('keeps normal numeric formatting unchanged', () => {
     expect(tallyAmount('25000', 'DR')).toBe('-25000.00');
     expect(tallyAmount('25000', 'CR')).toBe('25000.00');
-    expect(tallyQty('-10', 'CR')).toBe('10 NOS');
+    expect(tallyQty('-10', 'CR')).toBe('-10 NOS');
     expect(tallyRate('2500', 'SH')).toBe('2500.00/SH');
   });
 });

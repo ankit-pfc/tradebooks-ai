@@ -27,6 +27,9 @@ export interface TallyStockItemEntry {
   name: string;
   baseUnit: string;
   aliases?: string[];
+  openingQuantity?: string;
+  openingValue?: string;
+  openingRate?: string;
 }
 
 export interface TallyUnitEntry {
@@ -99,8 +102,46 @@ function extractNames(nameField: unknown): string[] {
 }
 
 function aliasesFor(primary: string, names: string[]): string[] | undefined {
-  const aliases = names.filter((name) => name !== primary);
+  const seen = new Set<string>();
+  const aliases = names.filter((name) => {
+    const key = name.trim().toUpperCase();
+    if (name === primary || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return aliases.length > 0 ? aliases : undefined;
+}
+
+function stringField(value: unknown): string {
+  if (typeof value === 'number') return String(value);
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseQuantityField(value: unknown): string | undefined {
+  const raw = stringField(value);
+  if (!raw) return undefined;
+  const match = raw.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  if (!match) return undefined;
+  return String(Math.abs(Number(match[0])));
+}
+
+function parseAmountField(value: unknown): string | undefined {
+  const raw = stringField(value);
+  if (!raw) return undefined;
+  const cleaned = raw.replace(/,/g, '');
+  const parenthesized = /\(\s*[-\d.]+\s*\)/.test(cleaned);
+  const match = cleaned.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return undefined;
+  const signed = Number(match[0]) * (parenthesized && !match[0].startsWith('-') ? -1 : 1);
+  return Math.abs(signed).toFixed(2);
+}
+
+function parseRateField(value: unknown): string | undefined {
+  const raw = stringField(value);
+  if (!raw) return undefined;
+  const match = raw.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  if (!match) return undefined;
+  return String(Math.abs(Number(match[0])));
 }
 
 /**
@@ -125,88 +166,114 @@ export function parseTallyCOA(xml: string): ParsedCOA {
   const stockItems: TallyStockItemEntry[] = [];
   const units: TallyUnitEntry[] = [];
 
-  // Navigate to TALLYMESSAGE array — may be at different nesting levels
-  const messages = findTallyMessages(parsed);
-
-  for (const msg of messages) {
-    // Each TALLYMESSAGE may contain GROUP and/or LEDGER elements
-    if (msg.GROUP) {
-      const groupList = Array.isArray(msg.GROUP) ? msg.GROUP : [msg.GROUP];
-      for (const g of groupList) {
-        const names = extractNames(g['NAME.LIST']);
-        const name = names[0] || g['@_NAME'] || '';
-        const parent = g.PARENT || '';
-        if (name) {
-          groups.push({ name, parent, type: 'GROUP', aliases: aliasesFor(name, names) });
-        }
-      }
-    }
-
-    if (msg.LEDGER) {
-      const ledgerList = Array.isArray(msg.LEDGER) ? msg.LEDGER : [msg.LEDGER];
-      for (const l of ledgerList) {
-        const names = extractNames(l['NAME.LIST']);
-        const attrName = typeof l['@_NAME'] === 'string' ? l['@_NAME'] : '';
-        const name = names[0] || attrName || '';
-        const parent = l.PARENT || '';
-        if (name) {
-          const aliasNames = [...names];
-          if (attrName && attrName !== name && !aliasNames.includes(attrName)) {
-            aliasNames.push(attrName);
-          }
-          ledgers.push({ name, parent, type: 'LEDGER', aliases: aliasesFor(name, aliasNames) });
-        }
-      }
-    }
-
-    if (msg.UNIT) {
-      const unitList = Array.isArray(msg.UNIT) ? msg.UNIT : [msg.UNIT];
-      for (const u of unitList) {
-        const name = extractName(u['NAME.LIST']) || u['@_NAME'] || u.NAME || '';
-        if (name) {
-          units.push({ name: String(name) });
-        }
-      }
-    }
-
-    if (msg.STOCKITEM) {
-      const stockItemList = Array.isArray(msg.STOCKITEM) ? msg.STOCKITEM : [msg.STOCKITEM];
-      for (const s of stockItemList) {
-        const names = extractNames(s['NAME.LIST']);
-        const attrName = typeof s['@_NAME'] === 'string' ? s['@_NAME'] : '';
-        const name = names[0] || attrName || '';
-        const baseUnit = typeof s.BASEUNITS === 'string' && s.BASEUNITS.trim()
-          ? s.BASEUNITS.trim()
-          : 'NOS';
-        if (name) {
-          const aliasNames = [...names];
-          if (attrName && attrName !== name && !aliasNames.includes(attrName)) {
-            aliasNames.push(attrName);
-          }
-          stockItems.push({ name, baseUnit, aliases: aliasesFor(name, aliasNames) });
-        }
-      }
+  for (const g of findTallyNodes(parsed, 'GROUP')) {
+    const names = extractNames(g['NAME.LIST']);
+    const attrName = stringField(g['@_NAME']);
+    const name = attrName || names[0] || '';
+    const parent = stringField(g.PARENT);
+    if (name) {
+      const aliasNames = attrName ? [...names, attrName] : names;
+      groups.push({ name, parent, type: 'GROUP', aliases: aliasesFor(name, aliasNames) });
     }
   }
 
-  return { groups, ledgers, stockItems, units };
+  for (const l of findTallyNodes(parsed, 'LEDGER')) {
+    const names = extractNames(l['NAME.LIST']);
+    const attrName = stringField(l['@_NAME']);
+    const name = attrName || names[0] || '';
+    const parent = stringField(l.PARENT);
+    if (name) {
+      const aliasNames = attrName ? [...names, attrName] : names;
+      ledgers.push({ name, parent, type: 'LEDGER', aliases: aliasesFor(name, aliasNames) });
+    }
+  }
+
+  for (const u of findTallyNodes(parsed, 'UNIT')) {
+    const name = extractName(u['NAME.LIST']) || stringField(u['@_NAME']) || stringField(u.NAME);
+    if (name) {
+      units.push({ name });
+    }
+  }
+
+  for (const s of findTallyNodes(parsed, 'STOCKITEM')) {
+    const names = extractNames(s['NAME.LIST']);
+    const attrName = stringField(s['@_NAME']);
+    const name = attrName || names[0] || '';
+    const baseUnit = stringField(s.BASEUNITS) || 'NOS';
+    if (name) {
+      const aliasNames = attrName ? [...names, attrName] : names;
+      const openingQuantity = parseQuantityField(s.OPENINGBALANCE);
+      const openingValue = parseAmountField(s.OPENINGVALUE);
+      const openingRate =
+        parseRateField(s.OPENINGRATE) ??
+        (openingQuantity && openingValue && Number(openingQuantity) > 0
+          ? String(Number(openingValue) / Number(openingQuantity))
+          : undefined);
+      stockItems.push({
+        name,
+        baseUnit,
+        aliases: aliasesFor(name, aliasNames),
+        openingQuantity,
+        openingValue,
+        openingRate,
+      });
+    }
+  }
+
+  return {
+    groups: dedupeByNameAndParent(groups),
+    ledgers: dedupeByNameAndParent(ledgers),
+    stockItems: dedupeByName(stockItems),
+    units: dedupeByName(units),
+  };
 }
 
-/** Recursively find TALLYMESSAGE arrays in the parsed XML. */
-function findTallyMessages(obj: Record<string, unknown>): Record<string, unknown>[] {
-  if ('TALLYMESSAGE' in obj) {
-    const tm = obj.TALLYMESSAGE;
-    return Array.isArray(tm) ? tm : [tm as Record<string, unknown>];
+/** Recursively find Tally master nodes in both import-data and collection exports. */
+function findTallyNodes(obj: unknown, tagName: 'GROUP' | 'LEDGER' | 'STOCKITEM' | 'UNIT'): Record<string, unknown>[] {
+  if (!obj || typeof obj !== 'object') return [];
+  if (Array.isArray(obj)) {
+    return obj.flatMap((item) => findTallyNodes(item, tagName));
   }
 
-  // Try nested paths: ENVELOPE > BODY > IMPORTDATA > REQUESTDATA > TALLYMESSAGE
-  for (const key of ['ENVELOPE', 'BODY', 'IMPORTDATA', 'REQUESTDATA', 'DATA']) {
-    if (key in obj && obj[key] && typeof obj[key] === 'object') {
-      return findTallyMessages(obj[key] as Record<string, unknown>);
+  const record = obj as Record<string, unknown>;
+  const found: Record<string, unknown>[] = [];
+  const direct = record[tagName];
+  if (direct) {
+    const nodes = Array.isArray(direct) ? direct : [direct];
+    found.push(
+      ...nodes.filter(
+        (node): node is Record<string, unknown> => Boolean(node) && typeof node === 'object' && !Array.isArray(node),
+      ),
+    );
+  }
+
+  for (const value of Object.values(record)) {
+    if (value && typeof value === 'object') {
+      found.push(...findTallyNodes(value, tagName));
     }
   }
 
-  return [];
+  return found;
+}
+
+function dedupeByName<T extends { name: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.name.trim().toUpperCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function dedupeByNameAndParent<T extends { name: string; parent: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.name.trim().toUpperCase()}|${item.parent.trim().toUpperCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------

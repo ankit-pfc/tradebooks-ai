@@ -8,6 +8,9 @@ export interface TallyStockItemMapping {
     name: string;
     base_unit: string;
     aliases?: string[];
+    opening_quantity?: string | null;
+    opening_value?: string | null;
+    opening_rate?: string | null;
     created_at: string;
 }
 
@@ -15,6 +18,9 @@ export interface TallyStockItemInput {
     name: string;
     base_unit?: string;
     aliases?: string[];
+    opening_quantity?: string | null;
+    opening_value?: string | null;
+    opening_rate?: string | null;
 }
 
 export interface StockItemRepository {
@@ -72,6 +78,9 @@ export const localStockItemRepository: StockItemRepository = {
                 name,
                 base_unit: input.base_unit?.trim() || current?.base_unit || 'NOS',
                 aliases: normalizeAliases(input.aliases, name, current?.aliases),
+                opening_quantity: normalizeOptionalDecimal(input.opening_quantity) ?? current?.opening_quantity ?? null,
+                opening_value: normalizeOptionalDecimal(input.opening_value) ?? current?.opening_value ?? null,
+                opening_rate: normalizeOptionalDecimal(input.opening_rate) ?? current?.opening_rate ?? null,
                 created_at: current?.created_at ?? new Date().toISOString(),
             };
             byName.set(key, entry);
@@ -104,6 +113,9 @@ export const supabaseStockItemRepository: StockItemRepository = {
                 name: input.name.trim(),
                 base_unit: input.base_unit?.trim() || 'NOS',
                 aliases: normalizeAliases(input.aliases, input.name),
+                opening_quantity: normalizeOptionalDecimal(input.opening_quantity) ?? null,
+                opening_value: normalizeOptionalDecimal(input.opening_value) ?? null,
+                opening_rate: normalizeOptionalDecimal(input.opening_rate) ?? null,
             }))
             .filter((row) => row.name.length > 0);
 
@@ -136,4 +148,13 @@ function normalizeAliases(
         out.add(trimmed);
     }
     return Array.from(out);
+}
+
+function normalizeOptionalDecimal(value: string | null | undefined): string | null {
+    if (value === null) return null;
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) return null;
+    return String(Math.abs(n));
 }

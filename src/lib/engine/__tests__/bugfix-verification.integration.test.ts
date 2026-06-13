@@ -279,7 +279,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(actualQty.trim().startsWith('-')).toBe(false);
   });
 
-  it('sell voucher has INVENTORYALLOCATIONS.LIST with positive qty (direction from CR parent, not sign)', () => {
+  it('sell voucher has INVENTORYALLOCATIONS.LIST with negative qty for stock OUT', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const sellV = vouchers.find(v =>
@@ -291,11 +291,8 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(lineWithInventory).toBeDefined();
     const allocs = getInventoryAllocations(lineWithInventory);
     const actualQty = String(allocs[0].ACTUALQTY);
-    // Qty is always unsigned — stock-out direction comes from the parent
-    // ledger's CR flag. Tally double-negates a negative CR quantity and
-    // INCREASES holdings on sale, so we always emit positive.
     expect(actualQty).toContain('30');
-    expect(actualQty.trim().startsWith('-')).toBe(false);
+    expect(actualQty.trim().startsWith('-')).toBe(true);
   });
 
   it('sell voucher gain/loss uses STCG ledger (holding < 365 days)', () => {

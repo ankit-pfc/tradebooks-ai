@@ -247,6 +247,43 @@ describe('parseTallyCOA', () => {
     });
   });
 
+  it('parses collection-style Tally master exports with visible attribute names and opening stock values', () => {
+    const result = parseTallyCOA(`<?xml version="1.0"?>
+      <ENVELOPE><BODY><DATA>
+        <COLLECTION>
+          <LEDGER NAME="WIPRO-SH">
+            <NAME.LIST><NAME>WIPRO</NAME></NAME.LIST>
+            <PARENT>INVESTMENT IN SHARES-ZERODHA</PARENT>
+          </LEDGER>
+          <STOCKITEM NAME="Wipro Limited">
+            <NAME.LIST>
+              <NAME>WIPRO</NAME>
+              <NAME>INE075A01022</NAME>
+            </NAME.LIST>
+            <BASEUNITS>NOS</BASEUNITS>
+            <OPENINGBALANCE>15 NOS</OPENINGBALANCE>
+            <OPENINGVALUE>-6750.00</OPENINGVALUE>
+            <OPENINGRATE>450.00/NOS</OPENINGRATE>
+          </STOCKITEM>
+        </COLLECTION>
+      </DATA></BODY></ENVELOPE>`);
+
+    expect(result.ledgers[0]).toEqual({
+      name: 'WIPRO-SH',
+      parent: 'INVESTMENT IN SHARES-ZERODHA',
+      type: 'LEDGER',
+      aliases: ['WIPRO'],
+    });
+    expect(result.stockItems[0]).toEqual({
+      name: 'Wipro Limited',
+      baseUnit: 'NOS',
+      aliases: ['WIPRO', 'INE075A01022'],
+      openingQuantity: '15',
+      openingValue: '6750.00',
+      openingRate: '450',
+    });
+  });
+
   it('parses a full Capital Account COA', () => {
     const result = parseTallyCOA(CAPITAL_ACCOUNT_COA_XML);
 
