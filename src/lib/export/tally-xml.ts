@@ -109,24 +109,22 @@ function isDeemedPositive(drCr: 'DR' | 'CR'): string {
 /**
  * Format a quantity string for Tally's INVENTORYALLOCATIONS.LIST.
  *
- * Emits the absolute quantity in both buy and sell cases. Tally derives
- * stock-in vs stock-out from the parent ledger line's DR/CR via
- * ISDEEMEDPOSITIVE on the LEDGERENTRIES.LIST entry and the signed AMOUNT,
- * so the inventory quantity itself must be unsigned — otherwise Tally
- * sees a double negative on the CR stock line of a sell and posts the
- * movement as an inflow, inflating holdings on every sale.
+ * Emits debit stock lines as positive quantities and credit stock lines as
+ * negative quantities. Real Tally imports require the stock-out direction on
+ * ACTUALQTY/BILLEDQTY; otherwise accounting value can post while inventory
+ * units remain unchanged.
  *
  * TallyPrime expects format: "<number> <unit>" (e.g., "10 NOS").
  *
- * The `drCr` parameter is retained for call-site compatibility but is
- * intentionally unused.
  */
-export function tallyQty(qty: string, _drCr: 'DR' | 'CR', unit = 'NOS'): string {
+export function tallyQty(qty: string, drCr: 'DR' | 'CR', unit = 'NOS'): string {
   const n = parseFloat(qty);
   if (!Number.isFinite(n)) {
     throw new Error(`Invalid Tally quantity: ${qty}`);
   }
-  return `${Math.abs(n)} ${unit}`;
+  const abs = Math.abs(n);
+  const signed = drCr === 'CR' ? -abs : abs;
+  return `${signed} ${unit}`;
 }
 
 /**

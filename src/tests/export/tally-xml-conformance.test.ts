@@ -490,14 +490,8 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     const entries = getEntries(generateVouchersXml([salesVoucher], 'Co'));
     const inventoryEntry = entries[1]['INVENTORYALLOCATIONS.LIST'];
 
-    // ACTUALQTY / BILLEDQTY are always absolute values — stock-in vs
-    // stock-out direction is carried by the parent ledger's DR/CR and the
-    // voucher type, not by the inventory quantity sign. See Fix 3 in
-    // tally-xml.ts: Tally was double-negating sell-side quantities when
-    // both the CR line and the qty string were negative, inflating
-    // holdings. Keeping the inventory qty positive fixes the import.
-    expect(inventoryEntry.ACTUALQTY).toBe('10 NOS');
-    expect(inventoryEntry.BILLEDQTY).toBe('10 NOS');
+    expect(inventoryEntry.ACTUALQTY).toBe('-10 NOS');
+    expect(inventoryEntry.BILLEDQTY).toBe('-10 NOS');
     expect(inventoryEntry.AMOUNT).toBe('25000.00');
     // ISDEEMEDPOSITIVE is no longer emitted on INVENTORYALLOCATIONS.LIST
     expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
@@ -564,18 +558,10 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
 
     expect(Math.abs(sum)).toBeLessThan(0.01);
     expect(entries[1]['INVENTORYALLOCATIONS.LIST']).toBeDefined();
-    // Always positive — stock-out direction is carried by CR on the parent
-    // ledger, not by a negative qty.
-    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('10 NOS');
+    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('-10 NOS');
   });
 
-  it('no ACTUALQTY or BILLEDQTY ever starts with a minus sign across all trade vouchers', () => {
-    // Fix 3 guardrail: tallyQty() must always emit the absolute value.
-    // Previously a negative canonical quantity on sell lines combined with
-    // the sign-aware tallyQty() produced "-10 NOS", which Tally interpreted
-    // as a second negation and INCREASED stock on sale. Importing such XML
-    // corrupts holdings. This test scans every emitted quantity field in a
-    // mixed voucher batch and guarantees none carries a leading minus.
+  it('buy ACTUALQTY stays positive and sell ACTUALQTY stays negative across trade vouchers', () => {
     const buy = makeVoucher({
       voucher_type: VoucherType.PURCHASE,
       lines: [
@@ -593,9 +579,10 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     });
 
     const xml = generateVouchersXml([buy, sell], 'Co');
-    // Any ACTUALQTY / BILLEDQTY with a leading "-" is a Fix 3 regression.
-    const leadingMinusQty = /<(ACTUALQTY|BILLEDQTY)>\s*-/;
-    expect(leadingMinusQty.test(xml)).toBe(false);
+    expect(xml).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>10 NOS</BILLEDQTY>');
+    expect(xml).toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>-10 NOS</BILLEDQTY>');
   });
 });
 

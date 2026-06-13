@@ -68,6 +68,9 @@ export async function POST(request: Request) {
                 name: item.name,
                 base_unit: item.baseUnit,
                 aliases: item.aliases,
+                opening_quantity: item.openingQuantity,
+                opening_value: item.openingValue,
+                opening_rate: item.openingRate,
             })),
         );
 

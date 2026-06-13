@@ -45,6 +45,7 @@ import { InvoiceIntent, VoucherStatus, VoucherType, type VoucherLine } from '@/l
 import type { BuiltVoucherDraft, UncoveredSellTreatment } from '@/lib/engine/voucher-builder';
 import type { LedgerMasterInput } from '@/lib/export/tally-xml';
 import type { TallyProfile } from '@/lib/types/accounting';
+import type { TallyStockItemMapping } from '@/lib/db/stock-item-repository';
 import * as L from '@/lib/constants/ledger-names';
 import Decimal from 'decimal.js';
 import type {
@@ -625,6 +626,93 @@ function seedPriorOpeningLotsFromHoldings(params: {
   return seeded;
 }
 
+function normalizeMasterName(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function seedOpeningLotsFromTallyStockItems(params: {
+  tracker: CostLotTracker;
+  events: CanonicalEvent[];
+  stockItems: TallyStockItemMapping[];
+  resolver: ReturnType<typeof buildStockIdentityResolver>;
+  periodFrom: string;
+  batchId: string;
+}): number {
+  if (params.stockItems.length === 0) return 0;
+
+  const stockItemByName = new Map(
+    params.stockItems.map((item) => [normalizeMasterName(item.name), item]),
+  );
+  const refs = new Map<string, { securityId: string; symbol: string }>();
+  for (const event of params.events) {
+    if (
+      event.security_id &&
+      (event.event_type === EventType.BUY_TRADE || event.event_type === EventType.SELL_TRADE)
+    ) {
+      refs.set(event.security_id, {
+        securityId: event.security_id,
+        symbol: event.security_symbol ?? symbolFromSecurityId(event.security_id),
+      });
+    }
+  }
+
+  const syntheticAcquisitionDate = shiftDateByOneDay(params.periodFrom);
+  let seeded = 0;
+
+  for (const ref of refs.values()) {
+    if (params.tracker.getOpenLots(ref.securityId).length > 0) continue;
+
+    const identity = params.resolver.resolve({
+      symbol: ref.symbol,
+      securityId: ref.securityId,
+    });
+    if (!identity.stockItemExistsInTally) continue;
+
+    const item = stockItemByName.get(normalizeMasterName(identity.stockItemName));
+    if (!item?.opening_quantity) continue;
+
+    const quantity = new Decimal(item.opening_quantity);
+    if (!quantity.greaterThan(0)) continue;
+
+    const openingValue = item.opening_value ? new Decimal(item.opening_value) : null;
+    const openingRate = item.opening_rate ? new Decimal(item.opening_rate) : null;
+    const totalCost = openingValue && openingValue.greaterThan(0)
+      ? openingValue
+      : openingRate
+        ? openingRate.mul(quantity)
+        : new Decimal(0);
+    if (!totalCost.greaterThan(0)) continue;
+
+    const rate = totalCost.div(quantity).toDecimalPlaces(6);
+    const syntheticBuy: CanonicalEvent = {
+      event_id: crypto.randomUUID(),
+      import_batch_id: params.batchId,
+      event_type: EventType.BUY_TRADE,
+      trade_classification: TradeClassification.INVESTMENT,
+      trade_product: 'CNC',
+      event_date: syntheticAcquisitionDate,
+      settlement_date: null,
+      security_id: ref.securityId,
+      security_symbol: ref.symbol,
+      quantity: quantity.toFixed(),
+      rate: rate.toFixed(),
+      gross_amount: totalCost.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2),
+      charge_type: null,
+      charge_amount: '0',
+      source_file_id: 'tally-stock-master',
+      source_row_ids: [`tally-opening|${item.name}`],
+      contract_note_ref: null,
+      external_ref: `TALLY-OPENING-${item.name}`,
+      event_hash: `tally-opening|${ref.securityId}|${item.name}|${item.opening_quantity}|${item.opening_value ?? ''}`,
+    };
+
+    params.tracker.addLot(syntheticBuy);
+    seeded += 1;
+  }
+
+  return seeded;
+}
+
 function buildOpeningStockVoucher(params: {
   batchId: string;
   periodFrom: string;
@@ -1028,6 +1116,16 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       sourceFileId: fileIds.holdings ?? 'holdings:unknown',
     });
   }
+  const seededTallyOpeningLots = effectiveOpeningBalanceSource === 'none'
+    ? 0
+    : seedOpeningLotsFromTallyStockItems({
+        tracker,
+        events,
+        stockItems: tallyStockItems,
+        resolver: stockIdentityResolver,
+        periodFrom,
+        batchId,
+      });
   const shouldImportOpeningVoucher =
     effectiveOpeningBalanceSource === 'import_opening_voucher' ||
     effectiveOpeningBalanceSource === 'prior_batch';
@@ -1048,6 +1146,7 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
       priorLots,
       seededTaxPnlLots,
       seededTaxPnlOpeningLots,
+      seededTallyOpeningLots,
       openingVoucher,
       openingBalanceSource: effectiveOpeningBalanceSource,
       uncoveredSellTreatment,
