@@ -14,6 +14,7 @@
 import { create } from 'xmlbuilder2';
 import type { VoucherDraft, VoucherLine } from '../types/vouchers';
 import { InvoiceIntent, VoucherType } from '../types/vouchers';
+import * as L from '../constants/ledger-names';
 
 // ---------------------------------------------------------------------------
 // Public input types
@@ -139,11 +140,25 @@ export function tallyRate(rate: string, unit = 'NOS'): string {
   return `${Math.abs(n).toFixed(2)}/${unit}`;
 }
 
+function normalizeLedgerName(value: string): string {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function isKnownBrokerLedger(line: VoucherLine): boolean {
+  const name = normalizeLedgerName(line.ledger_name);
+  return (
+    name === normalizeLedgerName(L.BROKER.name) ||
+    name === normalizeLedgerName(L.CA_BROKER.name) ||
+    name.startsWith('ZERODHABROK') ||
+    name.startsWith('ZERODHABROKER') ||
+    name.startsWith('ZERODHAKITE')
+  );
+}
+
 function isLikelyPartyLedger(line: VoucherLine): boolean {
   if (line.quantity !== null || line.rate !== null) return false;
-  return !/^(STCG|LTCG|STCL|LTCL|Speculative|Share Brokerage|GST|Stt|STT|Exchange and Other Charges|SEBI|Stamp|Cost of Shares Sold|Trading Sales)$/i.test(
-    line.ledger_name,
-  );
+  const normalized = normalizeLedgerName(line.ledger_name);
+  return !/^(STCG|LTCG|STCL|LTCL|SPECULATIVE|SHAREBROKERAGE|BROKERAGE|GST|STT|SECURITIESTRANSACTIONTAX|EXCHANGE|SEBI|STAMP|DPCHARGES|DEMATCHARGES|AMCCHARGES|DEMATAMCCHARGES|MISCELLANEOUSCHARGES|COSTOFSHARESSOLD|TRADINGSALES)/i.test(normalized);
 }
 
 /**
@@ -190,8 +205,12 @@ export function resolveVoucherXmlRenderConfig(
   const persistedView = objView;
 
   const sortedLines = [...voucher.lines].sort((a, b) => a.line_no - b.line_no);
+  const accountingLines = sortedLines.filter(
+    (line) => line.quantity === null && line.rate === null,
+  );
   const partyLedgerName = isInvoice
-    ? sortedLines.find(isLikelyPartyLedger)?.ledger_name ??
+    ? accountingLines.find(isKnownBrokerLedger)?.ledger_name ??
+      accountingLines.find(isLikelyPartyLedger)?.ledger_name ??
       sortedLines.find((line) => line.quantity === null && line.rate === null)?.ledger_name ??
       sortedLines[0]?.ledger_name ??
       ''

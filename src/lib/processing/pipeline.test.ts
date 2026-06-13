@@ -242,6 +242,61 @@ describe('runProcessingPipeline — Tally security master mapping', () => {
         expect(result.transactionsXml).not.toContain('MOTILALOFS-SH');
     });
 
+    it('uses security_id/ISIN to pick the right mapping when broker symbols collide', async () => {
+        mockStockMappingRepo.listMappings.mockResolvedValueOnce([
+            {
+                id: 'mapping-wipro-old',
+                user_id: 'user-001',
+                security_id: 'ISIN:INE075A01022',
+                broker_symbol: 'WIPRO',
+                isin: 'INE075A01022',
+                tally_ledger_name: 'WIPRO-SH',
+                tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+                tally_stock_item_name: 'WIPRO',
+                base_unit: 'NOS',
+                match_source: 'manual',
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+            },
+            {
+                id: 'mapping-wipro-div',
+                user_id: 'user-001',
+                security_id: 'ISIN:INE075A01030',
+                broker_symbol: 'WIPRO',
+                isin: 'INE075A01030',
+                tally_ledger_name: 'WIPRO DIV-SH',
+                tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+                tally_stock_item_name: 'WIPRO DIV',
+                base_unit: 'NOS',
+                match_source: 'manual',
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        const wiproTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-15,NSE,EQ,WIPRO,INE075A01030,BUY,10,500.00,CNC,T900,ORD900,09:15:00',
+            '2024-08-20,NSE,EQ,WIPRO,INE075A01030,SELL,10,550.00,CNC,T901,ORD901,10:30:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-wipro-collision',
+            files: [
+                {
+                    fileId: 'file-wipro-collision',
+                    fileName: 'wipro-collision-tradebook.csv',
+                    buffer: wiproTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.transactionsXml).toContain('<LEDGERNAME>WIPRO DIV-SH</LEDGERNAME>');
+        expect(result.transactionsXml).toContain('<STOCKITEMNAME>WIPRO DIV</STOCKITEMNAME>');
+        expect(result.transactionsXml).not.toContain('<STOCKITEMNAME>WIPRO</STOCKITEMNAME>');
+    });
+
     it('fails safely when uploaded Tally stock masters exist but a traded security is unresolved', async () => {
         mockStockItemRepo.listStockItems.mockResolvedValueOnce([
             {

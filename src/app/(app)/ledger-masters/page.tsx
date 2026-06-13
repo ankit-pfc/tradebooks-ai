@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Plus, Upload, Trash2, FileText, Search } from "lucide-react";
+import { Check, Pencil, Plus, Upload, Trash2, FileText, Search, X } from "lucide-react";
 import { MAX_FILE_SIZE } from "@/lib/upload-constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,6 +82,10 @@ export default function LedgerMasterPage() {
   const [selectedSystemKey, setSelectedSystemKey] = useState("");
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState("");
+  const [editingLedgerKey, setEditingLedgerKey] = useState<string | null>(null);
+  const [editLedgerName, setEditLedgerName] = useState("");
+  const [editLedgerGroup, setEditLedgerGroup] = useState("");
+  const [savingLedgerKey, setSavingLedgerKey] = useState<string | null>(null);
   const [mappingSymbol, setMappingSymbol] = useState("");
   const [mappingIsin, setMappingIsin] = useState("");
   const [mappingLedger, setMappingLedger] = useState("");
@@ -267,11 +271,50 @@ export default function LedgerMasterPage() {
     }
   }
 
+  function startLedgerEdit(ledger: LedgerEntry) {
+    setEditingLedgerKey(ledger.key);
+    setEditLedgerName(ledger.name);
+    setEditLedgerGroup(ledger.group);
+  }
+
+  function cancelLedgerEdit() {
+    setEditingLedgerKey(null);
+    setEditLedgerName("");
+    setEditLedgerGroup("");
+  }
+
+  async function handleSaveLedgerEdit(ledgerKey: string) {
+    if (!editLedgerName.trim() || !editLedgerGroup.trim()) return;
+
+    setSavingLedgerKey(ledgerKey);
+    try {
+      const res = await fetch("/api/ledger-masters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ledger_key: ledgerKey,
+          name: editLedgerName.trim(),
+          parent_group: editLedgerGroup.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Failed to save ledger");
+        return;
+      }
+      cancelLedgerEdit();
+      await fetchLedgers(ledgerPage, ledgerSearch);
+    } finally {
+      setSavingLedgerKey(null);
+    }
+  }
+
   async function handleDelete(ledgerKey: string) {
     try {
       await fetch(`/api/ledger-masters?ledger_key=${encodeURIComponent(ledgerKey)}`, {
         method: "DELETE",
       });
+      if (editingLedgerKey === ledgerKey) cancelLedgerEdit();
       await fetchLedgers(ledgerPage, ledgerSearch);
     } catch {
       alert("Failed to delete");
@@ -431,40 +474,118 @@ export default function LedgerMasterPage() {
                   <TableHead className="text-sm font-semibold text-gray-900">
                     Source
                   </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900 pr-6 w-20" />
+                  <TableHead className="text-sm font-semibold text-gray-900 pr-6 w-36" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ledgers.map((ledger) => (
-                  <TableRow key={ledger.key} className="border-gray-100">
-                    <TableCell className="pl-6 text-base font-medium text-gray-900">
-                      {ledger.name}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-800">
-                      {ledger.group}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={SOURCE_BADGE_CLASS[ledger.source]}>
-                        {ledger.source === "system"
-                          ? "System"
-                          : ledger.source === "override"
-                            ? "Override"
-                            : "Custom"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="pr-6">
-                      {ledger.source !== "system" && (
-                        <button
-                          onClick={() => handleDelete(ledger.key)}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Remove override"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {ledgers.map((ledger) => {
+                  const isEditing = editingLedgerKey === ledger.key;
+                  const isSavingThisLedger = savingLedgerKey === ledger.key;
+                  const canSaveEdit = editLedgerName.trim().length > 0 && editLedgerGroup.trim().length > 0;
+
+                  return (
+                    <TableRow key={ledger.key} className="border-gray-100">
+                      <TableCell className="pl-6 text-base font-medium text-gray-900">
+                        {isEditing ? (
+                          <div>
+                            <label className="sr-only" htmlFor={`ledger-name-${ledger.key}`}>
+                              Ledger Name
+                            </label>
+                            <input
+                              id={`ledger-name-${ledger.key}`}
+                              type="text"
+                              value={editLedgerName}
+                              onChange={(event) => setEditLedgerName(event.target.value)}
+                              className="h-10 w-full min-w-64 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                              required
+                            />
+                          </div>
+                        ) : (
+                          ledger.name
+                        )}
+                      </TableCell>
+                      <TableCell className="text-base text-gray-800">
+                        {isEditing ? (
+                          <div>
+                            <label className="sr-only" htmlFor={`ledger-group-${ledger.key}`}>
+                              Parent Group
+                            </label>
+                            <input
+                              id={`ledger-group-${ledger.key}`}
+                              type="text"
+                              value={editLedgerGroup}
+                              onChange={(event) => setEditLedgerGroup(event.target.value)}
+                              className="h-10 w-full min-w-52 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                              required
+                            />
+                          </div>
+                        ) : (
+                          ledger.group
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={SOURCE_BADGE_CLASS[ledger.source]}>
+                          {ledger.source === "system"
+                            ? "System"
+                            : ledger.source === "override"
+                              ? "Override"
+                              : "Custom"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="pr-6">
+                        <div className="flex items-center justify-end gap-1">
+                          {isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleSaveLedgerEdit(ledger.key)}
+                                disabled={isSavingThisLedger || !canSaveEdit}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                title="Save ledger"
+                                aria-label="Save ledger"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelLedgerEdit}
+                                disabled={isSavingThisLedger}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                title="Cancel edit"
+                                aria-label="Cancel edit"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startLedgerEdit(ledger)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+                                title="Edit ledger"
+                                aria-label={`Edit ${ledger.name}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              {ledger.source !== "system" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(ledger.key)}
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                                  title="Remove override"
+                                  aria-label={`Remove ${ledger.name}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             <PaginationFooter

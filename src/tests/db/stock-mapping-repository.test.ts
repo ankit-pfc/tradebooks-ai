@@ -90,4 +90,36 @@ describe('localStockMappingRepository.listMappingsPaged', () => {
     expect(total).toBe(0);
     expect(mappings).toHaveLength(0);
   });
+
+  it('keeps same broker symbol mappings separate when security identity differs', async () => {
+    await localStockMappingRepository.bulkUpsertMappings(USER, [
+      {
+        security_id: 'ISIN:INE075A01022',
+        broker_symbol: 'WIPRO',
+        isin: 'INE075A01022',
+        tally_ledger_name: 'WIPRO-SH',
+        tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+        tally_stock_item_name: 'WIPRO',
+        base_unit: 'NOS',
+      },
+      {
+        security_id: 'ISIN:INE075A01030',
+        broker_symbol: 'WIPRO',
+        isin: 'INE075A01030',
+        tally_ledger_name: 'WIPRO DIV-SH',
+        tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+        tally_stock_item_name: 'WIPRO DIV',
+        base_unit: 'NOS',
+      },
+    ]);
+
+    const all = await localStockMappingRepository.listMappings(USER);
+    const wipro = all.filter((mapping) => mapping.broker_symbol === 'WIPRO');
+
+    expect(wipro).toHaveLength(2);
+    expect(wipro.map((mapping) => mapping.tally_stock_item_name).sort()).toEqual([
+      'WIPRO',
+      'WIPRO DIV',
+    ]);
+  });
 });

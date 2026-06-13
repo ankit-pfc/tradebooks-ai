@@ -101,17 +101,23 @@ function findAliasMatch<T extends { name: string; aliases?: string[] }>(
   );
 }
 
+function isKnownNonStockLedgerName(name: string): boolean {
+  const normalized = normalizeName(name);
+  return /^(STCG|LTCG|STCL|LTCL|DIV|GST|STT|SHAREBROKERAGE|BROKERAGE|SECURITIESTRANSACTIONTAX|EXCHANGE|SEBI|STAMP|DPCHARGES|DEMATCHARGES|AMCCHARGES|DEMATAMCCHARGES|MISCELLANEOUSCHARGES|TDS|TRADINGSALES|COSTOFSHARESSOLD)/i.test(normalized);
+}
+
 function isLikelyStockLedgerCandidate(candidate: LedgerCandidate, profileInvestmentGroup: string): boolean {
   const group = normalizeName(candidate.group);
   const profileGroup = normalizeName(profileInvestmentGroup);
   const name = normalizeName(candidate.name);
+
+  if (isKnownNonStockLedgerName(candidate.name)) return false;
 
   return (
     group === profileGroup ||
     group.includes('INVESTMENT') ||
     group.includes('STOCKINHAND') ||
     group.includes('STOCKINTRADE') ||
-    group.includes('SHARES') ||
     name.endsWith('SH')
   );
 }
@@ -213,15 +219,31 @@ function findExplicitMapping(
   const isin = (params.isin ?? isinFromSecurityId(params.securityId))?.trim().toUpperCase();
   const symbol = params.symbol.trim().toUpperCase();
 
-  return mappings.find((mapping) => {
+  const exactSecurity = mappings.find((mapping) => {
     const mappingSecurityId = mapping.security_id?.trim().toUpperCase();
-    if (securityId && mappingSecurityId && mappingSecurityId === securityId) return true;
-
-    const mappingIsin = mapping.isin?.trim().toUpperCase();
-    if (isin && mappingIsin && mappingIsin === isin) return true;
-
-    return mapping.broker_symbol.trim().toUpperCase() === symbol;
+    return Boolean(securityId && mappingSecurityId && mappingSecurityId === securityId);
   });
+  if (exactSecurity) return exactSecurity;
+
+  const exactIsin = mappings.find((mapping) => {
+    const mappingIsin = mapping.isin?.trim().toUpperCase();
+    return Boolean(isin && mappingIsin && mappingIsin === isin);
+  });
+  if (exactIsin) return exactIsin;
+
+  const symbolMatches = mappings.filter(
+    (mapping) => mapping.broker_symbol.trim().toUpperCase() === symbol,
+  );
+  if (symbolMatches.length === 1) return symbolMatches[0];
+
+  const genericSymbolMatches = symbolMatches.filter(
+    (mapping) => !mapping.security_id?.trim() && !mapping.isin?.trim(),
+  );
+  if (!securityId && !isin && genericSymbolMatches.length === 1) {
+    return genericSymbolMatches[0];
+  }
+
+  return undefined;
 }
 
 export function buildStockIdentityResolver(params: {
@@ -251,6 +273,9 @@ export function buildStockIdentityResolver(params: {
       const variants = symbolVariants(symbol, securityId, isin);
       const profileInvestment = resolveInvestmentLedger(params.tallyProfile, symbol);
       const explicitMapping = findExplicitMapping(securityMappings, { symbol, securityId, isin });
+      const stockLedgerCandidates = ledgerCandidates.filter((candidate) =>
+        isLikelyStockLedgerCandidate(candidate, profileInvestment.group),
+      );
 
       if (explicitMapping) {
         return {
@@ -264,9 +289,9 @@ export function buildStockIdentityResolver(params: {
       }
 
       const exactLedger =
-        findVariantMatch(ledgerCandidates, variants) ??
-        findByName(ledgerCandidates, profileInvestment.name) ??
-        findApproxLedgerMatch(ledgerCandidates, variants, profileInvestment.group);
+        findVariantMatch(stockLedgerCandidates, variants) ??
+        findByName(stockLedgerCandidates, profileInvestment.name) ??
+        findApproxLedgerMatch(stockLedgerCandidates, variants, profileInvestment.group);
       const aliasStockItem = findAliasMatch(stockItems, variants);
       const exactStockItem =
         aliasStockItem ??
