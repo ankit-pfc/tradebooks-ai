@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Plus, Upload, Trash2, FileText } from "lucide-react";
+import { Plus, Upload, Trash2, FileText, Search } from "lucide-react";
 import { MAX_FILE_SIZE } from "@/lib/upload-constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +32,8 @@ interface SecurityMappingEntry {
   base_unit: string;
   match_source: string;
 }
+
+const PAGE_SIZE = 20;
 
 const SOURCE_BADGE_CLASS: Record<LedgerEntry["source"], string> = {
   system: "bg-gray-50 text-gray-600 border-gray-200",
@@ -65,8 +67,15 @@ const SYSTEM_LEDGER_OPTIONS = [
 
 export default function LedgerMasterPage() {
   const [ledgers, setLedgers] = useState<LedgerEntry[]>([]);
+  const [ledgerTotal, setLedgerTotal] = useState(0);
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerPage, setLedgerPage] = useState(0);
+  const [ledgersLoading, setLedgersLoading] = useState(true);
   const [securityMappings, setSecurityMappings] = useState<SecurityMappingEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [mappingTotal, setMappingTotal] = useState(0);
+  const [mappingSearch, setMappingSearch] = useState("");
+  const [mappingPage, setMappingPage] = useState(0);
+  const [mappingsLoading, setMappingsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showMappingForm, setShowMappingForm] = useState(false);
@@ -83,27 +92,72 @@ export default function LedgerMasterPage() {
   const [savingMapping, setSavingMapping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchLedgers = useCallback(async () => {
+  const fetchLedgers = useCallback(async (page: number, search: string) => {
+    setLedgersLoading(true);
     try {
-      const [ledgerRes, mappingRes] = await Promise.all([
-        fetch("/api/ledger-masters"),
-        fetch("/api/ledger-masters/security-mappings"),
-      ]);
-      const ledgerData = await ledgerRes.json();
-      const mappingData = await mappingRes.json();
-      setLedgers(ledgerData.ledgers ?? []);
-      setSecurityMappings(mappingData.mappings ?? []);
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (search.trim()) params.set("q", search.trim());
+      const res = await fetch(`/api/ledger-masters?${params.toString()}`);
+      const data = await res.json();
+      setLedgers(data.ledgers ?? []);
+      setLedgerTotal(data.total ?? 0);
     } catch {
       setLedgers([]);
-      setSecurityMappings([]);
+      setLedgerTotal(0);
     } finally {
-      setLoading(false);
+      setLedgersLoading(false);
     }
   }, []);
 
+  const fetchMappings = useCallback(async (page: number, search: string) => {
+    setMappingsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (search.trim()) params.set("q", search.trim());
+      const res = await fetch(`/api/ledger-masters/security-mappings?${params.toString()}`);
+      const data = await res.json();
+      setSecurityMappings(data.mappings ?? []);
+      setMappingTotal(data.total ?? 0);
+    } catch {
+      setSecurityMappings([]);
+      setMappingTotal(0);
+    } finally {
+      setMappingsLoading(false);
+    }
+  }, []);
+
+  // Debounced search — also drives the initial load. Resets to the first page.
   useEffect(() => {
-    fetchLedgers();
-  }, [fetchLedgers]);
+    const t = setTimeout(() => {
+      setLedgerPage(0);
+      fetchLedgers(0, ledgerSearch);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [ledgerSearch, fetchLedgers]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setMappingPage(0);
+      fetchMappings(0, mappingSearch);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [mappingSearch, fetchMappings]);
+
+  function changeLedgerPage(next: number) {
+    setLedgerPage(next);
+    fetchLedgers(next, ledgerSearch);
+  }
+
+  function changeMappingPage(next: number) {
+    setMappingPage(next);
+    fetchMappings(next, mappingSearch);
+  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -127,7 +181,10 @@ export default function LedgerMasterPage() {
         alert(data.error ?? "Upload failed");
         return;
       }
-      await fetchLedgers();
+      await Promise.all([
+        fetchLedgers(ledgerPage, ledgerSearch),
+        fetchMappings(mappingPage, mappingSearch),
+      ]);
     } catch {
       alert("Upload failed");
     } finally {
@@ -164,7 +221,7 @@ export default function LedgerMasterPage() {
       setNewName("");
       setNewGroup("");
       setShowAddForm(false);
-      await fetchLedgers();
+      await fetchLedgers(ledgerPage, ledgerSearch);
     } finally {
       setSaving(false);
     }
@@ -204,7 +261,7 @@ export default function LedgerMasterPage() {
       setMappingStockItem("");
       setMappingUnit("NOS");
       setShowMappingForm(false);
-      await fetchLedgers();
+      await fetchMappings(mappingPage, mappingSearch);
     } finally {
       setSavingMapping(false);
     }
@@ -215,7 +272,7 @@ export default function LedgerMasterPage() {
       await fetch(`/api/ledger-masters?ledger_key=${encodeURIComponent(ledgerKey)}`, {
         method: "DELETE",
       });
-      await fetchLedgers();
+      await fetchLedgers(ledgerPage, ledgerSearch);
     } catch {
       alert("Failed to delete");
     }
@@ -323,10 +380,22 @@ export default function LedgerMasterPage() {
         </Card>
       )}
 
+      {/* Search */}
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="search"
+          value={ledgerSearch}
+          onChange={(e) => setLedgerSearch(e.target.value)}
+          placeholder="Search ledgers by name or group..."
+          className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        />
+      </div>
+
       {/* Table */}
       <Card className="border-gray-200">
         <CardContent className="p-0">
-          {loading ? (
+          {ledgersLoading ? (
             <div className="flex items-center justify-center py-16">
               <p className="text-sm text-gray-600">Loading ledgers...</p>
             </div>
@@ -338,15 +407,18 @@ export default function LedgerMasterPage() {
                 </div>
                 <div>
                   <p className="text-base font-medium text-gray-900">
-                    No ledgers found
+                    {ledgerSearch.trim() ? "No matching ledgers" : "No ledgers found"}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
-                    Upload a Tally export or add ledgers manually.
+                    {ledgerSearch.trim()
+                      ? "Try a different search term."
+                      : "Upload a Tally export or add ledgers manually."}
                   </p>
                 </div>
               </div>
             </div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50/50">
@@ -395,6 +467,14 @@ export default function LedgerMasterPage() {
                 ))}
               </TableBody>
             </Table>
+            <PaginationFooter
+              page={ledgerPage}
+              pageSize={PAGE_SIZE}
+              total={ledgerTotal}
+              onPrev={() => changeLedgerPage(ledgerPage - 1)}
+              onNext={() => changeLedgerPage(ledgerPage + 1)}
+            />
+            </>
           )}
         </CardContent>
       </Card>
@@ -520,17 +600,34 @@ export default function LedgerMasterPage() {
         </Card>
       )}
 
+      {/* Search */}
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="search"
+          value={mappingSearch}
+          onChange={(e) => setMappingSearch(e.target.value)}
+          placeholder="Search by symbol, ISIN, ledger, or stock item..."
+          className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        />
+      </div>
+
       <Card className="border-gray-200">
         <CardContent className="p-0">
-          {loading ? (
+          {mappingsLoading ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-sm text-gray-600">Loading mappings...</p>
             </div>
           ) : securityMappings.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-gray-600">No security mappings saved.</p>
+              <p className="text-sm text-gray-600">
+                {mappingSearch.trim()
+                  ? "No mappings match your search."
+                  : "No security mappings saved."}
+              </p>
             </div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 bg-gray-50/50">
@@ -575,9 +672,62 @@ export default function LedgerMasterPage() {
                 ))}
               </TableBody>
             </Table>
+            <PaginationFooter
+              page={mappingPage}
+              pageSize={PAGE_SIZE}
+              total={mappingTotal}
+              onPrev={() => changeMappingPage(mappingPage - 1)}
+              onNext={() => changeMappingPage(mappingPage + 1)}
+            />
+            </>
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function PaginationFooter({
+  page,
+  pageSize,
+  total,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const start = total === 0 ? 0 : page * pageSize + 1;
+  const end = Math.min(total, (page + 1) * pageSize);
+  const canPrev = page > 0;
+  const canNext = end < total;
+
+  return (
+    <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3">
+      <p className="text-sm text-gray-600">
+        {total === 0 ? "No results" : `${start}–${end} of ${total}`}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onPrev}
+          disabled={!canPrev}
+          className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!canNext}
+          className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

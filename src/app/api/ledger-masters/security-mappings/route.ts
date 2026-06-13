@@ -3,19 +3,34 @@ import { getStockMappingRepository } from '@/lib/db';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import type { TallySecurityMappingInput } from '@/lib/db/stock-mapping-repository';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const userId = await getAuthenticatedUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const mappings = await getStockMappingRepository().listMappings(userId);
-    return NextResponse.json({ mappings });
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q')?.trim() || undefined;
+    const limit = parsePositiveInt(searchParams.get('limit'));
+    const offset = parsePositiveInt(searchParams.get('offset')) ?? 0;
+
+    const { mappings, total } = await getStockMappingRepository().listMappingsPaged(userId, {
+      query,
+      limit,
+      offset,
+    });
+    return NextResponse.json({ mappings, total, limit: limit ?? total, offset });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to load security mappings';
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function parsePositiveInt(value: string | null): number | undefined {
+  if (value == null) return undefined;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 ? n : undefined;
 }
 
 export async function POST(request: Request) {

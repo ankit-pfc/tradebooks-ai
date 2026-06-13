@@ -34,8 +34,20 @@ export interface TallySecurityMappingInput {
   match_source?: TallySecurityMappingSource;
 }
 
+export interface ListMappingsOptions {
+  query?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PagedMappings {
+  mappings: TallySecurityMapping[];
+  total: number;
+}
+
 export interface StockMappingRepository {
   listMappings(userId: string): Promise<TallySecurityMapping[]>;
+  listMappingsPaged(userId: string, opts?: ListMappingsOptions): Promise<PagedMappings>;
   upsertMapping(userId: string, input: TallySecurityMappingInput): Promise<TallySecurityMapping>;
   bulkUpsertMappings(
     userId: string,
@@ -54,6 +66,23 @@ function filePath(userId: string): string {
 
 function mappingKey(input: Pick<TallySecurityMapping, 'broker_symbol'>): string {
   return `SYMBOL:${input.broker_symbol.trim().toUpperCase()}`;
+}
+
+function matchesQuery(mapping: TallySecurityMapping, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  return [
+    mapping.broker_symbol,
+    mapping.isin,
+    mapping.tally_ledger_name,
+    mapping.tally_stock_item_name,
+  ].some((value) => (value ?? '').toLowerCase().includes(needle));
+}
+
+function paginate<T>(items: T[], offset?: number, limit?: number): T[] {
+  const start = Math.max(0, offset ?? 0);
+  if (limit == null) return items.slice(start);
+  return items.slice(start, start + Math.max(0, limit));
 }
 
 async function readMappings(userId: string): Promise<TallySecurityMapping[]> {
@@ -97,6 +126,15 @@ export const localStockMappingRepository: StockMappingRepository = {
     return readMappings(userId);
   },
 
+  async listMappingsPaged(userId, opts = {}) {
+    const all = await readMappings(userId);
+    const filtered = opts.query ? all.filter((m) => matchesQuery(m, opts.query!)) : all;
+    return {
+      mappings: paginate(filtered, opts.offset, opts.limit),
+      total: filtered.length,
+    };
+  },
+
   async upsertMapping(userId, input) {
     const [saved] = await this.bulkUpsertMappings(userId, [input]);
     return saved;
@@ -136,6 +174,40 @@ export const supabaseStockMappingRepository: StockMappingRepository = {
     if (error?.message?.includes('schema cache')) return [];
     if (error) throw new Error(`listMappings failed: ${error.message}`);
     return (data ?? []) as TallySecurityMapping[];
+  },
+
+  async listMappingsPaged(userId, opts = {}) {
+    const supabase = await createClient();
+    let query = supabase
+      .from('user_tally_security_mappings')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    const needle = opts.query?.trim();
+    if (needle) {
+      // Strip PostgREST or-filter delimiters so user input can't break the expression.
+      const pattern = `%${needle.replace(/[,()]/g, ' ')}%`;
+      query = query.or(
+        [
+          `broker_symbol.ilike.${pattern}`,
+          `isin.ilike.${pattern}`,
+          `tally_ledger_name.ilike.${pattern}`,
+          `tally_stock_item_name.ilike.${pattern}`,
+        ].join(','),
+      );
+    }
+
+    query = query.order('created_at', { ascending: true });
+
+    if (opts.limit != null) {
+      const offset = Math.max(0, opts.offset ?? 0);
+      query = query.range(offset, offset + Math.max(0, opts.limit) - 1);
+    }
+
+    const { data, error, count } = await query;
+    if (error?.message?.includes('schema cache')) return { mappings: [], total: 0 };
+    if (error) throw new Error(`listMappingsPaged failed: ${error.message}`);
+    return { mappings: (data ?? []) as TallySecurityMapping[], total: count ?? 0 };
   },
 
   async upsertMapping(userId, input) {

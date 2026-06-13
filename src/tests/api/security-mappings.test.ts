@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const stockMappingRepo = {
   listMappings: vi.fn(),
+  listMappingsPaged: vi.fn(),
   upsertMapping: vi.fn(),
   bulkUpsertMappings: vi.fn(),
 };
@@ -18,10 +19,63 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
-const { POST } = await import('@/app/api/ledger-masters/security-mappings/route');
+const { GET, POST } = await import('@/app/api/ledger-masters/security-mappings/route');
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('GET /api/ledger-masters/security-mappings', () => {
+  it('forwards search + pagination params and returns the total', async () => {
+    stockMappingRepo.listMappingsPaged.mockResolvedValueOnce({
+      mappings: [{ id: 'm1', broker_symbol: 'WIPRO-EQ' }],
+      total: 42,
+    });
+
+    const res = await GET(
+      new Request(
+        'http://localhost/api/ledger-masters/security-mappings?q=wipro&limit=20&offset=20',
+      ),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.total).toBe(42);
+    expect(body.offset).toBe(20);
+    expect(body.limit).toBe(20);
+    expect(body.mappings).toHaveLength(1);
+    expect(stockMappingRepo.listMappingsPaged).toHaveBeenCalledWith('user-001', {
+      query: 'wipro',
+      limit: 20,
+      offset: 20,
+    });
+  });
+
+  it('omits the query and defaults offset to 0 when params are absent', async () => {
+    stockMappingRepo.listMappingsPaged.mockResolvedValueOnce({ mappings: [], total: 0 });
+
+    await GET(new Request('http://localhost/api/ledger-masters/security-mappings'));
+
+    expect(stockMappingRepo.listMappingsPaged).toHaveBeenCalledWith('user-001', {
+      query: undefined,
+      limit: undefined,
+      offset: 0,
+    });
+  });
+
+  it('ignores invalid limit/offset values', async () => {
+    stockMappingRepo.listMappingsPaged.mockResolvedValueOnce({ mappings: [], total: 0 });
+
+    await GET(
+      new Request('http://localhost/api/ledger-masters/security-mappings?limit=abc&offset=-5'),
+    );
+
+    expect(stockMappingRepo.listMappingsPaged).toHaveBeenCalledWith('user-001', {
+      query: undefined,
+      limit: undefined,
+      offset: 0,
+    });
+  });
 });
 
 describe('POST /api/ledger-masters/security-mappings', () => {

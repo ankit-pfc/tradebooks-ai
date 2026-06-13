@@ -18,7 +18,7 @@ interface LedgerEntry {
 // GET — merged system defaults + user overrides
 // ---------------------------------------------------------------------------
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
         const userId = await getAuthenticatedUserId();
         if (!userId) {
@@ -29,7 +29,7 @@ export async function GET() {
         const overrides = await repo.listOverrides(userId);
         const overrideMap = new Map(overrides.map((o) => [o.ledger_key, o]));
 
-        const ledgers: LedgerEntry[] = SYSTEM_LEDGERS.map((sys) => {
+        const allLedgers: LedgerEntry[] = SYSTEM_LEDGERS.map((sys) => {
             const override = overrideMap.get(sys.key);
             if (override) {
                 overrideMap.delete(sys.key);
@@ -45,7 +45,7 @@ export async function GET() {
 
         // Append custom ledgers (not overriding any system key)
         for (const [, override] of overrideMap) {
-            ledgers.push({
+            allLedgers.push({
                 key: override.ledger_key,
                 name: override.name,
                 group: override.parent_group,
@@ -53,11 +53,36 @@ export async function GET() {
             });
         }
 
-        return NextResponse.json({ ledgers });
+        // Server-side search + pagination over the merged list.
+        const { searchParams } = new URL(request.url);
+        const query = searchParams.get('q')?.trim().toLowerCase() ?? '';
+        const limit = parsePositiveInt(searchParams.get('limit'));
+        const offset = parsePositiveInt(searchParams.get('offset')) ?? 0;
+
+        const filtered = query
+            ? allLedgers.filter(
+                  (l) =>
+                      l.name.toLowerCase().includes(query) ||
+                      l.group.toLowerCase().includes(query) ||
+                      l.key.toLowerCase().includes(query),
+              )
+            : allLedgers;
+
+        const total = filtered.length;
+        const ledgers =
+            limit != null ? filtered.slice(offset, offset + limit) : filtered.slice(offset);
+
+        return NextResponse.json({ ledgers, total, limit: limit ?? total, offset });
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load ledger masters';
         return NextResponse.json({ error: message }, { status: 500 });
     }
+}
+
+function parsePositiveInt(value: string | null): number | undefined {
+    if (value == null) return undefined;
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 ? n : undefined;
 }
 
 // ---------------------------------------------------------------------------
