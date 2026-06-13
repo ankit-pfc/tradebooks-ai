@@ -54,4 +54,43 @@ describe('buildStockIdentityResolver — ledger-only Tally masters', () => {
       matchConfidence: 'pattern',
     });
   });
+
+  it('does not treat AMC, GST, STT, charge, or gain ledgers as stock identities', () => {
+    const resolver = buildStockIdentityResolver({
+      tallyProfile: INVESTOR_TALLY_DEFAULT,
+      stockItems: [],
+      ledgerOverrides: [
+        ledger('AMC CHARGES-ZERODHA', 'Capital Account'),
+        ledger('GST on Brokerage', 'Duties & Taxes'),
+        ledger('Stt', 'Capital Account'),
+        ledger('SHARE BROKERAGE', 'Capital Account'),
+        ledger('Exchange and Other Charges', 'Capital Account'),
+        ledger('DP Charges-Zerodha', 'Capital Account'),
+        ledger('STCG ON WIPRO', 'STCG'),
+        ledger('LTCG ON WIPRO', 'LTCG'),
+        ledger('DIV WIPRO', 'Div on Shares'),
+      ],
+    });
+
+    expect(resolver.resolve({ symbol: 'WIPRO' })).toMatchObject({
+      investmentLedgerName: 'WIPRO-SH',
+      stockItemName: 'WIPRO-SH',
+      matchConfidence: 'generated',
+      stockItemExistsInTally: false,
+    });
+
+    expect(resolver.resolve({ symbol: 'GST' })).toMatchObject({
+      investmentLedgerName: 'GST-SH',
+      stockItemName: 'GST-SH',
+      matchConfidence: 'generated',
+      stockItemExistsInTally: false,
+    });
+
+    expect(resolver.resolve({ symbol: 'STT' })).toMatchObject({
+      investmentLedgerName: 'STT-SH',
+      stockItemName: 'STT-SH',
+      matchConfidence: 'generated',
+      stockItemExistsInTally: false,
+    });
+  });
 });

@@ -78,8 +78,14 @@ function cleanIsin(value: string | null | undefined): string | null {
   return trimmed;
 }
 
-function securityKey(ref: Pick<SecurityRef, 'broker_symbol'>): string {
-  return normalize(ref.broker_symbol);
+function securityKey(ref: SecurityRef): string {
+  const securityId = ref.security_id?.trim().toUpperCase();
+  if (securityId) return `SECURITY:${securityId}`;
+
+  const isin = cleanIsin(ref.isin);
+  if (isin) return `ISIN:${isin}`;
+
+  return `SYMBOL:${normalize(ref.broker_symbol)}`;
 }
 
 function findSavedMapping(
@@ -90,22 +96,41 @@ function findSavedMapping(
   const securityId = ref.security_id?.trim().toUpperCase();
   const isin = cleanIsin(ref.isin);
 
-  return mappings.find((mapping) => {
-    if (securityId && mapping.security_id?.trim().toUpperCase() === securityId) return true;
-    if (isin && mapping.isin?.trim().toUpperCase() === isin) return true;
-    return normalize(mapping.broker_symbol) === symbol;
-  });
+  const exactSecurity = mappings.find(
+    (mapping) => securityId && mapping.security_id?.trim().toUpperCase() === securityId,
+  );
+  if (exactSecurity) return exactSecurity;
+
+  const exactIsin = mappings.find(
+    (mapping) => isin && mapping.isin?.trim().toUpperCase() === isin,
+  );
+  if (exactIsin) return exactIsin;
+
+  const symbolMatches = mappings.filter((mapping) => normalize(mapping.broker_symbol) === symbol);
+  if (symbolMatches.length === 1) return symbolMatches[0];
+
+  const genericSymbolMatches = symbolMatches.filter(
+    (mapping) => !mapping.security_id?.trim() && !mapping.isin?.trim(),
+  );
+  if (!securityId && !isin && genericSymbolMatches.length === 1) {
+    return genericSymbolMatches[0];
+  }
+
+  return undefined;
 }
 
 function likelyInvestmentLedger(override: LedgerOverride): boolean {
   const group = normalizeLedger(override.parent_group);
   const name = normalizeLedger(override.name);
 
+  if (/^(STCG|LTCG|STCL|LTCL|DIV|GST|STT|SHAREBROKERAGE|BROKERAGE|SECURITIESTRANSACTIONTAX|EXCHANGE|SEBI|STAMP|DPCHARGES|DEMATCHARGES|AMCCHARGES|DEMATAMCCHARGES|MISCELLANEOUSCHARGES|TDS|TRADINGSALES|COSTOFSHARESSOLD)/i.test(name)) {
+    return false;
+  }
+
   return (
     group.includes('INVESTMENT') ||
     group.includes('STOCKINHAND') ||
     group.includes('STOCKINTRADE') ||
-    group.includes('SHARES') ||
     name.endsWith('SH')
   );
 }
@@ -146,7 +171,11 @@ function addSecurity(securities: Map<string, SecurityRef>, ref: SecurityRef): vo
   const symbol = ref.broker_symbol.trim().toUpperCase();
   if (!symbol) return;
 
-  const key = securityKey({ broker_symbol: symbol });
+  const key = securityKey({
+    broker_symbol: symbol,
+    security_id: ref.security_id,
+    isin: cleanIsin(ref.isin),
+  });
   const current = securities.get(key);
   securities.set(key, {
     broker_symbol: symbol,

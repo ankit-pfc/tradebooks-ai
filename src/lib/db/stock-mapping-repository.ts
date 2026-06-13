@@ -11,6 +11,7 @@ export type TallySecurityMappingSource =
 export interface TallySecurityMapping {
   id: string;
   user_id: string;
+  mapping_key?: string;
   security_id: string | null;
   broker_symbol: string;
   isin: string | null;
@@ -64,7 +65,18 @@ function filePath(userId: string): string {
   return join(getMappingDir(), `${userId}.json`);
 }
 
-function mappingKey(input: Pick<TallySecurityMapping, 'broker_symbol'>): string {
+function cleanIdentity(value: string | null | undefined): string | null {
+  const trimmed = value?.trim().toUpperCase();
+  return trimmed ? trimmed : null;
+}
+
+function mappingKey(input: Pick<TallySecurityMappingInput, 'broker_symbol' | 'security_id' | 'isin'>): string {
+  const securityId = cleanIdentity(input.security_id);
+  if (securityId) return `SECURITY:${securityId}`;
+
+  const isin = cleanIdentity(input.isin);
+  if (isin) return `ISIN:${isin}`;
+
   return `SYMBOL:${input.broker_symbol.trim().toUpperCase()}`;
 }
 
@@ -108,6 +120,7 @@ function toMapping(
   return {
     id: current?.id ?? crypto.randomUUID(),
     user_id: userId,
+    mapping_key: mappingKey(input),
     security_id: input.security_id?.trim() || null,
     broker_symbol: input.broker_symbol.trim().toUpperCase(),
     isin: input.isin?.trim().toUpperCase() || null,
@@ -149,9 +162,7 @@ export const localStockMappingRepository: StockMappingRepository = {
       if (!input.broker_symbol.trim()) continue;
       if (!input.tally_ledger_name.trim() || !input.tally_stock_item_name.trim()) continue;
 
-      const key = mappingKey({
-        broker_symbol: input.broker_symbol,
-      });
+      const key = mappingKey(input);
       const entry = toMapping(userId, input, byKey.get(key));
       byKey.set(key, entry);
       results.push(entry);
@@ -219,6 +230,7 @@ export const supabaseStockMappingRepository: StockMappingRepository = {
     const rows = inputs
       .map((input) => ({
         user_id: userId,
+        mapping_key: mappingKey(input),
         security_id: input.security_id?.trim() || null,
         broker_symbol: input.broker_symbol.trim().toUpperCase(),
         isin: input.isin?.trim().toUpperCase() || null,
@@ -240,11 +252,11 @@ export const supabaseStockMappingRepository: StockMappingRepository = {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('user_tally_security_mappings')
-      .upsert(rows, { onConflict: 'user_id,broker_symbol' })
+      .upsert(rows, { onConflict: 'user_id,mapping_key' })
       .select();
 
     if (error?.message?.includes('schema cache')) {
-      throw new Error('Tally security mappings table not yet available. Please run the database migration.');
+      throw new Error('Tally security mappings table not yet available or is missing identity-key support. Please run the database migration.');
     }
     if (error) throw new Error(`bulkUpsertMappings failed: ${error.message}`);
     return (data ?? []) as TallySecurityMapping[];

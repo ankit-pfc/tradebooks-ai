@@ -101,6 +101,43 @@ describe('generateVouchersXml — purchase/sales invoice rendering', () => {
     expect(xml).toContain('<INVENTORYALLOCATIONS.LIST>');
   });
 
+  it('prefers the broker ledger as invoice party when AMC charge lines are present', () => {
+    const voucher = makeVoucher(
+      VoucherType.JOURNAL,
+      true,
+      'purchase with AMC charge',
+      InvoiceIntent.PURCHASE,
+    );
+    voucher.lines = [
+      { ...voucher.lines[1], line_no: 1 },
+      {
+        voucher_line_id: 'l-amc',
+        voucher_draft_id: 'v1',
+        line_no: 2,
+        ledger_name: 'AMC CHARGES-ZERODHA',
+        amount: '100',
+        dr_cr: 'DR',
+        security_id: null,
+        quantity: null,
+        rate: null,
+        stock_item_name: null,
+        cost_center: null,
+        bill_ref: null,
+      },
+      {
+        ...voucher.lines[0],
+        line_no: 3,
+        ledger_name: 'Zerodha Broker',
+        amount: '10100',
+      },
+    ];
+
+    const xml = generateVouchersXml([voucher], 'Test Co');
+
+    expect(xml).toContain('<PARTYLEDGERNAME>Zerodha Broker</PARTYLEDGERNAME>');
+    expect(xml).not.toContain('<PARTYLEDGERNAME>AMC CHARGES-ZERODHA</PARTYLEDGERNAME>');
+  });
+
   it('renders journal sales drafts with stock lines as Sales invoice vouchers', () => {
     const xml = generateVouchersXml(
       [makeVoucher(VoucherType.JOURNAL, true, 'renamed narrative', InvoiceIntent.SALES)],
