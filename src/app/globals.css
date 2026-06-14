@@ -45,6 +45,28 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ── Marketing landing palette (design handoff v2) ──
+     Additive only. Action-blue is namespaced (NOT --primary, which stays navy
+     so existing shadcn buttons keep their color). */
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-brand: var(--brand);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-cyan: var(--cyan);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+  --font-display: var(--font-geist);
 }
 
 :root {
@@ -55,6 +77,25 @@
   --tb-red: #EB5757;
   --tb-grey: #6B7280;
   --tb-white: #FFFFFF;
+
+  /* ── Marketing landing tokens (design handoff v2) ── */
+  --bg: #FBFCFE;
+  --bg-2: #F4F6FA;
+  --surface: #FFFFFF;
+  --surface-2: #F4F6FA;
+  --surface-3: #EDF1F8;
+  --hairline: #E5E9F0;
+  --hairline-strong: #CBD3E0;
+  --ink: #0B1F33;
+  --ink-2: #475569;
+  --ink-3: #7A8699;
+  --brand: #0B1F33;
+  --action: #1F5AE0;
+  --action-hover: #1A4DC2;
+  --cyan: #2D9CDB;
+  --pos: #0B815A;
+  --neg: #C8324B;
+  --warn: #B45309;
 
   /* ── Typography scale ── */
   --text-xs: 12px;
@@ -133,24 +174,44 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* ── Hero screen carousel animation ── */
-@keyframes heroScreen1 {
-  0%, 29%   { opacity: 1; }
-  33%, 100% { opacity: 0; }
+/* ── Marketing landing interactions (design handoff v2) ── */
+html {
+  scroll-behavior: smooth;
+  /* keep anchored sections clear of the sticky marketing nav */
+  scroll-padding-top: 80px;
 }
 
-@keyframes heroScreen2 {
-  0%, 33%  { opacity: 0; }
-  37%, 62% { opacity: 1; }
-  66%, 100% { opacity: 0; }
+.tb-landing ::selection {
+  background: var(--action);
+  color: #fff;
 }
 
-@keyframes heroScreen3 {
-  0%, 66%  { opacity: 0; }
-  70%, 96% { opacity: 1; }
-  100%     { opacity: 0; }
+/* Scroll-reveal. The hidden state only applies once the client controller adds
+   [data-reveal-active] — so without JS (or under reduced motion) everything is
+   visible and crawlable. */
+.tb-landing[data-reveal-active] [data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.tb-landing[data-reveal-active] [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .tb-landing[data-reveal-active] [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
 
 @layer base {
   * {
