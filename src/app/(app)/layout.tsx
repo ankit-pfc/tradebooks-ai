@@ -182,7 +182,7 @@ export default function AppLayout({
             className="flex-1 overflow-y-auto"
             onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
           >
-            {children}
+            <div className="min-h-full">{children}</div>
           </main>
         </div>
 

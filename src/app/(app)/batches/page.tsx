@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Bot, FileText, Plus } from "lucide-react";
 import { TradebookChat } from "@/components/agent/tradebook-chat";
 import { buttonVariants } from "@/components/ui/button";
@@ -86,7 +85,6 @@ function formatPeriod(from: string, to: string): string {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function BatchesPage() {
-  const router = useRouter();
   const [batches, setBatches] = useState<BatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -202,7 +200,7 @@ export default function BatchesPage() {
             aria-label={`Ask AI about ${r.company_name}`}
             className={cn(
               buttonVariants({
-                variant: selectedBatchId === r.id ? "default" : "ghost",
+                variant: selectedBatchId === r.id ? "default" : "outline",
                 size: "sm",
               }),
             )}
@@ -272,7 +270,6 @@ export default function BatchesPage() {
         initialSort={{ id: "created", dir: "desc" }}
         loading={loading}
         emptyState={emptyStateNode}
-        onRowClick={(r) => router.push(`/dev/trace/${r.id}`)}
         toolbar={
           <div className="flex items-center gap-2">
             <label
