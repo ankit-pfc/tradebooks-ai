@@ -21,10 +21,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Logo } from "@/components/ui/logo";
+import { MarketingLogo } from "@/components/marketing/marketing-logo";
 import { SupportChatFab } from "@/components/agent/support-chat-fab";
 import { AppThemeProvider } from "@/components/app/app-theme-provider";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DensityToggle } from "@/components/ui/density-toggle";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { cn } from "@/lib/utils";
@@ -73,7 +72,7 @@ export default function AppLayout({
         {/* ── Sidebar (light) ── */}
         <aside className="flex w-60 shrink-0 flex-col border-r border-hairline bg-sidebar">
           <div className="flex h-14 items-center border-b border-hairline px-5">
-            <Logo />
+            <MarketingLogo href="/dashboard" />
           </div>
 
           <nav className="flex-1 space-y-0.5 px-3 py-4">
@@ -173,7 +172,6 @@ export default function AppLayout({
                 </kbd>
               </button>
               <DensityToggle />
-              <ThemeToggle />
             </div>
           </header>
 

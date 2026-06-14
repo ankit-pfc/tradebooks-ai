@@ -51,8 +51,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning: the app shell's pre-paint init script adds
+  // `tb-app` + `data-density` to <html> before React hydrates.
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${geist.variable} ${geistMono.variable} antialiased`}
       >

@@ -8,7 +8,6 @@ import {
   BookOpen,
   History,
   Settings,
-  Sun,
   AlignJustify,
 } from "lucide-react";
 
@@ -19,7 +18,7 @@ import {
   DialogOverlay,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAppTheme, useDensity } from "@/components/app/app-theme-provider";
+import { useDensity } from "@/components/app/app-theme-provider";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -53,7 +52,6 @@ function CommandPaletteContent({
   extraItems: CommandItem[];
 }) {
   const router = useRouter();
-  const { toggleTheme } = useAppTheme();
   const { toggleDensity } = useDensity();
 
   const builtInItems: CommandItem[] = React.useMemo(
@@ -99,14 +97,6 @@ function CommandPaletteContent({
         onSelect: () => router.push("/settings"),
       },
       {
-        id: "toggle-theme",
-        label: "Toggle theme",
-        hint: "Light / Dark",
-        icon: <Sun className="h-4 w-4" />,
-        keywords: "theme dark light mode",
-        onSelect: () => toggleTheme(),
-      },
-      {
         id: "toggle-density",
         label: "Toggle density",
         hint: "Comfortable / Compact",
@@ -115,7 +105,7 @@ function CommandPaletteContent({
         onSelect: () => toggleDensity(),
       },
     ],
-    [router, toggleTheme, toggleDensity]
+    [router, toggleDensity]
   );
 
   const allItems: CommandItem[] = React.useMemo(

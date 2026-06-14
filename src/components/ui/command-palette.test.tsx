@@ -13,20 +13,10 @@ vi.mock('next/navigation', () => ({
 
 // ─── Mock app-theme-provider (avoids window.matchMedia in jsdom) ──────────────
 
-const mockToggleTheme = vi.fn();
 const mockToggleDensity = vi.fn();
 
 vi.mock('@/components/app/app-theme-provider', () => ({
   AppThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useAppTheme: () => ({
-    theme: 'light',
-    resolvedTheme: 'light',
-    setTheme: vi.fn(),
-    toggleTheme: mockToggleTheme,
-    density: 'comfortable',
-    setDensity: vi.fn(),
-    toggleDensity: mockToggleDensity,
-  }),
   useDensity: () => ({
     density: 'comfortable',
     setDensity: vi.fn(),
@@ -56,7 +46,6 @@ function getSearchInput(): HTMLInputElement {
 
 beforeEach(() => {
   mockPush.mockClear();
-  mockToggleTheme.mockClear();
   mockToggleDensity.mockClear();
 });
 
@@ -226,17 +215,6 @@ describe('CommandPalette', () => {
 
     fireEvent.click(screen.getByText('My Custom Command'));
     expect(onSelect).toHaveBeenCalledOnce();
-  });
-
-  it('calls toggleTheme when Toggle theme item is selected', async () => {
-    renderPalette();
-    pressMetaK();
-
-    await waitFor(() => expect(screen.getByText('Toggle theme')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Toggle theme'));
-
-    expect(mockToggleTheme).toHaveBeenCalledOnce();
   });
 
   it('calls toggleDensity when Toggle density item is selected', async () => {
