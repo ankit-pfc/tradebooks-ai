@@ -348,9 +348,7 @@ function StepConfigure({
 
 const FILE_REQUIREMENTS = [
   { type: "Tradebook", status: "Required", note: "Trade-by-trade CSV from Zerodha Console" },
-  { type: "Funds Statement", status: "Recommended", note: "Ledger/P&L statement for cash reconciliation" },
-  { type: "Holdings", status: "Optional", note: "Current holdings snapshot for opening balance" },
-  { type: "Contract Note", status: "Optional", note: "Daily contract notes for brokerage details" },
+  { type: "Contract Note", status: "Required", note: "Daily contract notes for brokerage details" },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -383,6 +381,9 @@ function StepUpload({
   const hasTradebook = fileList.some(
     (f) => f.detectedType === 'tradebook' && f.status === 'uploaded'
   );
+  const hasContractNote = fileList.some(
+    (f) => f.detectedType === 'contract_note' && f.status === 'uploaded'
+  );
   const hasInFlight = fileList.some((f) => f.status === 'pending' || f.status === 'uploading');
   const hasUploaded = fileList.some((f) => f.status === 'uploaded');
   const failedCount = fileList.filter((f) => f.status === 'failed').length;
@@ -409,7 +410,7 @@ function StepUpload({
       <div>
         <h2 className="text-xl font-bold text-gray-900">Upload Files</h2>
         <p className="text-base text-gray-700 mt-1">
-          Upload your Zerodha export files. At minimum, a Tradebook file is required.
+          Upload your Zerodha export files. Both a Tradebook and a Contract Note are required.
         </p>
       </div>
 
@@ -502,7 +503,7 @@ function StepUpload({
       <div className="rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
           <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            Required &amp; Recommended Files
+            Required Files
           </p>
         </div>
         <div className="divide-y divide-gray-100">
@@ -578,8 +579,8 @@ function StepUpload({
         </div>
       )}
 
-      {/* Validation: tradebook required */}
-      {fileList.length > 0 && !hasTradebook && hasUploaded && !hasInFlight && (
+      {/* Validation: tradebook + contract note required */}
+      {fileList.length > 0 && (!hasTradebook || !hasContractNote) && hasUploaded && !hasInFlight && (
         <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <svg
             width="16"
@@ -596,9 +597,18 @@ function StepUpload({
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          <p className="text-sm text-amber-700">
-            A <strong>Tradebook</strong> file is required to proceed. Please upload it from Zerodha Console → Reports → Tradebook.
-          </p>
+          <div className="text-sm text-amber-700 space-y-1">
+            {!hasTradebook && (
+              <p>
+                A <strong>Tradebook</strong> file is required to proceed. Please upload it from Zerodha Console → Reports → Tradebook.
+              </p>
+            )}
+            {!hasContractNote && (
+              <p>
+                A <strong>Contract Note</strong> file is required to proceed. Please upload it from Zerodha Console → Reports → Contract Notes.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -634,7 +644,7 @@ function StepUpload({
         <Button
           onClick={onReview}
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-          disabled={!canProcess || !hasTradebook}
+          disabled={!canProcess || !hasTradebook || !hasContractNote}
         >
           Review Tally Matches
           <svg
