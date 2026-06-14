@@ -1,5 +1,6 @@
 'use client';
 
+import { File, Check, X, Loader2 } from 'lucide-react';
 import type { BatchFileType } from '@/lib/types/domain';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -17,19 +18,20 @@ export const BATCH_FILE_TYPE_LABELS: Record<BatchFileType, string> = {
   unknown: 'Unknown',
 };
 
+// Per-type badges keep visual distinction via surface-3 tints + text-ink-2 with a
+// subtle left border accent. We use only token-compatible opacity modifiers.
 export const FILE_TYPE_BADGE: Record<BatchFileType, string> = {
-  tradebook: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  funds_statement: 'bg-blue-100 text-blue-700 border-blue-200',
-  holdings: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  ledger: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-  contract_note: 'bg-violet-100 text-violet-700 border-violet-200',
-  taxpnl: 'bg-orange-100 text-orange-700 border-orange-200',
-  // Detected but informational only — every value in this file is already
-  // derived from the tradebook + Tax P&L, so the pipeline safely skips it.
-  pnl: 'bg-slate-100 text-slate-600 border-slate-200',
-  agts: 'bg-pink-100 text-pink-700 border-pink-200',
-  dividends: 'bg-teal-100 text-teal-700 border-teal-200',
-  unknown: 'bg-gray-100 text-gray-600 border-gray-200',
+  tradebook:      'bg-primary/10 text-primary border-primary/20',
+  funds_statement:'bg-info/10 text-info border-info/20',
+  holdings:       'bg-pos/10 text-pos border-pos/20',
+  ledger:         'bg-cyan/10 text-cyan border-cyan/20',
+  contract_note:  'bg-warn/10 text-warn border-warn/20',
+  taxpnl:         'bg-warn/15 text-warn border-warn/25',
+  // Detected but informational only — pipeline safely skips it.
+  pnl:            'bg-surface-3 text-ink-2 border-hairline',
+  agts:           'bg-neg/10 text-neg border-neg/20',
+  dividends:      'bg-pos/15 text-pos border-pos/25',
+  unknown:        'bg-surface-2 text-ink-3 border-hairline',
 };
 
 function formatBytes(bytes: number): string {
@@ -54,21 +56,8 @@ export interface FileUploadStatusProps {
 
 function FileIcon() {
   return (
-    <div className="w-10 h-10 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
-      <svg
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-gray-500"
-      >
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
+    <div className="w-10 h-10 rounded-md bg-surface-2 flex items-center justify-center shrink-0">
+      <File className="h-4 w-4 text-ink-3" />
     </div>
   );
 }
@@ -76,7 +65,7 @@ function FileIcon() {
 function SpinnerIcon() {
   return (
     <div className="w-10 h-10 flex items-center justify-center shrink-0">
-      <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+      <Loader2 className="h-5 w-5 text-info animate-spin" />
     </div>
   );
 }
@@ -84,20 +73,8 @@ function SpinnerIcon() {
 function GreenCheckIcon() {
   return (
     <div className="w-10 h-10 flex items-center justify-center shrink-0">
-      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-emerald-600"
-        >
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
+      <div className="w-8 h-8 rounded-full bg-pos/10 flex items-center justify-center">
+        <Check className="h-4 w-4 text-pos" strokeWidth={2.5} />
       </div>
     </div>
   );
@@ -106,21 +83,8 @@ function GreenCheckIcon() {
 function RedXIcon() {
   return (
     <div className="w-10 h-10 flex items-center justify-center shrink-0">
-      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-red-600"
-        >
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+      <div className="w-8 h-8 rounded-full bg-neg/10 flex items-center justify-center">
+        <X className="h-4 w-4 text-neg" strokeWidth={2.5} />
       </div>
     </div>
   );
@@ -138,7 +102,7 @@ export function FileUploadStatus({
   onRetry,
 }: FileUploadStatusProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 space-y-1.5">
+    <div className="rounded-xl border border-hairline bg-card px-4 py-3 space-y-1.5">
       <div className="flex items-center gap-3">
         {/* Left icon */}
         {status === 'pending' && <FileIcon />}
@@ -148,14 +112,14 @@ export function FileUploadStatus({
 
         {/* File info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate" title={fileName}>
+          <p className="text-sm font-medium text-ink truncate" title={fileName}>
             {fileName}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-gray-500">{formatBytes(sizeBytes)}</span>
+            <span className="text-xs text-ink-3 mono-data">{formatBytes(sizeBytes)}</span>
 
             {status === 'uploading' && (
-              <span className="text-xs text-indigo-600 font-medium">Uploading…</span>
+              <span className="text-xs text-info font-medium">Uploading…</span>
             )}
 
             {status === 'uploaded' && detectedType && (
@@ -168,7 +132,7 @@ export function FileUploadStatus({
 
             {status === 'failed' && errorMessage && (
               <span
-                className="text-xs text-red-600 truncate max-w-[200px]"
+                className="text-xs text-neg truncate max-w-[200px]"
                 title={errorMessage}
               >
                 {errorMessage}
@@ -183,21 +147,9 @@ export function FileUploadStatus({
             type="button"
             onClick={onRemove}
             aria-label="Remove"
-            className="ml-1 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+            className="ml-1 w-7 h-7 rounded-md flex items-center justify-center text-ink-3 hover:text-neg hover:bg-neg/10 transition-colors shrink-0"
           >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
 
@@ -206,7 +158,7 @@ export function FileUploadStatus({
             type="button"
             onClick={onRetry}
             aria-label="Retry"
-            className="shrink-0 text-xs font-medium px-3 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors"
+            className="shrink-0 text-xs font-medium px-3 py-1 rounded-md bg-neg/10 text-neg hover:bg-neg/20 border border-neg/20 transition-colors"
           >
             Retry
           </button>
@@ -217,21 +169,9 @@ export function FileUploadStatus({
             type="button"
             onClick={onRemove}
             aria-label="Remove"
-            className="ml-1 w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+            className="ml-1 w-7 h-7 rounded-md flex items-center justify-center text-ink-3 hover:text-neg hover:bg-neg/10 transition-colors shrink-0"
           >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
