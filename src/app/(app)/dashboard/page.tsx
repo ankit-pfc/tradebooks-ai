@@ -2,15 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  List,
+  FileText,
+  Activity,
+  AlertTriangle,
+  Upload,
+  CheckCircle2,
+  Inbox,
+} from "lucide-react";
+
+import { Stat } from "@/components/ui/stat";
+import { StatusDot } from "@/components/ui/status-dot";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface DashboardSummary {
   total_batches: number;
@@ -34,13 +45,27 @@ interface DashboardData {
   recent_batches: RecentBatch[];
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  succeeded: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  failed: "bg-red-50 text-red-700 border-red-200",
-  running: "bg-blue-50 text-blue-700 border-blue-200",
-  queued: "bg-gray-50 text-gray-600 border-gray-200",
-  needs_review: "bg-amber-50 text-amber-700 border-amber-200",
+// ── Status → StatusDot tone mapping ───────────────────────────────────────────
+
+type StatusTone = "pos" | "neg" | "warn" | "info" | "neutral";
+
+const STATUS_TONE: Record<string, StatusTone> = {
+  succeeded: "pos",
+  failed: "neg",
+  needs_review: "warn",
+  running: "info",
+  queued: "info",
 };
+
+function getStatusTone(status: string): StatusTone {
+  return STATUS_TONE[status] ?? STATUS_TONE.queued;
+}
+
+function formatStatusLabel(status: string): string {
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ── Formatters (en-IN, preserved byte-for-byte in behavior) ───────────────────
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
@@ -57,6 +82,28 @@ function formatPeriod(from: string, to: string): string {
   return `${formatDate(from)} – ${formatDate(to)}`;
 }
 
+// ── Quick-start steps (static content) ────────────────────────────────────────
+
+const QUICK_STEPS = [
+  {
+    step: "01",
+    title: "Configure & Upload",
+    desc: "Set your accounting mode (Investor/Trader), then upload Zerodha exports — tradebook, funds statement, and holdings.",
+  },
+  {
+    step: "02",
+    title: "Auto-Processing",
+    desc: "TradeBooks AI parses your files, builds financial events, generates voucher entries, and runs reconciliation checks.",
+  },
+  {
+    step: "03",
+    title: "Download & Import",
+    desc: "Download Tally-ready XML files — Masters and Transactions — and import them directly into your Tally company.",
+  },
+] as const;
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
 
@@ -70,318 +117,288 @@ export default function DashboardPage() {
   const summary = data?.summary;
   const batches = data?.recent_batches ?? [];
 
-  const stats = [
+  // Hero strip derivation — from existing data only, no fabrication
+  const openExceptions = summary?.open_exceptions ?? 0;
+  const latestBatch = batches[0] ?? null;
+  const latestPeriodLabel = latestBatch
+    ? formatPeriod(latestBatch.period_from, latestBatch.period_to)
+    : null;
+
+  // ── DataTable columns ──────────────────────────────────────────────────────
+
+  const columns: Column<RecentBatch>[] = [
     {
-      title: "Total Batches",
-      value: summary ? String(summary.total_batches) : "0",
-      description: "Import batches created",
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-indigo-600"
-        >
-          <line x1="8" y1="6" x2="21" y2="6" />
-          <line x1="8" y1="12" x2="21" y2="12" />
-          <line x1="8" y1="18" x2="21" y2="18" />
-          <line x1="3" y1="6" x2="3.01" y2="6" />
-          <line x1="3" y1="12" x2="3.01" y2="12" />
-          <line x1="3" y1="18" x2="3.01" y2="18" />
-        </svg>
+      id: "company",
+      header: "Company",
+      cell: (row) => (
+        <span className="text-sm font-medium text-ink">{row.company_name}</span>
+      ),
+      sortable: true,
+      sortValue: (row) => row.company_name,
+    },
+    {
+      id: "date",
+      header: "Date",
+      cell: (row) => (
+        <span className="mono-data text-sm text-ink-2">
+          {formatDate(row.created_at)}
+        </span>
+      ),
+      sortable: true,
+      sortValue: (row) => row.created_at,
+    },
+    {
+      id: "period",
+      header: "Period",
+      cell: (row) => (
+        <span className="mono-data text-sm text-ink-2">
+          {formatPeriod(row.period_from, row.period_to)}
+        </span>
       ),
     },
     {
-      title: "Vouchers Generated",
-      value: summary ? String(summary.total_vouchers) : "0",
-      description: "Tally-ready vouchers",
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-emerald-600"
-        >
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <polyline points="10 9 9 9 8 9" />
-        </svg>
+      id: "status",
+      header: "Status",
+      cell: (row) => (
+        <StatusDot
+          tone={getStatusTone(row.status)}
+          label={formatStatusLabel(row.status)}
+        />
       ),
+      sortable: true,
+      sortValue: (row) => row.status,
     },
     {
-      title: "Success Rate",
-      value:
-        summary && summary.success_rate !== null
-          ? `${Math.round(summary.success_rate)}%`
-          : "—",
-      description: "Reconciliation pass rate",
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-blue-600"
+      id: "vouchers",
+      header: "Vouchers",
+      align: "right",
+      cell: (row) => (
+        <span
+          className={
+            row.voucher_count === 0 ? "text-ink-3" : "text-ink"
+          }
         >
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        </svg>
+          {row.voucher_count}
+        </span>
       ),
+      sortable: true,
+      sortValue: (row) => row.voucher_count,
     },
     {
-      title: "Exceptions",
-      value: summary ? String(summary.open_exceptions) : "0",
-      description: "Items requiring review",
-      icon: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-amber-600"
+      id: "actions",
+      header: "Actions",
+      cell: () => (
+        <Link
+          href="/upload"
+          className="text-sm font-medium text-cyan hover:underline transition-colors"
         >
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
+          New Import
+        </Link>
       ),
     },
   ];
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
-    <div className="px-10 py-10">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-10">
+    <div className="px-8 py-8 space-y-8">
+      {/* ── Page header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-base text-gray-700 mt-1.5">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            Dashboard
+          </h1>
+          <p className="text-sm text-ink-2 mt-1">
             Welcome to TradeBooks AI — your broker-to-Tally accounting bridge.
           </p>
         </div>
-        <Link
-          href="/upload"
-          className="inline-flex h-11 items-center justify-center rounded-lg bg-indigo-600 px-5 text-base font-medium text-white transition-colors hover:bg-indigo-700"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
+        <Link href="/upload" className={cn(buttonVariants({ size: "lg" }))}>
+          <Upload className="h-4 w-4" aria-hidden="true" />
           New Import
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="border-gray-200">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base font-semibold text-gray-900">
-                {stat.title}
-              </CardTitle>
-              <div className="w-11 h-11 rounded-lg bg-gray-50 flex items-center justify-center">
-                {stat.icon}
+      {/* ── Hero strip — "is everything OK?" ────────────────────────────────── */}
+      {data === null ? (
+        <div className="rounded-xl border border-hairline bg-card e1 px-5 py-4">
+          <Skeleton className="h-5 w-72" />
+        </div>
+      ) : openExceptions === 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border border-hairline bg-card e1 px-5 py-4">
+          <CheckCircle2
+            className="h-5 w-5 text-pos shrink-0"
+            aria-hidden="true"
+          />
+          <p className="text-sm font-medium text-ink">
+            All books reconciled · 0 exceptions to review
+            {latestPeriodLabel && (
+              <span className="text-ink-2 font-normal">
+                {" "}
+                · latest period{" "}
+                <span className="mono-data">{latestPeriodLabel}</span>
+              </span>
+            )}
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 rounded-xl border border-hairline bg-card e1 px-5 py-4">
+          <AlertTriangle
+            className="h-5 w-5 text-warn shrink-0"
+            aria-hidden="true"
+          />
+          <p className="text-sm font-medium text-ink">
+            <Link href="/batches" className="text-warn hover:underline">
+              <span className="mono-data">{openExceptions}</span>{" "}
+              {openExceptions === 1 ? "exception needs" : "exceptions need"}{" "}
+              review
+            </Link>
+            {latestPeriodLabel && (
+              <span className="text-ink-2 font-normal">
+                {" "}
+                · latest period{" "}
+                <span className="mono-data">{latestPeriodLabel}</span>
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* ── KPI stats ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {data === null ? (
+          <>
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-hairline bg-card e1 p-5 flex flex-col gap-3"
+              >
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-32" />
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-700 mt-1.5">{stat.description}</p>
-            </CardContent>
-          </Card>
-        ))}
+            ))}
+          </>
+        ) : (
+          <>
+            <Stat
+              label="Total Batches"
+              value={summary?.total_batches ?? 0}
+              sub="Import batches created"
+              icon={<List className="h-4 w-4" />}
+            />
+            <Stat
+              label="Vouchers Generated"
+              value={summary?.total_vouchers ?? 0}
+              sub="Tally-ready vouchers"
+              icon={<FileText className="h-4 w-4" />}
+            />
+            <Stat
+              label="Success Rate"
+              value={
+                summary && summary.success_rate !== null
+                  ? `${Math.round(summary.success_rate)}%`
+                  : "—"
+              }
+              sub="Reconciliation pass rate"
+              icon={<Activity className="h-4 w-4" />}
+            />
+            <Stat
+              label="Exceptions"
+              value={summary?.open_exceptions ?? 0}
+              sub="Items requiring review"
+              icon={
+                <AlertTriangle
+                  className={
+                    (summary?.open_exceptions ?? 0) > 0
+                      ? "h-4 w-4 text-warn"
+                      : "h-4 w-4"
+                  }
+                />
+              }
+              className={
+                (summary?.open_exceptions ?? 0) > 0
+                  ? "[&_.mono-data]:text-warn"
+                  : undefined
+              }
+            />
+          </>
+        )}
       </div>
 
-      {/* Recent Batches */}
-      <Card className="border-gray-200">
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
+      {/* ── Recent Import Batches ────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-900">
+            <h2 className="text-lg font-semibold text-ink">
               Recent Import Batches
-            </CardTitle>
-            <p className="text-base text-gray-700 mt-1">
+            </h2>
+            <p className="text-sm text-ink-2">
               Your latest Zerodha data imports and their status.
             </p>
           </div>
           <Link
             href="/batches"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
+            className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
           >
             View all
           </Link>
+        </div>
+
+        <DataTable<RecentBatch>
+          data={batches}
+          columns={columns}
+          getRowId={(r) => r.id}
+          density="comfortable"
+          loading={data === null}
+          initialSort={{ id: "date", dir: "desc" }}
+          emptyState={
+            <EmptyState
+              icon={<Inbox className="h-5 w-5" />}
+              title="No import batches yet"
+              description="Upload your first Zerodha files to get started."
+              action={
+                <Link href="/upload" className={cn(buttonVariants())}>
+                  <Upload className="h-4 w-4" aria-hidden="true" />
+                  Start your first import
+                </Link>
+              }
+            />
+          }
+        />
+      </div>
+
+      {/* ── Quick-start guide (demoted, neutral styling) ─────────────────────── */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold text-ink">
+            How it works
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-200 bg-gray-50/50">
-                <TableHead className="text-sm font-semibold text-gray-900 pl-6">
-                  Company
-                </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-900">
-                  Date
-                </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-900">
-                  Period
-                </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-900">
-                  Status
-                </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-900">
-                  Vouchers
-                </TableHead>
-                <TableHead className="text-sm font-semibold text-gray-700 pr-6">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {batches.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-16 text-gray-500"
-                  >
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                        <svg
-                          width="22"
-                          height="22"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-gray-400"
-                        >
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-base font-medium text-gray-900">
-                          No import batches yet
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Upload your first Zerodha files to get started.
-                        </p>
-                      </div>
-                      <Link
-                        href="/upload"
-                        className="mt-2 inline-flex h-9 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-                      >
-                        Start your first import
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                batches.map((batch) => (
-                  <TableRow key={batch.id} className="border-gray-100">
-                    <TableCell className="pl-6 text-base font-medium text-gray-900">
-                      {batch.company_name}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-800">
-                      {formatDate(batch.created_at)}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-800">
-                      {formatPeriod(batch.period_from, batch.period_to)}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`text-sm font-medium px-3 py-1.5 rounded-full border capitalize ${
-                          STATUS_BADGE[batch.status] ?? STATUS_BADGE.queued
-                        }`}
-                      >
-                        {batch.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-base font-medium text-gray-900">
-                      {batch.voucher_count}
-                    </TableCell>
-                    <TableCell className="pr-6">
-                      <Link
-                        href="/upload"
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-                      >
-                        New Import
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {QUICK_STEPS.map((item) => (
+              <div key={item.step} className="flex gap-4">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-2 border border-hairline"
+                  aria-hidden="true"
+                >
+                  <span className="mono-data text-xs font-semibold text-ink-2">
+                    {item.step}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-ink mb-1">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-ink-2 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
-
-      {/* Quick Guide */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          {
-            step: "01",
-            title: "Configure & Upload",
-            desc: "Set your accounting mode (Investor/Trader), then upload Zerodha exports — tradebook, funds statement, and holdings.",
-            color: "bg-indigo-50 text-indigo-700 border-indigo-100",
-          },
-          {
-            step: "02",
-            title: "Auto-Processing",
-            desc: "TradeBooks AI parses your files, builds financial events, generates voucher entries, and runs reconciliation checks.",
-            color: "bg-blue-50 text-blue-700 border-blue-100",
-          },
-          {
-            step: "03",
-            title: "Download & Import",
-            desc: "Download Tally-ready XML files — Masters and Transactions — and import them directly into your Tally company.",
-            color: "bg-emerald-50 text-emerald-700 border-emerald-100",
-          },
-        ].map((item) => (
-          <div
-            key={item.step}
-            className="rounded-lg border border-gray-200 bg-white p-6"
-          >
-            <div
-              className={`inline-flex items-center justify-center w-10 h-10 rounded-md text-sm font-bold mb-3 border ${item.color}`}
-            >
-              {item.step}
-            </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1.5">
-              {item.title}
-            </h3>
-            <p className="text-sm text-gray-700 leading-relaxed">{item.desc}</p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

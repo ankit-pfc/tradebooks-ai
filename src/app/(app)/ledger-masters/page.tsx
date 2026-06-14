@@ -2,9 +2,13 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Check, Pencil, Plus, Upload, Trash2, FileText, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { MAX_FILE_SIZE } from "@/lib/upload-constants";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { StatusDot } from "@/components/ui/status-dot";
+import { SkeletonRows } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -35,10 +39,17 @@ interface SecurityMappingEntry {
 
 const PAGE_SIZE = 20;
 
-const SOURCE_BADGE_CLASS: Record<LedgerEntry["source"], string> = {
-  system: "bg-gray-50 text-gray-600 border-gray-200",
-  override: "bg-amber-50 text-amber-700 border-amber-200",
-  custom: "bg-indigo-50 text-indigo-700 border-indigo-200",
+// Tone mapping for source — paired with StatusDot (dot + label, never color alone)
+const SOURCE_TONE: Record<LedgerEntry["source"], "neutral" | "warn" | "pos"> = {
+  system: "neutral",
+  override: "warn",
+  custom: "pos",
+};
+
+const SOURCE_LABEL: Record<LedgerEntry["source"], string> = {
+  system: "System",
+  override: "Override",
+  custom: "Custom",
 };
 
 const SYSTEM_LEDGER_OPTIONS = [
@@ -168,7 +179,7 @@ export default function LedgerMasterPage() {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      alert("File too large (max 50 MB)");
+      toast.error("File too large (max 50 MB)");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -182,7 +193,7 @@ export default function LedgerMasterPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error ?? "Upload failed");
+        toast.error(data.error ?? "Upload failed");
         return;
       }
       await Promise.all([
@@ -190,7 +201,7 @@ export default function LedgerMasterPage() {
         fetchMappings(mappingPage, mappingSearch),
       ]);
     } catch {
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -218,7 +229,7 @@ export default function LedgerMasterPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error ?? "Failed to add ledger");
+        toast.error(data.error ?? "Failed to add ledger");
         return;
       }
       setSelectedSystemKey("");
@@ -255,7 +266,7 @@ export default function LedgerMasterPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error ?? "Failed to save mapping");
+        toast.error(data.error ?? "Failed to save mapping");
         return;
       }
       setMappingSymbol("");
@@ -299,7 +310,7 @@ export default function LedgerMasterPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error ?? "Failed to save ledger");
+        toast.error(data.error ?? "Failed to save ledger");
         return;
       }
       cancelLedgerEdit();
@@ -317,17 +328,17 @@ export default function LedgerMasterPage() {
       if (editingLedgerKey === ledgerKey) cancelLedgerEdit();
       await fetchLedgers(ledgerPage, ledgerSearch);
     } catch {
-      alert("Failed to delete");
+      toast.error("Failed to delete");
     }
   }
 
   return (
-    <div className="px-8 py-8 space-y-6">
+    <div className="px-6 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ledger Master</h1>
-          <p className="text-base text-gray-700 mt-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Ledger Master</h1>
+          <p className="text-sm text-ink-2 mt-1">
             Manage ledger names and groups used during Tally XML generation.
           </p>
         </div>
@@ -339,37 +350,39 @@ export default function LedgerMasterPage() {
             className="hidden"
             onChange={handleUpload}
           />
-          <button
+          <Button
+            variant="secondary"
+            size="default"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-200 bg-white px-5 text-base font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
           >
-            <Upload className="mr-2 h-4 w-4" />
+            <Upload className="h-4 w-4" />
             {uploading ? "Uploading..." : "Upload from Tally"}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
+            size="default"
             onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-indigo-600 px-5 text-base font-medium text-white transition-colors hover:bg-indigo-700"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Add Ledger
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Add Ledger Form */}
       {showAddForm && (
-        <Card className="border-indigo-200 bg-indigo-50/30">
+        <Card className="bg-surface-2 border-hairline">
           <CardContent className="p-4">
             <form onSubmit={handleAddLedger} className="flex items-end gap-4">
               <div className="w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Override Target
                 </label>
                 <select
                   value={selectedSystemKey}
                   onChange={(e) => setSelectedSystemKey(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-base text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full h-9 rounded-md border border-hairline-strong bg-card px-3 text-sm text-ink outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
                 >
                   {SYSTEM_LEDGER_OPTIONS.map((opt) => (
                     <option key={opt.key} value={opt.key}>
@@ -379,80 +392,84 @@ export default function LedgerMasterPage() {
                 </select>
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Ledger Name
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. HDFC Bank Account"
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-base text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   required
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Parent Group
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newGroup}
                   onChange={(e) => setNewGroup(e.target.value)}
                   placeholder="e.g. Bank Accounts"
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-base text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   required
                 />
               </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="h-10 rounded-lg bg-indigo-600 px-5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-              >
+              <Button type="submit" variant="default" disabled={saving}>
                 {saving ? "Saving..." : "Save"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setShowAddForm(false)}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
               >
                 Cancel
-              </button>
+              </Button>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Search */}
+      {/* Ledger Search */}
       <div className="relative w-full max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-3" aria-hidden="true" />
         <input
           type="search"
           value={ledgerSearch}
           onChange={(e) => setLedgerSearch(e.target.value)}
           placeholder="Search ledgers by name or group..."
-          className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-9 w-full rounded-md border border-hairline-strong bg-card pl-9 pr-3 text-sm text-ink outline-none placeholder:text-ink-3 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
         />
       </div>
 
-      {/* Table */}
-      <Card className="border-gray-200">
+      {/* Ledger Table */}
+      <Card>
         <CardContent className="p-0">
           {ledgersLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-gray-600">Loading ledgers...</p>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-4">Ledger Name</TableHead>
+                  <TableHead>Parent Group</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead className="pr-4 w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SkeletonRows rows={5} cols={4} />
+              </TableBody>
+            </Table>
           ) : ledgers.length === 0 ? (
             <div className="py-16">
               <div className="text-center space-y-3">
-                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-gray-500" />
+                <div className="mx-auto w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-ink-3" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-base font-medium text-gray-900">
+                  <p className="text-sm font-medium text-ink">
                     {ledgerSearch.trim() ? "No matching ledgers" : "No ledgers found"}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-ink-2 mt-1">
                     {ledgerSearch.trim()
                       ? "Try a different search term."
                       : "Upload a Tally export or add ledgers manually."}
@@ -462,194 +479,192 @@ export default function LedgerMasterPage() {
             </div>
           ) : (
             <>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-sm font-semibold text-gray-900 pl-6">
-                    Ledger Name
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Parent Group
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Source
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900 pr-6 w-36" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ledgers.map((ledger) => {
-                  const isEditing = editingLedgerKey === ledger.key;
-                  const isSavingThisLedger = savingLedgerKey === ledger.key;
-                  const canSaveEdit = editLedgerName.trim().length > 0 && editLedgerGroup.trim().length > 0;
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-4">Ledger Name</TableHead>
+                    <TableHead>Parent Group</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="pr-4 w-24" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ledgers.map((ledger) => {
+                    const isEditing = editingLedgerKey === ledger.key;
+                    const isSavingThisLedger = savingLedgerKey === ledger.key;
+                    const canSaveEdit = editLedgerName.trim().length > 0 && editLedgerGroup.trim().length > 0;
 
-                  return (
-                    <TableRow key={ledger.key} className="border-gray-100">
-                      <TableCell className="pl-6 text-base font-medium text-gray-900">
-                        {isEditing ? (
-                          <div>
-                            <label className="sr-only" htmlFor={`ledger-name-${ledger.key}`}>
-                              Ledger Name
-                            </label>
-                            <input
-                              id={`ledger-name-${ledger.key}`}
-                              type="text"
-                              value={editLedgerName}
-                              onChange={(event) => setEditLedgerName(event.target.value)}
-                              className="h-10 w-full min-w-64 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                              required
-                            />
-                          </div>
-                        ) : (
-                          ledger.name
-                        )}
-                      </TableCell>
-                      <TableCell className="text-base text-gray-800">
-                        {isEditing ? (
-                          <div>
-                            <label className="sr-only" htmlFor={`ledger-group-${ledger.key}`}>
-                              Parent Group
-                            </label>
-                            <input
-                              id={`ledger-group-${ledger.key}`}
-                              type="text"
-                              value={editLedgerGroup}
-                              onChange={(event) => setEditLedgerGroup(event.target.value)}
-                              className="h-10 w-full min-w-52 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                              required
-                            />
-                          </div>
-                        ) : (
-                          ledger.group
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={SOURCE_BADGE_CLASS[ledger.source]}>
-                          {ledger.source === "system"
-                            ? "System"
-                            : ledger.source === "override"
-                              ? "Override"
-                              : "Custom"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="pr-6">
-                        <div className="flex items-center justify-end gap-1">
+                    return (
+                      <TableRow key={ledger.key}>
+                        <TableCell className="pl-4 font-medium text-ink">
                           {isEditing ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleSaveLedgerEdit(ledger.key)}
-                                disabled={isSavingThisLedger || !canSaveEdit}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                title="Save ledger"
-                                aria-label="Save ledger"
-                              >
-                                <Check className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelLedgerEdit}
-                                disabled={isSavingThisLedger}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
-                                title="Cancel edit"
-                                aria-label="Cancel edit"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </>
+                            <div>
+                              <label className="sr-only" htmlFor={`ledger-name-${ledger.key}`}>
+                                Ledger Name
+                              </label>
+                              <Input
+                                id={`ledger-name-${ledger.key}`}
+                                type="text"
+                                value={editLedgerName}
+                                onChange={(event) => setEditLedgerName(event.target.value)}
+                                className="min-w-52"
+                                required
+                              />
+                            </div>
                           ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => startLedgerEdit(ledger)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
-                                title="Edit ledger"
-                                aria-label={`Edit ${ledger.name}`}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              {ledger.source !== "system" && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(ledger.key)}
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                                  title="Remove override"
-                                  aria-label={`Remove ${ledger.name}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              )}
-                            </>
+                            ledger.name
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            <PaginationFooter
-              page={ledgerPage}
-              pageSize={PAGE_SIZE}
-              total={ledgerTotal}
-              onPrev={() => changeLedgerPage(ledgerPage - 1)}
-              onNext={() => changeLedgerPage(ledgerPage + 1)}
-            />
+                        </TableCell>
+                        <TableCell className="text-ink-2">
+                          {isEditing ? (
+                            <div>
+                              <label className="sr-only" htmlFor={`ledger-group-${ledger.key}`}>
+                                Parent Group
+                              </label>
+                              <Input
+                                id={`ledger-group-${ledger.key}`}
+                                type="text"
+                                value={editLedgerGroup}
+                                onChange={(event) => setEditLedgerGroup(event.target.value)}
+                                className="min-w-44"
+                                required
+                              />
+                            </div>
+                          ) : (
+                            ledger.group
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusDot
+                            tone={SOURCE_TONE[ledger.source]}
+                            label={SOURCE_LABEL[ledger.source]}
+                          />
+                        </TableCell>
+                        <TableCell className="pr-4">
+                          <div className="flex items-center justify-end gap-1">
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => handleSaveLedgerEdit(ledger.key)}
+                                  disabled={isSavingThisLedger || !canSaveEdit}
+                                  className="text-pos hover:bg-pos/10"
+                                  title="Save ledger"
+                                  aria-label="Save ledger"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={cancelLedgerEdit}
+                                  disabled={isSavingThisLedger}
+                                  title="Cancel edit"
+                                  aria-label="Cancel edit"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => startLedgerEdit(ledger)}
+                                  title="Edit ledger"
+                                  aria-label={`Edit ${ledger.name}`}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                {ledger.source !== "system" && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => handleDelete(ledger.key)}
+                                    className="text-ink-3 hover:text-neg hover:bg-neg/10"
+                                    title="Remove override"
+                                    aria-label={`Remove ${ledger.name}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <PaginationFooter
+                page={ledgerPage}
+                pageSize={PAGE_SIZE}
+                total={ledgerTotal}
+                onPrev={() => changeLedgerPage(ledgerPage - 1)}
+                onNext={() => changeLedgerPage(ledgerPage + 1)}
+              />
             </>
           )}
         </CardContent>
       </Card>
 
+      {/* Security Mappings Section Header */}
       <div className="flex items-center justify-between pt-2">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Security Mappings</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-lg font-semibold text-ink">Security Mappings</h2>
+          <p className="text-sm text-ink-2 mt-1">
             Match broker symbols to the exact Tally ledger and stock item names.
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="default"
           onClick={() => setShowMappingForm(!showMappingForm)}
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Add Mapping
-        </button>
+        </Button>
       </div>
 
+      {/* Add Mapping Form */}
       {showMappingForm && (
-        <Card className="border-indigo-200 bg-indigo-50/30">
+        <Card className="bg-surface-2 border-hairline">
           <CardContent className="p-4">
             <form onSubmit={handleAddMapping} className="grid gap-4 lg:grid-cols-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Broker Symbol
                 </label>
-                <input
+                <Input
                   type="text"
                   value={mappingSymbol}
                   onChange={(e) => setMappingSymbol(e.target.value)}
                   placeholder="MOTILALOFS"
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   ISIN
                 </label>
-                <input
+                <Input
                   type="text"
                   value={mappingIsin}
                   onChange={(e) => setMappingIsin(e.target.value)}
                   placeholder="INE338I01027"
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Tally Ledger
                 </label>
-                <input
+                <Input
                   type="text"
                   value={mappingLedger}
                   onChange={(e) => {
@@ -660,88 +675,92 @@ export default function LedgerMasterPage() {
                     }
                   }}
                   placeholder="Motilal Oswal Financial Services Ltd"
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Parent Group
                 </label>
-                <input
+                <Input
                   type="text"
                   value={mappingGroup}
                   onChange={(e) => setMappingGroup(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Unit
                 </label>
-                <input
+                <Input
                   type="text"
                   value={mappingUnit}
                   onChange={(e) => setMappingUnit(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 />
               </div>
               <div className="lg:col-span-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-ink-2 mb-1.5">
                   Tally Stock Item
                 </label>
-                <input
+                <Input
                   type="text"
                   value={mappingStockItem}
                   onChange={(e) => setMappingStockItem(e.target.value)}
                   placeholder="Motilal Oswal Financial Services Ltd"
-                  className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   required
                 />
               </div>
               <div className="flex items-end gap-2 lg:col-span-2">
-                <button
-                  type="submit"
-                  disabled={savingMapping}
-                  className="h-10 rounded-lg bg-indigo-600 px-5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-                >
+                <Button type="submit" variant="default" disabled={savingMapping}>
                   {savingMapping ? "Saving..." : "Save"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setShowMappingForm(false)}
-                  className="h-10 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Search */}
+      {/* Mapping Search */}
       <div className="relative w-full max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-3" aria-hidden="true" />
         <input
           type="search"
           value={mappingSearch}
           onChange={(e) => setMappingSearch(e.target.value)}
           placeholder="Search by symbol, ISIN, ledger, or stock item..."
-          className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-9 w-full rounded-md border border-hairline-strong bg-card pl-9 pr-3 text-sm text-ink outline-none placeholder:text-ink-3 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
         />
       </div>
 
-      <Card className="border-gray-200">
+      {/* Security Mappings Table */}
+      <Card>
         <CardContent className="p-0">
           {mappingsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-sm text-gray-600">Loading mappings...</p>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-4">Broker Symbol</TableHead>
+                  <TableHead>ISIN</TableHead>
+                  <TableHead>Tally Ledger</TableHead>
+                  <TableHead>Stock Item</TableHead>
+                  <TableHead className="pr-4">Source</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <SkeletonRows rows={5} cols={5} />
+              </TableBody>
+            </Table>
           ) : securityMappings.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink-2">
                 {mappingSearch.trim()
                   ? "No mappings match your search."
                   : "No security mappings saved."}
@@ -749,57 +768,45 @@ export default function LedgerMasterPage() {
             </div>
           ) : (
             <>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-sm font-semibold text-gray-900 pl-6">
-                    Broker Symbol
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    ISIN
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Tally Ledger
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Stock Item
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
-                    Source
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {securityMappings.map((mapping) => (
-                  <TableRow key={mapping.id} className="border-gray-100">
-                    <TableCell className="pl-6 text-base font-medium text-gray-900">
-                      {mapping.broker_symbol}
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-700">
-                      {mapping.isin ?? "-"}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-800">
-                      {mapping.tally_ledger_name}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-800">
-                      {mapping.tally_stock_item_name}
-                    </TableCell>
-                    <TableCell className="pr-6">
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                        {mapping.match_source}
-                      </Badge>
-                    </TableCell>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-4">Broker Symbol</TableHead>
+                    <TableHead>ISIN</TableHead>
+                    <TableHead>Tally Ledger</TableHead>
+                    <TableHead>Stock Item</TableHead>
+                    <TableHead className="pr-4">Source</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <PaginationFooter
-              page={mappingPage}
-              pageSize={PAGE_SIZE}
-              total={mappingTotal}
-              onPrev={() => changeMappingPage(mappingPage - 1)}
-              onNext={() => changeMappingPage(mappingPage + 1)}
-            />
+                </TableHeader>
+                <TableBody>
+                  {securityMappings.map((mapping) => (
+                    <TableRow key={mapping.id}>
+                      <TableCell className="pl-4 font-medium text-ink">
+                        <span className="mono-data">{mapping.broker_symbol}</span>
+                      </TableCell>
+                      <TableCell className="text-ink-2">
+                        <span className="mono-data">{mapping.isin ?? "—"}</span>
+                      </TableCell>
+                      <TableCell className="text-ink">
+                        {mapping.tally_ledger_name}
+                      </TableCell>
+                      <TableCell className="text-ink">
+                        {mapping.tally_stock_item_name}
+                      </TableCell>
+                      <TableCell className="pr-4">
+                        <StatusDot tone="pos" label={mapping.match_source} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <PaginationFooter
+                page={mappingPage}
+                pageSize={PAGE_SIZE}
+                total={mappingTotal}
+                onPrev={() => changeMappingPage(mappingPage - 1)}
+                onNext={() => changeMappingPage(mappingPage + 1)}
+              />
             </>
           )}
         </CardContent>
@@ -827,27 +834,33 @@ function PaginationFooter({
   const canNext = end < total;
 
   return (
-    <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3">
-      <p className="text-sm text-gray-600">
-        {total === 0 ? "No results" : `${start}–${end} of ${total}`}
+    <div className="flex items-center justify-between border-t border-hairline px-6 py-3">
+      <p className="text-xs text-ink-2">
+        {total === 0 ? (
+          "No results"
+        ) : (
+          <span className="mono-data">{start}–{end} of {total}</span>
+        )}
       </p>
       <div className="flex items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={onPrev}
           disabled={!canPrev}
-          className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Previous
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={onNext}
           disabled={!canNext}
-          className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next
-        </button>
+        </Button>
       </div>
     </div>
   );

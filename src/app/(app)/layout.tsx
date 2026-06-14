@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Upload,
+  BookOpen,
+  History,
+  Settings,
+  LogOut,
+  Search,
+  ChevronDown,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "./actions";
 import {
@@ -13,111 +23,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/ui/logo";
 import { SupportChatFab } from "@/components/agent/support-chat-fab";
+import { AppThemeProvider } from "@/components/app/app-theme-provider";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { DensityToggle } from "@/components/ui/density-toggle";
+import { CommandPalette } from "@/components/ui/command-palette";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="7" height="7" />
-        <rect x="14" y="3" width="7" height="7" />
-        <rect x="14" y="14" width="7" height="7" />
-        <rect x="3" y="14" width="7" height="7" />
-      </svg>
-    ),
-  },
-  {
-    label: "Upload",
-    href: "/upload",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    ),
-  },
-  {
-    label: "Ledger Master",
-    href: "/ledger-masters",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-      </svg>
-    ),
-  },
-  {
-    label: "History",
-    href: "/batches",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <line x1="8" y1="6" x2="21" y2="6" />
-        <line x1="8" y1="12" x2="21" y2="12" />
-        <line x1="8" y1="18" x2="21" y2="18" />
-        <line x1="3" y1="6" x2="3.01" y2="6" />
-        <line x1="3" y1="12" x2="3.01" y2="12" />
-        <line x1="3" y1="18" x2="3.01" y2="18" />
-      </svg>
-    ),
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41" />
-      </svg>
-    ),
-  },
-];
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Upload", href: "/upload", icon: Upload },
+  { label: "Ledger Masters", href: "/ledger-masters", icon: BookOpen },
+  { label: "History", href: "/batches", icon: History },
+  { label: "Settings", href: "/settings", icon: Settings },
+] as const;
+
+function currentLabel(pathname: string): string {
+  const match = navItems.find(
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
+  );
+  return match?.label ?? "";
+}
+
+function openCommandPalette() {
+  window.dispatchEvent(new Event("tb:command-open"));
+}
 
 export default function AppLayout({
   children,
@@ -126,6 +55,7 @@ export default function AppLayout({
 }) {
   const pathname = usePathname();
   const [userEmail, setUserEmail] = useState<string>("Accountant");
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -135,88 +65,130 @@ export default function AppLayout({
   }, []);
 
   const handleSignOut = () => signOut();
+  const sectionLabel = currentLabel(pathname);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-72 shrink-0 flex flex-col bg-[#0B1F33]">
-        {/* Logo */}
-        <div className="h-[72px] flex items-center px-6 border-b border-white/10">
-          <Logo className="[&_span]:text-white" />
-        </div>
+    <AppThemeProvider>
+      <div className="tb-app flex h-screen overflow-hidden bg-background text-foreground">
+        {/* ── Sidebar (light) ── */}
+        <aside className="flex w-60 shrink-0 flex-col border-r border-hairline bg-sidebar">
+          <div className="flex h-14 items-center border-b border-hairline px-5">
+            <Logo />
+          </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-base font-medium transition-colors ${
-                  isActive
-                    ? "bg-white/15 text-white border-l-2 border-[#2D9CDB]"
-                    : "text-white/70 hover:bg-white/10 hover:text-white border-l-2 border-transparent"
-                }`}
-              >
-                <span
-                  className={isActive ? "text-white" : "text-white/50"}
+          <nav className="flex-1 space-y-0.5 px-3 py-4">
+            {navItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-surface-2 text-primary"
+                      : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+                  )}
                 >
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary" />
+                  )}
+                  <Icon
+                    className={cn(
+                      "h-[18px] w-[18px] shrink-0",
+                      isActive ? "text-primary" : "text-ink-3",
+                    )}
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-        {/* Footer */}
-        <div className="px-4 py-4 border-t border-white/10">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-white/10 transition-colors cursor-pointer">
-                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-white">
+          <div className="border-t border-hairline p-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-2">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-3">
+                  <span className="text-sm font-semibold text-ink">
                     {userEmail[0].toUpperCase()}
                   </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-ink">
                     {userEmail}
                   </p>
-                  <p className="text-xs text-white/55 truncate">Free Plan</p>
+                  <p className="truncate text-xs text-ink-3">Free Plan</p>
                 </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="w-48">
-              <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mr-2"
+                <ChevronDown className="h-4 w-4 shrink-0 text-ink-3" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-52">
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-neg"
                 >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </aside>
+
+        {/* ── Main column ── */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Topbar */}
+          <header
+            className={cn(
+              "flex h-14 shrink-0 items-center gap-3 border-b border-hairline bg-background/80 px-6 backdrop-blur transition-shadow",
+              scrolled && "e1",
+            )}
+          >
+            <nav
+              aria-label="Breadcrumb"
+              className="flex items-center gap-2 text-sm"
+            >
+              <span className="text-ink-3">TradeBooks</span>
+              {sectionLabel && (
+                <>
+                  <span className="text-ink-3">/</span>
+                  <span className="font-medium text-ink">{sectionLabel}</span>
+                </>
+              )}
+            </nav>
+
+            <div className="ml-auto flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={openCommandPalette}
+                className="hidden items-center gap-2 rounded-md border border-hairline bg-surface-2 py-1.5 pl-2.5 pr-2 text-sm text-ink-3 transition-colors hover:border-hairline-strong hover:text-ink-2 sm:flex"
+                aria-label="Open command palette"
+              >
+                <Search className="h-4 w-4" />
+                <span>Search</span>
+                <kbd className="mono-data rounded border border-hairline bg-card px-1.5 py-0.5 text-[11px] text-ink-3">
+                  ⌘K
+                </kbd>
+              </button>
+              <DensityToggle />
+              <ThemeToggle />
+            </div>
+          </header>
+
+          {/* Scrollable content */}
+          <main
+            className="flex-1 overflow-y-auto"
+            onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
+          >
+            {children}
+          </main>
         </div>
-      </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="min-h-full">{children}</div>
-      </main>
-
-      <SupportChatFab />
-    </div>
+        <CommandPalette />
+        <SupportChatFab />
+      </div>
+    </AppThemeProvider>
   );
 }

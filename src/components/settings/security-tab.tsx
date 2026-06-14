@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { createClient } from '@/lib/supabase/client';
 import { validatePassword } from '@/lib/auth/password-validation';
@@ -8,7 +9,9 @@ import { PasswordStrength } from '@/components/auth/password-strength';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { StatusDot } from '@/components/ui/status-dot';
 import { toast } from 'sonner';
 
 /* -------------------------------------------------------------------------- */
@@ -111,39 +114,42 @@ function MfaSection() {
         toast.success('MFA disabled');
     };
 
-    if (loading) return <p className="text-sm text-gray-500">Loading MFA status...</p>;
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-5 w-56" />
+                    <Skeleton className="h-4 w-80 mt-1" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-9 w-28" />
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
-        <Card className="border-gray-200">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-gray-900">
-                    Two-Factor Authentication (TOTP)
-                </CardTitle>
-                <p className="text-sm text-gray-600">
+                <CardTitle>Two-Factor Authentication (TOTP)</CardTitle>
+                <CardDescription>
                     Add an extra layer of security using an authenticator app like Google Authenticator or Authy.
-                </p>
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {mfaEnabled ? (
                     <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                                Enabled
-                            </span>
-                        </div>
+                        <StatusDot tone="pos" label="Enabled" />
                         <Button variant="outline" size="sm" onClick={handleDisable}>
                             Disable MFA
                         </Button>
                     </div>
                 ) : enrolling && qrUri ? (
                     <div className="space-y-4">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-ink-2">
                             Scan this QR code with your authenticator app:
                         </p>
-                        <div className="flex justify-center rounded-lg border border-gray-200 bg-white p-4">
+                        <div className="flex justify-center rounded-xl border border-hairline bg-card p-4">
                             <QRCodeSVG value={qrUri} size={200} />
                         </div>
                         <div className="space-y-2">
@@ -173,7 +179,12 @@ function MfaSection() {
                     <Button onClick={handleEnroll}>Enable MFA</Button>
                 )}
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && (
+                    <p className="flex items-center gap-1.5 text-sm text-neg">
+                        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                        {error}
+                    </p>
+                )}
             </CardContent>
         </Card>
     );
@@ -257,29 +268,34 @@ function PhoneSection() {
         }
     };
 
-    if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-5 w-52" />
+                    <Skeleton className="h-4 w-80 mt-1" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-9 w-full" />
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
-        <Card className="border-gray-200">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-gray-900">
-                    Phone / WhatsApp Verification
-                </CardTitle>
-                <p className="text-sm text-gray-600">
+                <CardTitle>Phone / WhatsApp Verification</CardTitle>
+                <CardDescription>
                     Add your phone number for account recovery and transactional notifications.
-                </p>
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {phoneVerified && savedPhone ? (
                     <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-700">{savedPhone}</span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                                Verified
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm text-ink mono-data">{savedPhone}</span>
+                            <StatusDot tone="pos" label="Verified" />
                         </div>
                         <Button
                             variant="outline"
@@ -295,7 +311,7 @@ function PhoneSection() {
                     </div>
                 ) : otpSent ? (
                     <div className="space-y-2">
-                        <Label>Enter the 6-digit OTP sent to {phone}</Label>
+                        <Label>Enter the 6-digit OTP sent to <span className="mono-data">{phone}</span></Label>
                         <div className="flex gap-2">
                             <Input
                                 type="text"
@@ -306,12 +322,12 @@ function PhoneSection() {
                                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                             />
                             <Button onClick={handleVerifyOtp} disabled={otp.length !== 6 || verifying}>
-                                {verifying ? 'Verifying...' : 'Verify'}
+                                {verifying ? 'Verifying…' : 'Verify'}
                             </Button>
                         </div>
                         <button
                             type="button"
-                            className="text-xs text-indigo-600 hover:underline"
+                            className="text-xs text-cyan hover:underline"
                             onClick={() => handleSendOtp('sms')}
                         >
                             Resend OTP
@@ -333,7 +349,7 @@ function PhoneSection() {
                                 onClick={() => handleSendOtp('sms')}
                                 disabled={phone.length < 10 || sending}
                             >
-                                {sending ? 'Sending...' : 'Send OTP via SMS'}
+                                {sending ? 'Sending…' : 'Send OTP via SMS'}
                             </Button>
                             <Button
                                 size="sm"
@@ -347,7 +363,12 @@ function PhoneSection() {
                     </div>
                 )}
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && (
+                    <p className="flex items-center gap-1.5 text-sm text-neg">
+                        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                        {error}
+                    </p>
+                )}
             </CardContent>
         </Card>
     );
@@ -406,31 +427,36 @@ function BackupEmailSection() {
         }
     };
 
-    if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-4 w-64 mt-1" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-9 w-full" />
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
-        <Card className="border-gray-200">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-gray-900">
-                    Backup Email
-                </CardTitle>
-                <p className="text-sm text-gray-600">
+                <CardTitle>Backup Email</CardTitle>
+                <CardDescription>
                     Add a secondary email for account recovery.
-                </p>
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {savedEmail && (
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-700">{savedEmail}</span>
-                        <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                verified
-                                    ? 'bg-green-50 text-green-700'
-                                    : 'bg-yellow-50 text-yellow-700'
-                            }`}
-                        >
-                            {verified ? 'Verified' : 'Pending verification'}
-                        </span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-ink mono-data">{savedEmail}</span>
+                        <StatusDot
+                            tone={verified ? 'pos' : 'warn'}
+                            label={verified ? 'Verified' : 'Pending verification'}
+                        />
                     </div>
                 )}
                 <div className="space-y-2">
@@ -446,11 +472,16 @@ function BackupEmailSection() {
                             onChange={(e) => setBackupEmail(e.target.value)}
                         />
                         <Button onClick={handleSave} disabled={!backupEmail || saving}>
-                            {saving ? 'Saving...' : 'Save'}
+                            {saving ? 'Saving…' : 'Save'}
                         </Button>
                     </div>
                 </div>
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && (
+                    <p className="flex items-center gap-1.5 text-sm text-neg">
+                        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                        {error}
+                    </p>
+                )}
             </CardContent>
         </Card>
     );
@@ -499,11 +530,9 @@ function ChangePasswordSection() {
     };
 
     return (
-        <Card className="border-gray-200">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-gray-900">
-                    Change Password
-                </CardTitle>
+                <CardTitle>Change Password</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -528,9 +557,14 @@ function ChangePasswordSection() {
                         autoComplete="new-password"
                     />
                 </div>
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && (
+                    <p className="flex items-center gap-1.5 text-sm text-neg">
+                        <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                        {error}
+                    </p>
+                )}
                 <Button onClick={handleChange} disabled={!newPassword || loading}>
-                    {loading ? 'Updating...' : 'Update password'}
+                    {loading ? 'Updating…' : 'Update password'}
                 </Button>
             </CardContent>
         </Card>

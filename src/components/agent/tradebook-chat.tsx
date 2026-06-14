@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { Bot, Send, Sparkles, User } from 'lucide-react';
+import { Bot, Send, Sparkles, User, AlertCircle } from 'lucide-react';
 import { DefaultChatTransport, isToolUIPart } from 'ai';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,23 +44,23 @@ export function TradebookChat({ batchId, batchLabel }: TradebookChatProps) {
   const isBusy = status === 'submitted' || status === 'streaming';
 
   return (
-    <Card className="border-indigo-100 bg-white">
+    <Card>
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <h2 className="text-base font-semibold text-gray-950">Ask about this batch</h2>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-semibold text-ink">Ask about this batch</h2>
             </div>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-ink-2">
               {batchLabel}
             </p>
           </div>
         </div>
 
-        <div className="max-h-96 space-y-3 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50 p-3">
+        <div className="max-h-96 space-y-3 overflow-y-auto rounded-xl border border-hairline bg-surface-2 p-3">
           {messages.length === 0 ? (
-            <div className="space-y-2 text-sm text-gray-600">
+            <div className="space-y-2 text-sm text-ink-2">
               <p>Try asking:</p>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -72,7 +72,7 @@ export function TradebookChat({ batchId, batchLabel }: TradebookChatProps) {
                   <button
                     key={prompt}
                     type="button"
-                    className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-left text-sm text-gray-700 hover:border-indigo-200 hover:text-indigo-700"
+                    className="rounded-md border border-hairline bg-card px-2.5 py-1.5 text-left text-sm text-ink hover:border-primary/40 hover:text-primary transition-colors"
                     onClick={() => sendMessage({ text: prompt })}
                   >
                     {prompt}
@@ -90,21 +90,21 @@ export function TradebookChat({ batchId, batchLabel }: TradebookChatProps) {
                   className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.role !== 'user' && (
-                    <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">
+                    <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <Bot className="h-4 w-4" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm leading-6 ${
+                    className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm leading-6 ${
                       message.role === 'user'
-                        ? 'bg-indigo-600 text-white'
-                        : 'border border-gray-200 bg-white text-gray-800'
+                        ? 'bg-primary text-white'
+                        : 'border border-hairline bg-card text-ink'
                     }`}
                   >
                     {text || (toolCount > 0 ? 'Looking up batch data...' : '')}
                   </div>
                   {message.role === 'user' && (
-                    <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-700">
+                    <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3 text-ink-2">
                       <User className="h-4 w-4" />
                     </div>
                   )}
@@ -113,7 +113,8 @@ export function TradebookChat({ batchId, batchLabel }: TradebookChatProps) {
             })
           )}
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="flex items-center gap-2 rounded-xl border border-neg/20 bg-neg/10 px-3 py-2 text-sm text-neg">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               {error.message}
             </div>
           )}
@@ -133,7 +134,7 @@ export function TradebookChat({ batchId, batchLabel }: TradebookChatProps) {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="Ask about trades, files, checks, vouchers, or closing lots..."
-            className="min-h-11 flex-1 resize-none border-gray-200 text-sm"
+            className="min-h-11 flex-1 resize-none text-sm"
             disabled={isBusy}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
@@ -148,7 +149,7 @@ export function TradebookChat({ batchId, batchLabel }: TradebookChatProps) {
           <Button
             type="submit"
             disabled={!input.trim() || isBusy}
-            className="h-11 bg-indigo-600 px-3 text-white hover:bg-indigo-700"
+            className="h-11 px-3"
             aria-label="Send message"
           >
             <Send className="h-4 w-4" />

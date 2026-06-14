@@ -2,10 +2,24 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Download,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Stat } from "@/components/ui/stat";
+import { StatusDot } from "@/components/ui/status-dot";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { FileUploadStatus } from "@/components/upload/file-upload-status";
 import { useBatchUpload, type ProcessingResult, type BatchUploadConfig } from "@/hooks/use-batch-upload";
@@ -138,45 +152,37 @@ function StepIndicator({
           <div key={step.num} className="flex items-center">
             <div className="flex flex-col items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${isCompleted
-                  ? "bg-indigo-600 text-white"
-                  : isActive
-                    ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
-                    : "bg-gray-100 text-gray-400"
-                  }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
+                  isCompleted
+                    ? "bg-pos text-white"
+                    : isActive
+                      ? "bg-primary text-white ring-4 ring-primary/20"
+                      : "bg-surface-3 text-ink-3"
+                }`}
               >
                 {isCompleted ? (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <Check className="h-4 w-4" strokeWidth={3} />
                 ) : (
-                  step.num
+                  <span className="mono-data">{step.num}</span>
                 )}
               </div>
               <span
-                className={`text-sm mt-2 font-medium whitespace-nowrap ${isActive
-                  ? "text-indigo-700"
-                  : isCompleted
-                    ? "text-gray-700"
-                    : "text-gray-400"
-                  }`}
+                className={`text-xs mt-2 font-medium whitespace-nowrap ${
+                  isActive
+                    ? "text-primary"
+                    : isCompleted
+                      ? "text-ink-2"
+                      : "text-ink-3"
+                }`}
               >
                 {step.label}
               </span>
             </div>
             {idx < total.length - 1 && (
               <div
-                className={`w-20 sm:w-28 h-0.5 mb-5 mx-1 transition-colors ${current > step.num ? "bg-indigo-600" : "bg-gray-200"
-                  }`}
+                className={`w-20 sm:w-28 h-0.5 mb-5 mx-1 transition-colors ${
+                  current > step.num ? "bg-pos" : "bg-hairline"
+                }`}
               />
             )}
           </div>
@@ -189,7 +195,7 @@ function StepIndicator({
 // ─── Step 1: Configure ────────────────────────────────────────────────────────
 
 const SELECT_CLASSES =
-  "h-10 w-full rounded-lg border border-gray-200 bg-transparent px-2.5 py-1.5 text-base outline-none focus:border-indigo-500 focus:ring-3 focus:ring-indigo-500/20";
+  "h-9 w-full rounded-md border border-hairline-strong bg-card px-2.5 py-1.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors";
 
 function StepConfigure({
   formData,
@@ -207,29 +213,29 @@ function StepConfigure({
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">
+        <h2 className="text-lg font-semibold text-ink">
           Import Configuration
         </h2>
-        <p className="text-base text-gray-700 mt-1">
+        <p className="text-sm text-ink-2 mt-1">
           Set up your accounting parameters before uploading files.
         </p>
       </div>
 
       {/* Accounting Mode */}
       <div className="space-y-3">
-        <Label className="text-base font-medium text-gray-800">
+        <Label className="text-sm font-medium text-ink">
           Accounting Mode
         </Label>
-        <div className="rounded-lg border border-indigo-500 bg-indigo-50 p-4 ring-1 ring-indigo-500">
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
           <div className="flex items-center gap-2 mb-1">
-            <div className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-indigo-600">
-              <div className="h-2 w-2 rounded-full bg-indigo-600" />
+            <div className="flex h-4 w-4 items-center justify-center rounded-full border-2 border-primary">
+              <div className="h-2 w-2 rounded-full bg-primary" />
             </div>
-            <span className="text-base font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-ink">
               Investor
             </span>
           </div>
-          <p className="pl-6 text-sm text-gray-600">
+          <p className="pl-6 text-sm text-ink-2">
             Long-term holdings, LTCG/STCG tax treatment
           </p>
         </div>
@@ -237,7 +243,7 @@ function StepConfigure({
 
       {/* Company Name */}
       <div className="space-y-1.5">
-        <Label htmlFor="company-name" className="text-base font-medium text-gray-800">
+        <Label htmlFor="company-name" className="text-sm font-medium text-ink">
           Company Name in Tally
         </Label>
         <Input
@@ -245,16 +251,15 @@ function StepConfigure({
           placeholder="e.g. Rajesh Kumar &amp; Associates"
           value={formData.companyName}
           onChange={(e) => onChange({ companyName: e.target.value })}
-          className="border-gray-200"
         />
-        <p className="text-sm text-gray-600">
+        <p className="text-xs text-ink-3">
           This name will appear in the imported Tally XML. Tally will create or use an existing company with this name — there&apos;s no validation against your Tally data.
         </p>
       </div>
 
       {/* Period */}
       <div className="space-y-1.5">
-        <Label className="text-base font-medium text-gray-800">
+        <Label className="text-sm font-medium text-ink">
           Financial Year
         </Label>
         <select
@@ -284,7 +289,7 @@ function StepConfigure({
         {isCustomRange && (
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="period-from" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="period-from" className="text-sm font-medium text-ink-2">
                 From
               </Label>
               <Input
@@ -292,11 +297,10 @@ function StepConfigure({
                 type="date"
                 value={formData.periodFrom}
                 onChange={(e) => onChange({ periodFrom: e.target.value })}
-                className="border-gray-200"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="period-to" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="period-to" className="text-sm font-medium text-ink-2">
                 To
               </Label>
               <Input
@@ -304,14 +308,13 @@ function StepConfigure({
                 type="date"
                 value={formData.periodTo}
                 onChange={(e) => onChange({ periodTo: e.target.value })}
-                className="border-gray-200"
               />
             </div>
           </div>
         )}
 
         {hasPeriodError && (
-          <p className="text-sm text-red-600">
+          <p className="text-xs text-neg">
             Enter both dates and make sure the From date is earlier than the To date.
           </p>
         )}
@@ -320,24 +323,11 @@ function StepConfigure({
       <div className="pt-2">
         <Button
           onClick={onNext}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="w-full"
           disabled={!formData.companyName.trim() || !formData.periodFrom || !formData.periodTo || !isValidDateRange(formData.periodFrom, formData.periodTo)}
         >
           Continue to File Upload
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="ml-2"
-          >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -354,9 +344,9 @@ const FILE_REQUIREMENTS = [
 ];
 
 const STATUS_BADGE: Record<string, string> = {
-  Required: "bg-red-50 text-red-600 border-red-200",
-  Recommended: "bg-amber-50 text-amber-700 border-amber-200",
-  Optional: "bg-gray-50 text-gray-600 border-gray-200",
+  Required: "bg-neg/10 text-neg border-neg/20",
+  Recommended: "bg-warn/10 text-warn border-warn/20",
+  Optional: "bg-surface-2 text-ink-2 border-hairline",
 };
 
 function StepUpload({
@@ -407,33 +397,33 @@ function StepUpload({
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Upload Files</h2>
-        <p className="text-base text-gray-700 mt-1">
+        <h2 className="text-lg font-semibold text-ink">Upload Files</h2>
+        <p className="text-sm text-ink-2 mt-1">
           Upload your Zerodha export files. At minimum, a Tradebook file is required.
         </p>
       </div>
 
       {/* Configuration summary */}
-      <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3">
+      <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
         {!editingFY ? (
           <div className="flex items-center justify-between">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-semibold text-indigo-700">
+              <span className="font-semibold text-primary">
                 {formatFYLabel(formData.periodFrom, formData.periodTo)}
               </span>
-              <span className="text-gray-400">·</span>
-              <span className="text-gray-600 capitalize">{formData.accountingMode} mode</span>
+              <span className="text-ink-3">·</span>
+              <span className="text-ink-2 capitalize">{formData.accountingMode} mode</span>
               {formData.companyName && (
                 <>
-                  <span className="text-gray-400">·</span>
-                  <span className="text-gray-600">{formData.companyName}</span>
+                  <span className="text-ink-3">·</span>
+                  <span className="text-ink-2">{formData.companyName}</span>
                 </>
               )}
             </div>
             <button
               type="button"
               onClick={() => setEditingFY(true)}
-              className="text-sm text-indigo-600 hover:underline shrink-0 ml-3"
+              className="text-xs text-primary hover:underline shrink-0 ml-3 font-medium"
             >
               Edit period
             </button>
@@ -441,7 +431,7 @@ function StepUpload({
         ) : (
           <div className="flex items-center gap-2 mt-2">
             <select
-              className="h-9 rounded-lg border border-indigo-200 bg-white px-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              className="h-9 rounded-md border border-hairline-strong bg-card px-2.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
               value={customRangeActive ? CUSTOM_RANGE_VALUE : selectedPeriodValue}
               onChange={(e) => {
                 if (e.target.value === CUSTOM_RANGE_VALUE) {
@@ -472,51 +462,49 @@ function StepUpload({
                   type="date"
                   value={formData.periodFrom}
                   onChange={(e) => onFormChange({ periodFrom: e.target.value })}
-                  className="h-9 border-indigo-200 bg-white text-sm"
                 />
                 <Input
                   type="date"
                   value={formData.periodTo}
                   onChange={(e) => onFormChange({ periodTo: e.target.value })}
-                  className="h-9 border-indigo-200 bg-white text-sm"
                 />
               </div>
             )}
             <button
               type="button"
               onClick={() => setEditingFY(false)}
-              className="text-sm text-gray-600 hover:text-gray-700"
+              className="text-xs text-ink-2 hover:text-ink font-medium"
             >
               Cancel
             </button>
           </div>
         )}
         {hasPeriodError && (
-          <p className="mt-2 text-sm text-red-600">
+          <p className="mt-2 text-xs text-neg">
             Enter both dates and make sure the From date is earlier than the To date.
           </p>
         )}
       </div>
 
       {/* File requirements table */}
-      <div className="rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+      <div className="rounded-xl border border-hairline overflow-hidden">
+        <div className="px-4 py-3 bg-surface-2 border-b border-hairline">
+          <p className="text-xs font-medium text-ink-2 uppercase tracking-wide">
             Required &amp; Recommended Files
           </p>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-hairline">
           {FILE_REQUIREMENTS.map((req) => (
             <div
               key={req.type}
               className="flex items-center justify-between px-4 py-3"
             >
               <div>
-                <p className="text-base font-medium text-gray-800">{req.type}</p>
-                <p className="text-sm text-gray-600 mt-0.5">{req.note}</p>
+                <p className="text-sm font-medium text-ink">{req.type}</p>
+                <p className="text-xs text-ink-2 mt-0.5">{req.note}</p>
               </div>
               <span
-                className={`text-sm font-medium px-3 py-1.5 rounded-full border ${STATUS_BADGE[req.status]}`}
+                className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_BADGE[req.status]}`}
               >
                 {req.status}
               </span>
@@ -534,8 +522,8 @@ function StepUpload({
       {/* Per-file status list */}
       {fileList.length > 0 && (
         <div ref={fileListRef} className="space-y-2">
-          <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            Files ({fileList.length})
+          <p className="text-xs font-medium text-ink-2 uppercase tracking-wide">
+            Files (<span className="mono-data">{fileList.length}</span>)
           </p>
           <div className="space-y-2">
             {Array.from(state.files.entries()).map(([key, fs]) => (
@@ -556,47 +544,19 @@ function StepUpload({
 
       {/* Failed files skip notice */}
       {failedCount > 0 && hasUploaded && !hasInFlight && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-amber-600 mt-0.5 shrink-0"
-          >
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <p className="text-sm text-amber-700">
-            {failedCount} file{failedCount > 1 ? 's' : ''} failed to upload and will be skipped. You can retry or remove them above.
+        <div className="flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-warn mt-0.5 shrink-0" />
+          <p className="text-sm text-warn">
+            <span className="mono-data">{failedCount}</span> file{failedCount > 1 ? 's' : ''} failed to upload and will be skipped. You can retry or remove them above.
           </p>
         </div>
       )}
 
       {/* Validation: tradebook required */}
       {fileList.length > 0 && !hasTradebook && hasUploaded && !hasInFlight && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-amber-600 mt-0.5 shrink-0"
-          >
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <p className="text-sm text-amber-700">
+        <div className="flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-warn mt-0.5 shrink-0" />
+          <p className="text-sm text-warn">
             A <strong>Tradebook</strong> file is required to proceed. Please upload it from Zerodha Console → Reports → Tradebook.
           </p>
         </div>
@@ -604,8 +564,9 @@ function StepUpload({
 
       {/* Global batch error */}
       {state.error && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-700">{state.error}</p>
+        <div className="flex items-start gap-2.5 rounded-xl border border-neg/30 bg-neg/10 px-4 py-3">
+          <AlertCircle className="h-4 w-4 text-neg mt-0.5 shrink-0" />
+          <p className="text-sm text-neg">{state.error}</p>
         </div>
       )}
 
@@ -613,44 +574,17 @@ function StepUpload({
         <Button
           variant="outline"
           onClick={onBack}
-          className="border-gray-200 text-gray-700"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mr-2"
-          >
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
         <Button
           onClick={onReview}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="flex-1"
           disabled={!canProcess || !hasTradebook}
         >
           Review Tally Matches
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="ml-2"
-          >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -659,11 +593,11 @@ function StepUpload({
 
 // ─── Step 3: Review Tally Matches ────────────────────────────────────────────
 
-const MATCH_BADGE_CLASS: Record<MappingStatus, string> = {
-  saved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  suggested: "bg-blue-50 text-blue-700 border-blue-200",
-  needs_review: "bg-amber-50 text-amber-700 border-amber-200",
-  missing: "bg-red-50 text-red-700 border-red-200",
+const MATCH_STATUS_TONE: Record<MappingStatus, "pos" | "info" | "warn" | "neg"> = {
+  saved: "pos",
+  suggested: "info",
+  needs_review: "warn",
+  missing: "neg",
 };
 
 const LEDGER_PICKER_PAGE_SIZE = 25;
@@ -780,7 +714,7 @@ function SearchableLedgerPicker({
             setVisibleLimit(LEDGER_PICKER_PAGE_SIZE);
             setOpen(true);
           }}
-          className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 pr-20 text-sm text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+          className="h-9 w-full rounded-md border border-hairline-strong bg-card px-3 pr-20 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors placeholder:text-ink-3"
           placeholder="Search Tally ledger..."
         />
         {draft?.tally_ledger_name && (
@@ -792,7 +726,7 @@ function SearchableLedgerPicker({
               setQuery('');
               setOpen(true);
             }}
-            className="absolute right-2 top-1.5 h-7 rounded-md px-2 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            className="absolute right-2 top-1.5 h-6 rounded-sm px-2 text-xs font-medium text-ink-3 hover:bg-surface-2 hover:text-ink transition-colors"
           >
             Clear
           </button>
@@ -800,14 +734,14 @@ function SearchableLedgerPicker({
       </div>
 
       {draft?.tally_ledger_group && (
-        <p className="mt-1 text-xs text-gray-500">{draft.tally_ledger_group}</p>
+        <p className="mt-1 text-xs text-ink-3">{draft.tally_ledger_group}</p>
       )}
 
       {open && (
         <div
           id={listboxId}
           role="listbox"
-          className="mt-2 max-h-80 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm"
+          className="mt-2 max-h-80 overflow-y-auto rounded-xl border border-hairline bg-card e2"
         >
           {selectedCandidate && !selectedIsInCandidates && (
             <button
@@ -816,11 +750,11 @@ function SearchableLedgerPicker({
               aria-selected="true"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => handleSelect(selectedCandidate)}
-              className="flex w-full flex-col border-b border-gray-100 px-3 py-2 text-left text-sm hover:bg-indigo-50"
+              className="flex w-full flex-col border-b border-hairline px-3 py-2 text-left text-sm hover:bg-surface-2 transition-colors"
             >
-              <span className="font-medium text-gray-900">{selectedCandidate.name}</span>
-              <span className="text-xs text-gray-500">{selectedCandidate.group}</span>
-              <span className="mt-1 text-xs font-medium text-indigo-600">Current selection</span>
+              <span className="font-medium text-ink">{selectedCandidate.name}</span>
+              <span className="text-xs text-ink-3">{selectedCandidate.group}</span>
+              <span className="mt-1 text-xs font-medium text-primary">Current selection</span>
             </button>
           )}
 
@@ -838,25 +772,26 @@ function SearchableLedgerPicker({
                     key={candidateKey(candidate)}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleSelect(candidate)}
-                    className={`flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-indigo-50 ${isSelected ? 'bg-indigo-50' : ''
-                      }`}
+                    className={`flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-surface-2 transition-colors ${
+                      isSelected ? 'bg-primary/5' : ''
+                    }`}
                   >
-                    <span className="font-medium text-gray-900">{candidate.name}</span>
-                    <span className="text-xs text-gray-500">{candidate.group}</span>
+                    <span className="font-medium text-ink">{candidate.name}</span>
+                    <span className="text-xs text-ink-3">{candidate.group}</span>
                   </button>
                 );
               })}
-              <div className="border-t border-gray-100 px-3 py-2">
+              <div className="border-t border-hairline px-3 py-2">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-gray-500">
-                    Showing {visibleCandidates.length} of {filteredCandidates.length}
+                  <span className="text-xs text-ink-3">
+                    Showing <span className="mono-data">{visibleCandidates.length}</span> of <span className="mono-data">{filteredCandidates.length}</span>
                   </span>
                   {hasMore && (
                     <button
                       type="button"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => setVisibleLimit((current) => current + LEDGER_PICKER_PAGE_SIZE)}
-                      className="h-8 rounded-md border border-gray-200 px-2.5 text-xs font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                      className="h-7 rounded-md border border-hairline px-2.5 text-xs font-medium text-ink-2 hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors"
                     >
                       Show more
                     </button>
@@ -865,7 +800,7 @@ function SearchableLedgerPicker({
               </div>
             </>
           ) : (
-            <div className="px-3 py-4 text-sm text-gray-600">
+            <div className="px-3 py-4 text-sm text-ink-2">
               No ledger found. Use generated only if this should create a new Tally ledger.
             </div>
           )}
@@ -1019,66 +954,68 @@ function StepReviewTallyMatches({
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Review Tally Matches</h2>
-        <p className="mt-1 text-base text-gray-700">
+        <h2 className="text-lg font-semibold text-ink">Review Tally Matches</h2>
+        <p className="mt-1 text-sm text-ink-2">
           Confirm each broker security against the exact ledger name in your uploaded Tally master.
         </p>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        <div className="space-y-4 py-4">
+          <div className="grid grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+        <div className="flex items-start gap-2.5 rounded-xl border border-neg/30 bg-neg/10 px-4 py-3">
+          <AlertCircle className="h-4 w-4 text-neg mt-0.5 shrink-0" />
+          <p className="text-sm text-neg">{error}</p>
         </div>
       )}
 
       {!loading && preview && (
         <>
           <div className="grid grid-cols-4 gap-3">
-            {[
-              { label: 'Total', value: preview.summary.total, className: 'border-slate-200 bg-slate-50 text-slate-700' },
-              { label: 'Saved', value: preview.summary.saved, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-              { label: 'Suggested', value: preview.summary.suggested, className: 'border-blue-200 bg-blue-50 text-blue-700' },
-              { label: 'Needs Input', value: preview.summary.needsReview + preview.summary.missing, className: 'border-amber-200 bg-amber-50 text-amber-700' },
-            ].map((item) => (
-              <div key={item.label} className={`rounded-lg border px-4 py-3 ${item.className}`}>
-                <p className="text-2xl font-bold">{item.value}</p>
-                <p className="text-sm font-medium">{item.label}</p>
-              </div>
-            ))}
+            <Stat label="Total" value={preview.summary.total} />
+            <Stat label="Saved" value={preview.summary.saved} icon={<CheckCircle2 className="h-4 w-4 text-pos" />} />
+            <Stat label="Suggested" value={preview.summary.suggested} />
+            <Stat label="Needs Input" value={preview.summary.needsReview + preview.summary.missing} icon={<AlertTriangle className="h-4 w-4 text-warn" />} />
           </div>
 
           {rows.length === 0 ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              No traded securities were found in the uploaded files. Upload a Zerodha tradebook before continuing.
+            <div className="flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3">
+              <AlertTriangle className="h-4 w-4 text-warn mt-0.5 shrink-0" />
+              <p className="text-sm text-warn">
+                No traded securities were found in the uploaded files. Upload a Zerodha tradebook before continuing.
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="overflow-x-auto rounded-xl border border-hairline">
+              <table className="min-w-full divide-y divide-hairline">
+                <thead className="bg-surface-2">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Broker Security</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Tally Ledger</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Stock Item</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-2">Broker Security</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-2">Tally Ledger</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-2">Stock Item</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-2">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-2">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
+                <tbody className="divide-y divide-hairline bg-card">
                   {rows.map((row) => {
                     const key = mappingRowKey(row);
                     const draft = drafts.get(key);
 
                     return (
-                      <tr key={key}>
+                      <tr key={key} className="hover:bg-surface-2 transition-colors">
                         <td className="px-4 py-3 align-top">
-                          <p className="text-sm font-semibold text-gray-900">{row.broker_symbol}</p>
-                          <p className="mt-1 text-xs text-gray-500">{row.isin ?? row.security_id ?? '-'}</p>
+                          <p className="text-sm font-semibold text-ink mono-data">{row.broker_symbol}</p>
+                          <p className="mt-1 text-xs text-ink-3 mono-data">{row.isin ?? row.security_id ?? '-'}</p>
                         </td>
                         <td className="px-4 py-3 align-top">
                           <SearchableLedgerPicker
@@ -1096,21 +1033,22 @@ function StepReviewTallyMatches({
                               tally_stock_item_name: event.target.value,
                               match_source: 'manual',
                             })}
-                            className="h-10 w-64 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                            className="h-9 w-64 rounded-md border border-hairline-strong bg-card px-3 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors placeholder:text-ink-3"
                             placeholder="Stock item name"
                           />
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${MATCH_BADGE_CLASS[row.status]}`}>
-                            {row.status.replace('_', ' ')}
-                          </span>
-                          <p className="mt-1 text-xs text-gray-500">{row.confidence}</p>
+                          <StatusDot
+                            tone={MATCH_STATUS_TONE[row.status]}
+                            label={row.status.replace('_', ' ')}
+                          />
+                          <p className="mt-1 text-xs text-ink-3 mono-data">{row.confidence}</p>
                         </td>
                         <td className="px-4 py-3 align-top">
                           <button
                             type="button"
                             onClick={() => updateDraft(row, generatedLedgerFor(row))}
-                            className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                            className="h-8 rounded-md border border-hairline bg-card px-3 text-xs font-medium text-ink-2 transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                           >
                             Use generated
                           </button>
@@ -1124,8 +1062,11 @@ function StepReviewTallyMatches({
           )}
 
           {unresolvedCount > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              First-time matches must be saved before processing. Saved rows will be reused in future imports.
+            <div className="flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3">
+              <AlertTriangle className="h-4 w-4 text-warn mt-0.5 shrink-0" />
+              <p className="text-sm text-warn">
+                First-time matches must be saved before processing. Saved rows will be reused in future imports.
+              </p>
             </div>
           )}
         </>
@@ -1135,17 +1076,18 @@ function StepReviewTallyMatches({
         <Button
           variant="outline"
           onClick={onBack}
-          className="border-gray-200 text-gray-700"
           disabled={saving}
         >
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
         <Button
           onClick={handleSaveAndProcess}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="flex-1"
           disabled={!preview || !allRowsMapped || saving || loading}
         >
           {saving ? 'Saving mappings…' : 'Save mappings and process'}
+          {!saving && <ArrowRight className="ml-2 h-4 w-4" />}
         </Button>
       </div>
     </div>
@@ -1255,12 +1197,12 @@ function CorporateActionForm({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-4">
+    <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
       <div>
-        <p className="text-sm font-semibold text-indigo-900">
+        <p className="text-sm font-semibold text-ink">
           Declare a corporate action
         </p>
-        <p className="text-xs text-indigo-800 mt-1">
+        <p className="text-xs text-ink-2 mt-1">
           This scrip likely had a bonus, split, rights issue, or merger that
           changed the quantity or ISIN. Declare it and retry so the pipeline
           can migrate cost lots.
@@ -1268,11 +1210,11 @@ function CorporateActionForm({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs text-indigo-900">Action type</Label>
+        <Label className="text-xs font-medium text-ink-2">Action type</Label>
         <select
           value={actionType}
           onChange={(e) => setActionType(e.target.value as CorporateActionType)}
-          className="w-full rounded border border-indigo-200 bg-white px-2 py-1.5 text-sm"
+          className="w-full rounded-md border border-hairline-strong bg-card px-2 py-1.5 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-colors"
         >
           <option value="STOCK_SPLIT">Stock split (face value change)</option>
           <option value="BONUS">Bonus issue</option>
@@ -1282,31 +1224,31 @@ function CorporateActionForm({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs text-indigo-900">Security ID (old)</Label>
+        <Label className="text-xs font-medium text-ink-2">Security ID (old)</Label>
         <Input
           value={securityId}
           onChange={(e) => setSecurityId(e.target.value)}
           placeholder="ISIN:INE123A01036"
-          className="text-sm"
+          className="text-sm mono-data"
         />
       </div>
 
       {requiresNewIsin && (
         <div className="space-y-2">
-          <Label className="text-xs text-indigo-900">
+          <Label className="text-xs font-medium text-ink-2">
             New security ID {actionType === 'STOCK_SPLIT' ? '(only if ISIN changed)' : ''}
           </Label>
           <Input
             value={newSecurityId}
             onChange={(e) => setNewSecurityId(e.target.value)}
             placeholder="ISIN:INE123A01028"
-            className="text-sm"
+            className="text-sm mono-data"
           />
         </div>
       )}
 
       <div className="space-y-2">
-        <Label className="text-xs text-indigo-900">Action date</Label>
+        <Label className="text-xs font-medium text-ink-2">Action date</Label>
         <Input
           type="date"
           value={actionDate}
@@ -1317,40 +1259,40 @@ function CorporateActionForm({
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-2">
-          <Label className="text-xs text-indigo-900">Ratio numerator</Label>
+          <Label className="text-xs font-medium text-ink-2">Ratio numerator</Label>
           <Input
             value={ratioNum}
             onChange={(e) => setRatioNum(e.target.value)}
             placeholder="5"
-            className="text-sm"
+            className="text-sm mono-data"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs text-indigo-900">Ratio denominator</Label>
+          <Label className="text-xs font-medium text-ink-2">Ratio denominator</Label>
           <Input
             value={ratioDen}
             onChange={(e) => setRatioDen(e.target.value)}
             placeholder="1"
-            className="text-sm"
+            className="text-sm mono-data"
           />
         </div>
       </div>
-      <p className="text-xs text-indigo-700">{RATIO_HINTS[actionType]}</p>
+      <p className="text-xs text-ink-3">{RATIO_HINTS[actionType]}</p>
 
       {requiresCost && (
         <div className="space-y-2">
-          <Label className="text-xs text-indigo-900">Cost per share</Label>
+          <Label className="text-xs font-medium text-ink-2">Cost per share</Label>
           <Input
             value={costPerShare}
             onChange={(e) => setCostPerShare(e.target.value)}
             placeholder="100"
-            className="text-sm"
+            className="text-sm mono-data"
           />
         </div>
       )}
 
       <div className="space-y-2">
-        <Label className="text-xs text-indigo-900">Notes (optional)</Label>
+        <Label className="text-xs font-medium text-ink-2">Notes (optional)</Label>
         <Input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -1360,13 +1302,13 @@ function CorporateActionForm({
       </div>
 
       {formError && (
-        <p className="text-xs text-red-700">{formError}</p>
+        <p className="text-xs text-neg">{formError}</p>
       )}
 
       <Button
         onClick={handleSubmit}
         disabled={submitting}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+        className="w-full"
       >
         {submitting ? 'Saving…' : 'Save and retry processing'}
       </Button>
@@ -1374,7 +1316,7 @@ function CorporateActionForm({
   );
 }
 
-// ─── Step 3: Processing ───────────────────────────────────────────────────────
+// ─── Step 4: Processing ───────────────────────────────────────────────────────
 
 function StepProcessing({
   batchStatus,
@@ -1398,8 +1340,8 @@ function StepProcessing({
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Processing</h2>
-        <p className="text-base text-gray-700 mt-1">
+        <h2 className="text-lg font-semibold text-ink">Processing</h2>
+        <p className="text-sm text-ink-2 mt-1">
           {batchStatus === 'running'
             ? 'Please wait while we process your files…'
             : 'An error occurred during processing.'}
@@ -1408,47 +1350,38 @@ function StepProcessing({
 
       {batchStatus === 'running' && (
         <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <div className="w-10 h-10 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
-          <p className="text-base text-gray-600">Processing your files…</p>
-          <p className="text-sm text-gray-500">This usually takes a few seconds.</p>
+          {/* Skeleton shimmer to indicate progress */}
+          <div className="space-y-3 w-full max-w-xs">
+            <Skeleton className="h-3 w-full rounded-full" />
+            <Skeleton className="h-3 w-4/5 rounded-full" />
+            <Skeleton className="h-3 w-2/3 rounded-full" />
+          </div>
+          <p className="text-sm text-ink-2">Processing your files…</p>
+          <p className="text-xs text-ink-3">This usually takes a few seconds.</p>
         </div>
       )}
 
       {batchStatus === 'failed' && (
         <div className="space-y-4">
-          <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-red-500 mt-0.5 shrink-0"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <p className="text-sm text-red-700">{errorMessage ?? 'Processing failed. Please try again.'}</p>
+          <div className="flex items-start gap-2.5 rounded-xl border border-neg/30 bg-neg/10 px-4 py-3">
+            <AlertCircle className="h-4 w-4 text-neg mt-0.5 shrink-0" />
+            <p className="text-sm text-neg">{errorMessage ?? 'Processing failed. Please try again.'}</p>
           </div>
 
           {isClassificationAmbiguous ? (
-            <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-4">
+            <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
               <div>
-                <p className="text-sm font-semibold text-indigo-900">
+                <p className="text-sm font-semibold text-ink">
                   Choose how to classify these trades
                 </p>
-                <p className="text-xs text-indigo-800 mt-1">
-                  Your tradebook doesn’t carry the Zerodha product column
-                  (CNC/MIS/NRML), so we’ll process equity as investment for now.
+                <p className="text-xs text-ink-2 mt-1">
+                  Your tradebook doesn&apos;t carry the Zerodha product column
+                  (CNC/MIS/NRML), so we&apos;ll process equity as investment for now.
                 </p>
               </div>
               <Button
                 onClick={() => onRetryWithStrategy('ASSUME_ALL_EQ_INVESTMENT')}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="w-full"
               >
                 Retry as Investor — treat equity as investment
               </Button>
@@ -1471,7 +1404,7 @@ function StepProcessing({
           ) : (
             <Button
               onClick={onRetry}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="w-full"
             >
               Try Again
             </Button>
@@ -1482,7 +1415,7 @@ function StepProcessing({
   );
 }
 
-// ─── Step 4: Results ──────────────────────────────────────────────────────────
+// ─── Step 5: Results ──────────────────────────────────────────────────────────
 
 function StepResults({
   result,
@@ -1527,62 +1460,36 @@ function StepResults({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="text-lg font-semibold text-ink">
             Import Complete — Review &amp; Download
           </h2>
-          <p className="text-base text-gray-700 mt-1">
+          <p className="text-sm text-ink-2 mt-1">
             Review your reconciliation summary and download the output files.
           </p>
-          <p className="text-base text-gray-700">Batch: {result.batchId}</p>
+          <p className="text-xs text-ink-3 mono-data mt-0.5">Batch: {result.batchId}</p>
         </div>
-        <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <span className="text-sm font-semibold">Processed</span>
+        <div className="flex items-center gap-1.5 text-pos bg-pos/10 border border-pos/20 rounded-full px-3 py-1.5 shrink-0">
+          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span className="text-xs font-semibold">Processed</span>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: "Trades Parsed", sub: "from your tradebook CSV", value: result.tradeCount, color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-200" },
-          { label: "Accounting Events", sub: "buys, sells & corporate actions", value: result.eventCount, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
-          { label: "Vouchers", sub: "ready to import into Tally", value: result.voucherCount, color: "text-violet-700", bg: "bg-violet-50 border-violet-200" },
-          { label: "Ledgers", sub: "scrip/account definitions", value: result.ledgerCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`rounded-lg border px-4 py-4 text-center ${item.bg}`}
-          >
-            <p className={`text-3xl font-bold ${item.color}`}>{item.value}</p>
-            <p className={`text-sm font-medium mt-0.5 ${item.color}`}>
-              {item.label}
-            </p>
-            <p className={`text-xs mt-0.5 opacity-70 ${item.color}`}>
-              {item.sub}
-            </p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Stat label="Trades Parsed" value={result.tradeCount} sub="from tradebook CSV" />
+        <Stat label="Accounting Events" value={result.eventCount} sub="buys, sells & actions" />
+        <Stat label="Vouchers" value={result.voucherCount} sub="ready for Tally" icon={<FileText className="h-4 w-4" />} />
+        <Stat label="Ledgers" value={result.ledgerCount} sub="scrip / account defs" icon={<CheckCircle2 className="h-4 w-4 text-pos" />} />
       </div>
 
       {/* Reconciliation checks */}
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+        <p className="text-xs font-medium text-ink-2 uppercase tracking-wide">
           Reconciliation Checks
         </p>
-        <p className="text-xs text-gray-400 mt-0.5 mb-1">
+        <p className="text-xs text-ink-3 mt-0.5 mb-1">
           Warnings are informational — your Tally XML is ready to import regardless.
         </p>
         <div className="space-y-2">
@@ -1592,36 +1499,37 @@ function StepResults({
             return (
               <div
                 key={check.check_name}
-                className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${isPass
-                  ? "border-emerald-200 bg-emerald-50"
-                  : isWarn
-                    ? "border-amber-200 bg-amber-50"
-                    : "border-red-200 bg-red-50"
-                  }`}
+                className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
+                  isPass
+                    ? "border-pos/20 bg-pos/5"
+                    : isWarn
+                      ? "border-warn/20 bg-warn/5"
+                      : "border-neg/20 bg-neg/5"
+                }`}
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isPass ? "bg-emerald-500" : isWarn ? "bg-amber-500" : "bg-red-500"
-                  }`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                  isPass ? "bg-pos" : isWarn ? "bg-warn" : "bg-neg"
+                }`}>
                   {isPass ? (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
                   ) : (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="8" x2="12" y2="12" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
+                    <AlertCircle className="h-3 w-3 text-white" strokeWidth={3} />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className={`text-base font-semibold ${isPass ? "text-emerald-700" : isWarn ? "text-amber-700" : "text-red-700"
-                    }`}>
+                  <p className={`text-sm font-semibold ${
+                    isPass ? "text-pos" : isWarn ? "text-warn" : "text-neg"
+                  }`}>
                     {check.check_name}
-                    <span className="ml-2 text-sm font-medium px-3 py-1 rounded-full border bg-white/60">
+                    <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full border bg-card/60 ${
+                      isPass ? "border-pos/20 text-pos" : isWarn ? "border-warn/20 text-warn" : "border-neg/20 text-neg"
+                    }`}>
                       {check.status}
                     </span>
                   </p>
-                  <p className={`text-sm mt-0.5 ${isPass ? "text-emerald-600" : isWarn ? "text-amber-600" : "text-red-600"
-                    }`}>
+                  <p className={`text-xs mt-0.5 ${
+                    isPass ? "text-pos" : isWarn ? "text-warn" : "text-neg"
+                  }`}>
                     {check.details}
                   </p>
                 </div>
@@ -1632,63 +1540,57 @@ function StepResults({
       </div>
 
       {/* Downloads */}
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+      <div className="space-y-3">
+        <p className="text-xs font-medium text-ink-2 uppercase tracking-wide">
           Download Tally XML Files
         </p>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
-          <p className="text-sm font-semibold text-amber-900">
+        <div className="rounded-xl border border-warn/20 bg-warn/5 px-4 py-4">
+          <p className="text-sm font-semibold text-warn">
             Import order is mandatory for a clean Tally import.
           </p>
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-2">
             {TALLY_IMPORT_STEPS.map((step, idx) => (
               <div key={step.title} className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-600 text-[11px] font-semibold text-white">
+                <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-warn text-[11px] font-semibold text-white mono-data">
                   {idx + 1}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-amber-900">{step.title}</p>
-                  <p className="text-sm text-amber-800">{step.detail}</p>
+                  <p className="text-sm font-medium text-ink">{step.title}</p>
+                  <p className="text-xs text-ink-2">{step.detail}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={() => {
               downloadXml(result.mastersXml, mastersFilename);
               setDownloadedMasters(true);
             }}
-            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+            className="flex items-center gap-3 rounded-xl border border-hairline bg-card px-4 py-3 text-left hover:border-primary/30 hover:bg-primary/5 transition-colors group"
           >
-            <div className="w-11 h-11 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5 text-primary" />
             </div>
-            <div className="min-w-0">
-              <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink group-hover:text-primary transition-colors">
                 Masters XML
               </p>
-              <p className="text-sm text-gray-600">
-                Required first: ledger definitions, groups, stock items, and voucher settings
+              <p className="text-xs text-ink-2">
+                Required first: ledger definitions, groups, stock items
               </p>
             </div>
             {downloadedMasters ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <span className="rounded-full border border-pos/20 bg-pos/10 px-2 py-0.5 text-xs font-semibold text-pos shrink-0">
                 Downloaded
               </span>
-            ) : null}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
+            ) : (
+              <Download className="h-4 w-4 text-ink-3 group-hover:text-primary transition-colors shrink-0" />
+            )}
           </button>
+
           <button
             onClick={() => {
               if (!downloadedMasters) return;
@@ -1696,49 +1598,38 @@ function StepResults({
               setDownloadedTransactions(true);
             }}
             disabled={!downloadedMasters}
-            className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors group ${
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors group ${
               downloadedMasters
-                ? "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
-                : "cursor-not-allowed border-gray-200 bg-gray-50 opacity-60"
+                ? "border-hairline bg-card hover:border-primary/30 hover:bg-primary/5"
+                : "cursor-not-allowed border-hairline bg-surface-2 opacity-60"
             }`}
           >
-            <div className="w-11 h-11 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
+            <div className="w-10 h-10 rounded-lg bg-surface-2 flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5 text-ink-2" />
             </div>
-            <div className="min-w-0">
-              <p className="text-base font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink group-hover:text-primary transition-colors">
                 Transactions XML
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs text-ink-2">
                 {downloadedMasters
-                  ? `${result.voucherCount} voucher entries ready for import`
+                  ? <><span className="mono-data">{result.voucherCount}</span> voucher entries ready for import</>
                   : "Available after downloading 01 masters first"}
               </p>
             </div>
             {downloadedTransactions ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <span className="rounded-full border border-pos/20 bg-pos/10 px-2 py-0.5 text-xs font-semibold text-pos shrink-0">
                 Downloaded
               </span>
             ) : downloadedMasters ? (
-              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                Step 2
-              </span>
+              <Download className="h-4 w-4 text-ink-3 group-hover:text-primary transition-colors shrink-0" />
             ) : (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                Locked
-              </span>
+              <X className="h-4 w-4 text-ink-3 shrink-0" />
             )}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-gray-500 group-hover:text-indigo-500 transition-colors shrink-0">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+
+        <p className="text-xs text-ink-3">
           Download both files now. The 01/02 prefixes are intentional and match the Tally import order: masters first, transactions second.
         </p>
       </div>
@@ -1747,19 +1638,19 @@ function StepResults({
       <div className="flex gap-3 pt-2">
         <button
           onClick={() => handleNavAway('/batches')}
-          className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
+          className="flex-1 inline-flex h-9 items-center justify-center rounded-md border border-hairline bg-card text-sm font-medium text-ink transition-colors hover:bg-surface-2"
         >
           View in Batches &rarr;
         </button>
         <button
           onClick={() => handleNavAway('/dashboard')}
-          className="flex-1 inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
+          className="flex-1 inline-flex h-9 items-center justify-center rounded-md border border-hairline bg-card text-sm font-medium text-ink transition-colors hover:bg-surface-2"
         >
           View Dashboard
         </button>
         <Button
           onClick={onStartOver}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="flex-1"
         >
           Start New Import
         </Button>
@@ -1856,27 +1747,28 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 px-6 py-8 sm:px-8">
-      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
+    <div className="min-h-full bg-background px-6 py-6">
+      {/* Page header */}
+      <div className="mb-8 rounded-xl border border-hairline bg-card e1 p-6">
+        <p className="text-xs font-medium uppercase tracking-wide text-primary">
           Upload-first workflow
         </p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-900">New Import</h1>
-        <p className="mt-1 text-base text-slate-700">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">New Import</h1>
+        <p className="mt-1 text-sm text-ink-2">
           Convert Zerodha exports into reconciled, Tally-importable XML.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2 text-sm text-slate-700">
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Investor mode</span>
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Exception-first review</span>
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5">Tally Prime / ERP 9 XML</span>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-medium text-ink-2">Investor mode</span>
+          <span className="rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-medium text-ink-2">Exception-first review</span>
+          <span className="rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-medium text-ink-2">Tally Prime / ERP 9 XML</span>
         </div>
       </div>
 
-      <div className="mb-10 flex justify-center">
+      <div className="mb-8 flex justify-center">
         <StepIndicator current={step} total={STEPS} />
       </div>
 
-      <Card ref={cardRef} className="border-slate-200 bg-white shadow-sm">
+      <Card ref={cardRef} className="border-hairline bg-card e1">
         <CardContent className="px-8 py-8">
           {step === 1 && (
             <StepConfigure

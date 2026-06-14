@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SecurityTab } from "@/components/settings/security-tab";
 import { toast } from "sonner";
 
@@ -18,14 +21,9 @@ interface SettingsFormData {
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
-type SettingsTab = "workspace" | "security";
 
 const SELECT_CLASSES =
-    "h-10 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none focus:border-ring focus:ring-3 focus:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
-
-const TAB_CLASSES = "px-4 py-2 text-sm font-medium rounded-lg transition-colors";
-const TAB_ACTIVE = "bg-indigo-50 text-indigo-700";
-const TAB_INACTIVE = "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+    "h-9 w-full rounded-md border border-hairline-strong bg-card px-3 py-1.5 text-sm text-ink outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-ink-3";
 
 /* -------------------------------------------------------------------------- */
 /*  Workspace Tab                                                             */
@@ -96,20 +94,36 @@ function WorkspaceTab() {
     };
 
     if (loading) {
-        return <p className="text-base text-gray-600">Loading settings...</p>;
+        return (
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-5 w-44" />
+                    <Skeleton className="h-4 w-72 mt-1" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-9 w-full" />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-9 w-full" />
+                    </div>
+                    <Skeleton className="h-9 w-28 mt-2" />
+                </CardContent>
+            </Card>
+        );
     }
 
     return (
-        <Card className="border-gray-200">
+        <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-bold text-gray-900">
-                    Workspace defaults
-                </CardTitle>
-                <p className="text-base text-gray-700">
+                <CardTitle>Workspace defaults</CardTitle>
+                <CardDescription>
                     These values will pre-fill future import forms.
-                </p>
+                </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
                 <div className="space-y-1.5">
                     <Label htmlFor="company-name">Default Tally company</Label>
                     <Input
@@ -135,19 +149,25 @@ function WorkspaceTab() {
                     </select>
                 </div>
 
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-ink-3">
                     Cost method (FIFO), charge treatment, and ledger structure are fixed per Income Tax Act guidelines.
                 </p>
 
-                <div className="flex items-center gap-3 pt-2">
-                    <Button className="h-11" onClick={handleSave} disabled={status === "saving"}>
-                        {status === "saving" ? "Saving..." : "Save settings"}
+                <div className="flex items-center gap-3 pt-1">
+                    <Button onClick={handleSave} disabled={status === "saving"}>
+                        {status === "saving" ? "Saving…" : "Save settings"}
                     </Button>
                     {status === "saved" && (
-                        <span className="text-base text-green-600">Settings saved</span>
+                        <span className="flex items-center gap-1.5 text-sm text-pos">
+                            <Check className="h-4 w-4" aria-hidden="true" />
+                            Settings saved
+                        </span>
                     )}
                     {status === "error" && (
-                        <span className="text-base text-red-600">{errorMsg}</span>
+                        <span className="flex items-center gap-1.5 text-sm text-neg">
+                            <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                            {errorMsg}
+                        </span>
                     )}
                 </div>
             </CardContent>
@@ -160,35 +180,29 @@ function WorkspaceTab() {
 /* -------------------------------------------------------------------------- */
 
 export default function SettingsPage() {
-    const [tab, setTab] = useState<SettingsTab>("workspace");
-
     return (
-        <div className="px-8 py-8 space-y-6 max-w-3xl">
+        <div className="px-8 py-8 space-y-6 max-w-5xl">
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-                <p className="text-base text-gray-700 mt-1">
+                <h1 className="text-2xl font-semibold tracking-tight text-ink">Settings</h1>
+                <p className="text-sm text-ink-2 mt-1">
                     Configure workspace defaults and security settings.
                 </p>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
-                <button
-                    className={`${TAB_CLASSES} ${tab === "workspace" ? TAB_ACTIVE : TAB_INACTIVE}`}
-                    onClick={() => setTab("workspace")}
-                >
-                    Workspace
-                </button>
-                <button
-                    className={`${TAB_CLASSES} ${tab === "security" ? TAB_ACTIVE : TAB_INACTIVE}`}
-                    onClick={() => setTab("security")}
-                >
-                    Security
-                </button>
-            </div>
+            <Tabs defaultValue="workspace">
+                <TabsList variant="line">
+                    <TabsTrigger value="workspace">Workspace</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
+                </TabsList>
 
-            {/* Tab Content */}
-            {tab === "workspace" ? <WorkspaceTab /> : <SecurityTab />}
+                <TabsContent value="workspace" className="mt-6">
+                    <WorkspaceTab />
+                </TabsContent>
+
+                <TabsContent value="security" className="mt-6">
+                    <SecurityTab />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

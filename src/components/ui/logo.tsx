@@ -19,8 +19,8 @@ export function Logo({ className, href = "/" }: LogoProps) {
           priority
         />
       </div>
-      <span className="font-semibold text-[1.1rem] sm:text-xl tracking-tight text-slate-900 dark:text-white">
-        TradeBooks AI
+      <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-ink">
+        TradeBooks <span className="text-primary">AI</span>
       </span>
     </Link>
   );

@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { StatusDot, type StatusDotTone } from "@/components/ui/status-dot";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type AppExceptionSeverity = "error" | "warning" | "info";
 
@@ -25,16 +27,18 @@ interface BatchException {
   created_at: string;
 }
 
-const SEVERITY_BADGE_CLASS: Record<AppExceptionSeverity, string> = {
-  error: "bg-red-50 text-red-700 border-red-200",
-  warning: "bg-amber-50 text-amber-700 border-amber-200",
-  info: "bg-blue-50 text-blue-700 border-blue-200",
-};
+// ── Severity vocabulary ───────────────────────────────────────────────────────
 
 const SEVERITY_LABELS: Record<AppExceptionSeverity, string> = {
   error: "Error",
   warning: "Warning",
   info: "Info",
+};
+
+const SEVERITY_DOT_TONE: Record<AppExceptionSeverity, StatusDotTone> = {
+  error: "neg",
+  warning: "warn",
+  info: "info",
 };
 
 const FILTER_OPTIONS: Array<{ value: string; label: string }> = [
@@ -44,8 +48,10 @@ const FILTER_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "info", label: "Info" },
 ];
 
+// ── Formatters ────────────────────────────────────────────────────────────────
+
 function formatDate(iso: string): string {
-  if (!iso) return "\u2014";
+  if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -53,6 +59,78 @@ function formatDate(iso: string): string {
     year: "numeric",
   });
 }
+
+// ── Columns ───────────────────────────────────────────────────────────────────
+
+const COLUMNS: Column<BatchException>[] = [
+  {
+    id: "severity",
+    header: "Severity",
+    sortable: true,
+    sortValue: (row) => row.severity,
+    cell: (row) => {
+      const tone =
+        SEVERITY_DOT_TONE[row.severity] ?? ("info" as StatusDotTone);
+      const label = SEVERITY_LABELS[row.severity] ?? row.severity;
+      return <StatusDot tone={tone} label={label} />;
+    },
+    width: "120px",
+  },
+  {
+    id: "code",
+    header: "Code",
+    sortable: true,
+    sortValue: (row) => row.code,
+    cell: (row) => (
+      <span className="mono-data text-ink">{row.code}</span>
+    ),
+    width: "140px",
+  },
+  {
+    id: "message",
+    header: "Message",
+    cell: (row) => (
+      <span className="text-sm text-ink max-w-xs truncate block" title={row.message}>
+        {row.message}
+      </span>
+    ),
+  },
+  {
+    id: "batch_id",
+    header: "Batch ID",
+    sortable: true,
+    sortValue: (row) => row.batch_id,
+    cell: (row) => (
+      <span className="mono-data text-ink-2">
+        {row.batch_id.slice(0, 8)}&hellip;
+      </span>
+    ),
+    width: "120px",
+  },
+  {
+    id: "source_refs",
+    header: "Source Refs",
+    cell: (row) =>
+      row.source_refs.length > 0 ? (
+        <span className="text-sm text-ink-2">{row.source_refs.join(", ")}</span>
+      ) : (
+        <span className="text-ink-3">&mdash;</span>
+      ),
+  },
+  {
+    id: "date",
+    header: "Date",
+    align: "right",
+    sortable: true,
+    sortValue: (row) => row.created_at,
+    cell: (row) => (
+      <span className="mono-data text-ink-2">{formatDate(row.created_at)}</span>
+    ),
+    width: "130px",
+  },
+];
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExceptionsPage() {
   const [exceptions, setExceptions] = useState<BatchException[]>([]);
@@ -75,130 +153,82 @@ export default function ExceptionsPage() {
           setExceptions([]);
         }
       })
-      .catch(() => { if (!cancelled) setExceptions([]); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setExceptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [severityFilter]);
 
+  // Severity-aware empty state
+  const emptyDescription =
+    severityFilter === "all"
+      ? "Exceptions from processed batches will appear here."
+      : `No exceptions with severity “${SEVERITY_LABELS[severityFilter as AppExceptionSeverity] ?? severityFilter}”.`;
+
+  const emptyState = (
+    <EmptyState
+      icon={<AlertTriangle className="h-5 w-5" />}
+      title="No exceptions to review"
+      description={emptyDescription}
+    />
+  );
+
+  // Toolbar: severity filter via re-tokened Select
+  const toolbar = (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-ink-2">
+        Severity
+      </span>
+      <Select
+        value={severityFilter}
+        onValueChange={(val) => {
+          setLoading(true);
+          setSeverityFilter(val as string);
+        }}
+      >
+        <SelectTrigger size="sm" className="w-36">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {FILTER_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
-    <div className="px-8 py-8 space-y-6">
-      {/* Header */}
+    <div className="px-6 py-6 space-y-6">
+      {/* Page header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Exceptions</h1>
-        <p className="text-base text-gray-700 mt-1">
-          Review validation and reconciliation issues detected during
-          processing.
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
+          Exceptions
+        </h1>
+        <p className="text-sm text-ink-2 mt-1">
+          Review validation and reconciliation issues detected during processing.
         </p>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-3">
-        <label
-          htmlFor="severity-filter"
-          className="text-base font-medium text-gray-800"
-        >
-          Filter by severity:
-        </label>
-        <select
-          id="severity-filter"
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value)}
-          className="h-10 rounded-lg border border-gray-200 bg-white px-2.5 text-base text-gray-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-        >
-          {FILTER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Table */}
-      <Card className="border-gray-200">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-gray-600">Loading exceptions...</p>
-            </div>
-          ) : exceptions.length === 0 ? (
-            <div className="py-16">
-              <div className="text-center space-y-3">
-                <div className="mx-auto w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                  <AlertTriangle className="h-6 w-6 text-gray-500" />
-                </div>
-                <div>
-                  <p className="text-base font-medium text-gray-900">
-                    No exceptions to review
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {severityFilter === "all"
-                      ? "Exceptions from processed batches will appear here."
-                      : `No exceptions with severity "${SEVERITY_LABELS[severityFilter as AppExceptionSeverity] ?? severityFilter}".`}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200 bg-gray-50/50">
-                  <TableHead className="text-sm font-semibold text-gray-900 pl-6">
-                    Severity
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Code
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Message
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Batch ID
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900">
-                    Source Refs
-                  </TableHead>
-                  <TableHead className="text-sm font-semibold text-gray-900 pr-6">
-                    Date
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {exceptions.map((exc) => (
-                  <TableRow key={exc.id} className="border-gray-100">
-                    <TableCell className="pl-6">
-                      <Badge
-                        className={
-                          SEVERITY_BADGE_CLASS[exc.severity] ??
-                          SEVERITY_BADGE_CLASS.info
-                        }
-                      >
-                        {SEVERITY_LABELS[exc.severity] ?? exc.severity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-base font-mono text-gray-800">
-                      {exc.code}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-700 max-w-xs truncate">
-                      {exc.message}
-                    </TableCell>
-                    <TableCell className="text-base font-mono text-gray-600">
-                      {exc.batch_id.slice(0, 8)}...
-                    </TableCell>
-                    <TableCell className="text-base text-gray-800">
-                      {exc.source_refs.length > 0
-                        ? exc.source_refs.join(", ")
-                        : "\u2014"}
-                    </TableCell>
-                    <TableCell className="text-base text-gray-700 pr-6">
-                      {formatDate(exc.created_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Data table */}
+      <DataTable<BatchException>
+        data={exceptions}
+        columns={COLUMNS}
+        getRowId={(r) => r.id}
+        density="compact"
+        initialSort={{ id: "date", dir: "desc" }}
+        toolbar={toolbar}
+        loading={loading}
+        emptyState={emptyState}
+        stickyHeader
+      />
     </div>
   );
 }
