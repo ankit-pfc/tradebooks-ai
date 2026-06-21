@@ -3,6 +3,12 @@ import type { LedgerOverride } from '@/lib/db/ledger-repository';
 import type { TallyStockItemMapping } from '@/lib/db/stock-item-repository';
 import type { TallySecurityMapping } from '@/lib/db/stock-mapping-repository';
 import type { TallyProfile } from '@/lib/types/accounting';
+import {
+  isLikelyStockLedgerCandidate,
+  isValidStockSecurityMapping,
+  normalizeBrokerSymbolForLedger,
+  normalizeStockLedgerText,
+} from '@/lib/engine/stock-ledger-classification';
 
 export type StockIdentityMatchConfidence =
   | 'explicit'
@@ -37,13 +43,11 @@ interface LedgerCandidate {
 }
 
 function normalizeName(value: string): string {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return normalizeStockLedgerText(value);
 }
 
 function stripKnownTradingSuffix(value: string): string {
-  return value
-    .replace(/-SH$/i, '')
-    .replace(/-(EQ|BE|BZ|SM|ST|A|B|M|T|X)$/i, '');
+  return normalizeBrokerSymbolForLedger(value);
 }
 
 function stripCompanySuffix(value: string): string {
@@ -98,27 +102,6 @@ function findAliasMatch<T extends { name: string; aliases?: string[] }>(
 ): T | undefined {
   return candidates.find((candidate) =>
     (candidate.aliases ?? []).some((alias) => variants.has(normalizeName(alias))),
-  );
-}
-
-function isKnownNonStockLedgerName(name: string): boolean {
-  const normalized = normalizeName(name);
-  return /^(STCG|LTCG|STCL|LTCL|DIV|GST|STT|SHAREBROKERAGE|BROKERAGE|SECURITIESTRANSACTIONTAX|EXCHANGE|SEBI|STAMP|DPCHARGES|DEMATCHARGES|AMCCHARGES|DEMATAMCCHARGES|MISCELLANEOUSCHARGES|TDS|TRADINGSALES|COSTOFSHARESSOLD)/i.test(normalized);
-}
-
-function isLikelyStockLedgerCandidate(candidate: LedgerCandidate, profileInvestmentGroup: string): boolean {
-  const group = normalizeName(candidate.group);
-  const profileGroup = normalizeName(profileInvestmentGroup);
-  const name = normalizeName(candidate.name);
-
-  if (isKnownNonStockLedgerName(candidate.name)) return false;
-
-  return (
-    group === profileGroup ||
-    group.includes('INVESTMENT') ||
-    group.includes('STOCKINHAND') ||
-    group.includes('STOCKINTRADE') ||
-    name.endsWith('SH')
   );
 }
 
@@ -246,6 +229,14 @@ function findExplicitMapping(
   return undefined;
 }
 
+function isValidExplicitMapping(mapping: TallySecurityMapping): boolean {
+  return isValidStockSecurityMapping({
+    tally_ledger_name: mapping.tally_ledger_name,
+    tally_ledger_group: mapping.tally_ledger_group,
+    tally_stock_item_name: mapping.tally_stock_item_name,
+  });
+}
+
 export function buildStockIdentityResolver(params: {
   tallyProfile: TallyProfile;
   stockItems: TallyStockItemMapping[];
@@ -277,14 +268,14 @@ export function buildStockIdentityResolver(params: {
         isLikelyStockLedgerCandidate(candidate, profileInvestment.group),
       );
 
-      if (explicitMapping) {
+      if (explicitMapping && isValidExplicitMapping(explicitMapping)) {
         return {
           investmentLedgerName: explicitMapping.tally_ledger_name,
           investmentLedgerGroup: explicitMapping.tally_ledger_group,
           stockItemName: explicitMapping.tally_stock_item_name,
           stockItemBaseUnit: explicitMapping.base_unit || 'NOS',
           matchConfidence: 'explicit',
-          stockItemExistsInTally: true,
+          stockItemExistsInTally: stockItemNameSet.has(normalizeName(explicitMapping.tally_stock_item_name)),
         };
       }
 

@@ -15,6 +15,7 @@ import type {
   GainType,
   LedgerDef,
 } from '../types/accounting';
+import { normalizeBrokerSymbolForLedger } from './stock-ledger-classification';
 
 // ---------------------------------------------------------------------------
 // Template resolution
@@ -28,8 +29,9 @@ export function resolveTemplate(
   template: NamingTemplate,
   symbol: string,
 ): LedgerDef {
+  const ledgerSymbol = normalizeBrokerSymbolForLedger(symbol);
   return {
-    name: template.template.replace(/\{symbol\}/g, symbol),
+    name: template.template.replace(/\{symbol\}/g, ledgerSymbol),
     group: template.group,
   };
 }

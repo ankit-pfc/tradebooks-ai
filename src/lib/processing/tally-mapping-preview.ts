@@ -7,6 +7,10 @@ import {
   mergeOverridesIntoProfile,
 } from '@/lib/engine/accounting-policy';
 import { buildStockIdentityResolver } from '@/lib/engine/stock-identity-resolver';
+import {
+  isLikelyStockLedgerCandidate,
+  isValidStockSecurityMapping,
+} from '@/lib/engine/stock-ledger-classification';
 import type { LedgerOverride } from '@/lib/db/ledger-repository';
 import type { TallyStockItemMapping } from '@/lib/db/stock-item-repository';
 import type { TallySecurityMapping } from '@/lib/db/stock-mapping-repository';
@@ -68,10 +72,6 @@ function normalize(value: string): string {
   return value.trim().toUpperCase();
 }
 
-function normalizeLedger(value: string): string {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
 function cleanIsin(value: string | null | undefined): string | null {
   const trimmed = value?.trim().toUpperCase();
   if (!trimmed || trimmed === 'NA' || trimmed === 'N/A' || trimmed === '-') return null;
@@ -120,18 +120,9 @@ function findSavedMapping(
 }
 
 function likelyInvestmentLedger(override: LedgerOverride): boolean {
-  const group = normalizeLedger(override.parent_group);
-  const name = normalizeLedger(override.name);
-
-  if (/^(STCG|LTCG|STCL|LTCL|DIV|GST|STT|SHAREBROKERAGE|BROKERAGE|SECURITIESTRANSACTIONTAX|EXCHANGE|SEBI|STAMP|DPCHARGES|DEMATCHARGES|AMCCHARGES|DEMATAMCCHARGES|MISCELLANEOUSCHARGES|TDS|TRADINGSALES|COSTOFSHARESSOLD)/i.test(name)) {
-    return false;
-  }
-
-  return (
-    group.includes('INVESTMENT') ||
-    group.includes('STOCKINHAND') ||
-    group.includes('STOCKINTRADE') ||
-    name.endsWith('SH')
+  return isLikelyStockLedgerCandidate(
+    { name: override.name, group: override.parent_group },
+    'INVESTMENT IN SHARES-ZERODHA',
   );
 }
 
@@ -181,6 +172,14 @@ function addSecurity(securities: Map<string, SecurityRef>, ref: SecurityRef): vo
     broker_symbol: symbol,
     security_id: current?.security_id ?? ref.security_id,
     isin: current?.isin ?? cleanIsin(ref.isin),
+  });
+}
+
+function validSavedMapping(mapping: TallySecurityMapping): boolean {
+  return isValidStockSecurityMapping({
+    tally_ledger_name: mapping.tally_ledger_name,
+    tally_ledger_group: mapping.tally_ledger_group,
+    tally_stock_item_name: mapping.tally_stock_item_name,
   });
 }
 
@@ -257,7 +256,7 @@ export function buildTallyMappingPreview(params: {
     .sort((a, b) => a.broker_symbol.localeCompare(b.broker_symbol))
     .map((ref): TallyMappingPreviewRow => {
       const saved = findSavedMapping(params.securityMappings, ref);
-      if (saved) {
+      if (saved && validSavedMapping(saved)) {
         return {
           broker_symbol: ref.broker_symbol,
           security_id: ref.security_id,

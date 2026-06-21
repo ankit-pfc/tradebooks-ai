@@ -187,6 +187,37 @@ describe('runProcessingPipeline — happy path (tradebook)', () => {
         expect(result.mastersXml).toContain('Trading Sales');
         expect(result.mastersXml).toContain('STCG ON SBIN');
     });
+
+    it('strips exchange-series suffixes from generated ledger and stock item names', async () => {
+        const seriesTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-15,NSE,EQ,WIPRO-EQ,INE075A01022,BUY,10,500.00,CNC,T910,ORD910,09:15:00',
+            '2024-08-20,NSE,EQ,WIPRO-EQ,INE075A01022,SELL,10,550.00,CNC,T911,ORD911,10:30:00',
+            '2024-09-20,NSE,EQ,DBL-A,INE917M01012,BUY,5,100.00,CNC,T912,ORD912,10:30:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-series-suffix-strip',
+            files: [
+                {
+                    fileId: 'file-series-suffix-strip',
+                    fileName: 'series-suffix-strip-tradebook.csv',
+                    buffer: seriesTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.transactionsXml).toContain('<LEDGERNAME>WIPRO-SH</LEDGERNAME>');
+        expect(result.transactionsXml).toContain('<STOCKITEMNAME>WIPRO-SH</STOCKITEMNAME>');
+        expect(result.transactionsXml).toContain('<LEDGERNAME>DBL-SH</LEDGERNAME>');
+        expect(result.transactionsXml).toContain('<STOCKITEMNAME>DBL-SH</STOCKITEMNAME>');
+        expect(result.transactionsXml).not.toContain('WIPRO-EQ-SH');
+        expect(result.transactionsXml).not.toContain('DBL-A-SH');
+        expect(result.mastersXml).toContain('<STOCKITEM NAME="WIPRO-SH" RESERVEDNAME="" ACTION="Create">');
+        expect(result.mastersXml).toContain('<STOCKITEM NAME="DBL-SH" RESERVEDNAME="" ACTION="Create">');
+    });
 });
 
 describe('runProcessingPipeline — Tally security master mapping', () => {
@@ -240,6 +271,118 @@ describe('runProcessingPipeline — Tally security master mapping', () => {
         );
         expect(result.mastersXml).not.toContain('MOTILALOFS-SH');
         expect(result.transactionsXml).not.toContain('MOTILALOFS-SH');
+    });
+
+    it('emits stock item masters for saved mappings even when the item was imported from Tally', async () => {
+        mockStockItemRepo.listStockItems.mockResolvedValueOnce([
+            {
+                id: 'stock-motilal',
+                user_id: 'user-001',
+                name: 'Motilal Oswal Financial Services Ltd',
+                base_unit: 'NOS',
+                aliases: [],
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        mockStockMappingRepo.listMappings.mockResolvedValueOnce([
+            {
+                id: 'mapping-motilal',
+                user_id: 'user-001',
+                security_id: 'ISIN:INE338I01027',
+                broker_symbol: 'MOTILALOFS',
+                isin: 'INE338I01027',
+                tally_ledger_name: 'Motilal Oswal Financial Services Ltd',
+                tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+                tally_stock_item_name: 'Motilal Oswal Financial Services Ltd',
+                base_unit: 'NOS',
+                match_source: 'manual',
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-saved-stock-master-export',
+            files: [
+                {
+                    fileId: 'file-saved-stock-master-export',
+                    fileName: 'saved-stock-master-export-tradebook.csv',
+                    buffer: customNameTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.transactionsXml).toContain(
+            '<STOCKITEMNAME>Motilal Oswal Financial Services Ltd</STOCKITEMNAME>',
+        );
+        expect(result.mastersXml).toContain(
+            '<STOCKITEM NAME="Motilal Oswal Financial Services Ltd" RESERVEDNAME="" ACTION="Create">',
+        );
+    });
+
+    it('ignores stale saved mappings to dividend ledgers during XML generation', async () => {
+        mockLedgerRepo.listOverrides.mockResolvedValueOnce([
+            {
+                id: 'ledger-wipro',
+                user_id: 'user-001',
+                ledger_key: 'WIPRO_SH',
+                name: 'WIPRO-SH',
+                parent_group: 'INVESTMENT IN SHARES-ZERODHA',
+                is_custom: true,
+                created_at: '2026-01-01T00:00:00Z',
+            },
+            {
+                id: 'ledger-div-wipro',
+                user_id: 'user-001',
+                ledger_key: 'DIV_WIPRO',
+                name: 'DIV WIPRO',
+                parent_group: 'Div on Shares',
+                is_custom: true,
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        mockStockMappingRepo.listMappings.mockResolvedValueOnce([
+            {
+                id: 'mapping-wipro-dividend',
+                user_id: 'user-001',
+                security_id: 'ISIN:INE075A01022',
+                broker_symbol: 'WIPRO',
+                isin: 'INE075A01022',
+                tally_ledger_name: 'DIV WIPRO',
+                tally_ledger_group: 'Div on Shares',
+                tally_stock_item_name: 'DIV WIPRO',
+                base_unit: 'NOS',
+                match_source: 'manual',
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        const wiproTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-15,NSE,EQ,WIPRO,INE075A01022,BUY,10,500.00,CNC,T950,ORD950,09:15:00',
+            '2024-08-20,NSE,EQ,WIPRO,INE075A01022,SELL,10,550.00,CNC,T951,ORD951,10:30:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-stale-wipro-dividend-mapping',
+            files: [
+                {
+                    fileId: 'file-stale-wipro-dividend-mapping',
+                    fileName: 'stale-wipro-dividend-mapping-tradebook.csv',
+                    buffer: wiproTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.transactionsXml).toContain('<LEDGERNAME>WIPRO-SH</LEDGERNAME>');
+        expect(result.transactionsXml).toContain('<STOCKITEMNAME>WIPRO-SH</STOCKITEMNAME>');
+        expect(result.transactionsXml).not.toContain('<LEDGERNAME>DIV WIPRO</LEDGERNAME>');
+        expect(result.transactionsXml).not.toContain('<STOCKITEMNAME>DIV WIPRO</STOCKITEMNAME>');
+        expect(result.mastersXml).toContain('<STOCKITEM NAME="WIPRO-SH" RESERVEDNAME="" ACTION="Create">');
     });
 
     it('uses security_id/ISIN to pick the right mapping when broker symbols collide', async () => {
@@ -702,7 +845,7 @@ describe('runProcessingPipeline — Tax P&L opening positions (partial-sell + st
         const sellVoucher = findVoucherXml(result.transactionsXml, 'Sale of INFY');
 
         expect(result.transactionsXml).not.toContain('Opening stock brought forward from previous FY');
-        expect(result.mastersXml).not.toContain('<STOCKITEM NAME="INFY-SH"');
+        expect(result.mastersXml).toContain('<STOCKITEM NAME="INFY-SH"');
         expect(sellVoucher).toContain('<LEDGERNAME>INFY-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>INFY-SH</STOCKITEMNAME>');
         expect(sellVoucher).toContain('<AMOUNT>45000.00</AMOUNT>');

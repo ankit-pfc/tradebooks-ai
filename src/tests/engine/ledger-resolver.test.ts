@@ -40,6 +40,15 @@ describe('resolveTemplate', () => {
     );
     expect(result.name).toBe('TCS - Investment in TCS');
   });
+
+  it('strips exchange-series suffixes before substituting broker symbols', () => {
+    expect(resolveTemplate({ template: '{symbol}-SH', group: 'Investments' }, 'WIPRO-EQ').name)
+      .toBe('WIPRO-SH');
+    expect(resolveTemplate({ template: '{symbol}-SH', group: 'Investments' }, 'DBL-A').name)
+      .toBe('DBL-SH');
+    expect(resolveTemplate({ template: 'STCG ON {symbol}', group: 'STCG' }, 'VISHAL-X').name)
+      .toBe('STCG ON VISHAL');
+  });
 });
 
 describe('resolveInvestmentLedger', () => {

@@ -93,4 +93,58 @@ describe('buildStockIdentityResolver — ledger-only Tally masters', () => {
       stockItemExistsInTally: false,
     });
   });
+
+  it('ignores stale saved mappings that point a stock to dividend ledgers', () => {
+    const resolver = buildStockIdentityResolver({
+      tallyProfile: INVESTOR_TALLY_DEFAULT,
+      stockItems: [],
+      ledgerOverrides: [
+        ledger('DIV WIPRO', 'Div on Shares'),
+      ],
+      securityMappings: [
+        {
+          id: 'mapping-wipro-dividend',
+          user_id: 'user-001',
+          mapping_key: 'SECURITY:ISIN:INE075A01022',
+          security_id: 'ISIN:INE075A01022',
+          broker_symbol: 'WIPRO',
+          isin: 'INE075A01022',
+          tally_ledger_name: 'DIV WIPRO',
+          tally_ledger_group: 'Div on Shares',
+          tally_stock_item_name: 'DIV WIPRO',
+          base_unit: 'NOS',
+          match_source: 'manual',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+    });
+
+    expect(resolver.resolve({
+      symbol: 'WIPRO',
+      securityId: 'ISIN:INE075A01022',
+      isin: 'INE075A01022',
+    })).toMatchObject({
+      investmentLedgerName: 'WIPRO-SH',
+      stockItemName: 'WIPRO-SH',
+      matchConfidence: 'generated',
+      stockItemExistsInTally: false,
+    });
+  });
+
+  it('does not reject valid stock names that begin with DIVI', () => {
+    const resolver = buildStockIdentityResolver({
+      tallyProfile: INVESTOR_TALLY_DEFAULT,
+      stockItems: [],
+      ledgerOverrides: [
+        ledger('DIVISLAB-SH'),
+      ],
+    });
+
+    expect(resolver.resolve({ symbol: 'DIVISLAB' })).toMatchObject({
+      investmentLedgerName: 'DIVISLAB-SH',
+      stockItemName: 'DIVISLAB-SH',
+      matchConfidence: 'pattern',
+    });
+  });
 });
