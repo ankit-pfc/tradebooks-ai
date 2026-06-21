@@ -147,4 +147,38 @@ describe('GET /api/batches/[batchId]/tally-mapping-preview', () => {
       confidence: 'generated',
     });
   });
+
+  it('does not mark stale dividend-ledger mappings as saved stock mappings', async () => {
+    stockMappingRepo.listMappings.mockResolvedValueOnce([
+      {
+        id: 'mapping-wipro-dividend',
+        user_id: 'user-001',
+        security_id: 'ISIN:INE075A01022',
+        broker_symbol: 'WIPRO-EQ',
+        isin: 'INE075A01022',
+        tally_ledger_name: 'DIV WIPRO',
+        tally_ledger_group: 'Div on Shares',
+        tally_stock_item_name: 'DIV WIPRO',
+        base_unit: 'NOS',
+        match_source: 'manual',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    const res = await GET(new Request('http://localhost/api/batches/batch-001/tally-mapping-preview'), {
+      params: Promise.resolve({ batchId: 'batch-001' }),
+    });
+    const body = await res.json();
+    const wipro = body.rows.find((row: { broker_symbol: string }) => row.broker_symbol === 'WIPRO-EQ');
+
+    expect(res.status).toBe(200);
+    expect(wipro).toMatchObject({
+      status: 'suggested',
+      confidence: 'pattern',
+      suggested_ledger_name: 'WIPRO-SH',
+      suggested_stock_item_name: 'WIPRO-SH',
+    });
+    expect(body.summary.saved).toBe(0);
+  });
 });

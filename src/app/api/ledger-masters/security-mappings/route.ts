@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getStockMappingRepository } from '@/lib/db';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
 import type { TallySecurityMappingInput } from '@/lib/db/stock-mapping-repository';
+import { isValidStockSecurityMapping } from '@/lib/engine/stock-ledger-classification';
 
 export async function GET(request: Request) {
   try {
@@ -47,6 +48,21 @@ export async function POST(request: Request) {
         {
           error:
             'broker_symbol, tally_ledger_name, tally_ledger_group, and tally_stock_item_name are required',
+        },
+        { status: 400 },
+      );
+    }
+    const invalidInput = inputs.find((input) => !isValidStockSecurityMapping({
+      tally_ledger_name: input.tally_ledger_name,
+      tally_ledger_group: input.tally_ledger_group,
+      tally_stock_item_name: input.tally_stock_item_name,
+    }));
+    if (invalidInput) {
+      return NextResponse.json(
+        {
+          error:
+            `Invalid stock mapping for ${invalidInput.broker_symbol}: ` +
+            'security mappings cannot point to dividend, tax, charge, gain/loss, or income/expense ledgers.',
         },
         { status: 400 },
       );

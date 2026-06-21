@@ -16,7 +16,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { runProcessingPipeline, type PipelineInput } from '../src/lib/processing/pipeline';
-import { extractCleanSymbolFromCnDescription } from '../src/lib/engine/canonical-events';
+import { normalizeBrokerSymbolForLedger } from '../src/lib/engine/stock-ledger-classification';
 
 // Detect whether the series-suffix fix (PR #21 / fix/cn-series-strip) has
 // landed on this branch. The two fixes (series-strip + opening-stock-bf)
@@ -25,7 +25,7 @@ import { extractCleanSymbolFromCnDescription } from '../src/lib/engine/canonical
 // opening-stock-bf fix is present on the current tree. After both PRs are
 // in main, every assertion runs.
 const SERIES_STRIP_PRESENT =
-  extractCleanSymbolFromCnDescription('PROBE-EQ/INE000000001') === 'PROBE';
+  normalizeBrokerSymbolForLedger('PROBE-EQ') === 'PROBE';
 
 // The user's actual FY 24-25 export files live in `continuous period files/`
 // and are git-ignored (client financial data — see .gitignore). When those
@@ -93,6 +93,20 @@ function loadFile(rel: string, mimeType: string, fileId: string) {
     buffer: readFileSync(F(rel)),
     mimeType,
   };
+}
+
+function collectStockItemReferences(xml: string): Set<string> {
+  return new Set(
+    Array.from(xml.matchAll(/<STOCKITEMNAME>([^<]+)<\/STOCKITEMNAME>/g))
+      .map((match) => match[1]),
+  );
+}
+
+function collectStockItemMasters(xml: string): Set<string> {
+  return new Set(
+    Array.from(xml.matchAll(/<STOCKITEM NAME="([^"]+)"/g))
+      .map((match) => match[1]),
+  );
 }
 
 describe.skipIf(!HAS_FILES)('Photo regression: FY 24-25 continuous-period files', () => {
@@ -186,6 +200,17 @@ describe.skipIf(!HAS_FILES)('Photo regression: FY 24-25 continuous-period files'
         console.warn(`[verify] expected ledger "${name}" not found in output (may be OK if no trade)`);
       }
     }
+
+    // ---- ASSERTION 2B: Every stock item referenced by vouchers has a master ----
+    // This guards the exact Tally import exception shown in the latest
+    // screenshots: "Referenced master is missing — Stock Item".
+    const referencedStockItems = collectStockItemReferences(result.transactionsXml);
+    const masterStockItems = collectStockItemMasters(result.mastersXml);
+    const missingStockItemMasters = Array.from(referencedStockItems)
+      .filter((name) => !masterStockItems.has(name))
+      .sort();
+
+    expect(missingStockItemMasters).toEqual([]);
 
     // ---- ASSERTION 3: Tax P&L is cost-basis evidence, not opening import ----
     // Default workflow assumes the user's Tally company already has opening

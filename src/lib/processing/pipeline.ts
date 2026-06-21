@@ -1255,7 +1255,6 @@ export async function runProcessingPipeline(input: PipelineInput): Promise<Pipel
     }
   }
   const stockItems: StockItemMasterInput[] = Array.from(stockItemNames)
-    .filter((name) => !stockItemInfo.get(name)?.existsInTally)
     .map((name) => ({
       name,
       baseUnit: stockItemInfo.get(name)?.baseUnit ?? 'NOS',

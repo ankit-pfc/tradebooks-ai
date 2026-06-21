@@ -168,4 +168,25 @@ describe('POST /api/ledger-masters/security-mappings', () => {
     expect(stockMappingRepo.upsertMapping).toHaveBeenCalledOnce();
     expect(stockMappingRepo.bulkUpsertMappings).not.toHaveBeenCalled();
   });
+
+  it('rejects mappings that point stock securities to dividend or charge ledgers', async () => {
+    const res = await POST(new Request('http://localhost/api/ledger-masters/security-mappings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        security_id: 'ISIN:INE075A01022',
+        broker_symbol: 'WIPRO',
+        isin: 'INE075A01022',
+        tally_ledger_name: 'DIV WIPRO',
+        tally_ledger_group: 'Div on Shares',
+        tally_stock_item_name: 'DIV WIPRO',
+      }),
+    }));
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toContain('Invalid stock mapping for WIPRO');
+    expect(stockMappingRepo.upsertMapping).not.toHaveBeenCalled();
+    expect(stockMappingRepo.bulkUpsertMappings).not.toHaveBeenCalled();
+  });
 });
