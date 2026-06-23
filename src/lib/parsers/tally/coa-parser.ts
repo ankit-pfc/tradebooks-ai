@@ -281,13 +281,17 @@ function dedupeByNameAndParent<T extends { name: string; parent: string }>(items
 // ---------------------------------------------------------------------------
 
 /** Keywords used to detect charge ledgers. */
-const CHARGE_PATTERNS: Array<{ keywords: string[]; eventTypes: EventType[] }> = [
-  { keywords: ['brokerage', 'share brokerage'], eventTypes: [EventType.BROKERAGE] },
-  { keywords: ['stt', 'securities transaction'], eventTypes: [EventType.STT] },
-  { keywords: ['exchange', 'sebi'], eventTypes: [EventType.EXCHANGE_CHARGE, EventType.SEBI_CHARGE] },
-  { keywords: ['gst', 'service tax'], eventTypes: [EventType.GST_ON_CHARGES] },
-  { keywords: ['stamp duty'], eventTypes: [EventType.STAMP_DUTY] },
-  { keywords: ['dp charge', 'dp charges', 'demat', 'depository'], eventTypes: [EventType.DP_CHARGE] },
+const CHARGE_PATTERNS: Array<{ matches: (name: string) => boolean; eventTypes: EventType[] }> = [
+  { matches: (name) => includesAny(name, ['brokerage', 'share brokerage']), eventTypes: [EventType.BROKERAGE] },
+  { matches: (name) => includesAny(name, ['stt', 'securities transaction']), eventTypes: [EventType.STT] },
+  { matches: (name) => includesAny(name, ['exchange', 'sebi']), eventTypes: [EventType.EXCHANGE_CHARGE, EventType.SEBI_CHARGE] },
+  { matches: (name) => includesAny(name, ['gst', 'service tax']), eventTypes: [EventType.GST_ON_CHARGES] },
+  { matches: (name) => name.includes('stamp duty'), eventTypes: [EventType.STAMP_DUTY] },
+  {
+    matches: (name) =>
+      includesAny(name, ['dp charge', 'dp charges', 'depository participant charges']),
+    eventTypes: [EventType.DP_CHARGE],
+  },
 ];
 
 /** Keywords for identifying broker ledgers. */
@@ -295,6 +299,41 @@ const BROKER_KEYWORDS = ['zerodha', 'kite', 'angel', 'groww', 'upstox', 'icici d
 
 /** Groups that indicate Capital Account approach. */
 const CAPITAL_ACCOUNT_GROUPS = ['capital account', 'capital a/c'];
+
+function includesAny(value: string, needles: string[]): boolean {
+  return needles.some((needle) => value.includes(needle));
+}
+
+function normalizedLedgerName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/**
+ * Ledgers in this bucket may contain broker words such as "Zerodha" but are
+ * accounting-category ledgers, never the trade settlement party ledger.
+ */
+export function isUnsafeBrokerProfileLedgerName(name: string): boolean {
+  const normalized = normalizedLedgerName(name);
+  if (!normalized) return false;
+
+  return (
+    /\b(amc|demat|dp|depository)\b/.test(normalized) && /\bcharges?\b/.test(normalized) ||
+    /\b(charges?|brokerage|stt|gst|sebi|exchange|stamp|tds|dividend)\b/.test(normalized) ||
+    /\b(short|long)\s+term\s+capital\s+(gain|loss)\b/.test(normalized) ||
+    /\b(stcg|ltcg|stcl|ltcl)\b/.test(normalized) ||
+    /\bdiv\b/.test(normalized)
+  );
+}
+
+function isBrokerCandidate(ledger: TallyCOAEntry, requireBrokerKeyword: boolean): boolean {
+  if (isUnsafeBrokerProfileLedgerName(ledger.name)) return false;
+
+  const lower = ledger.name.toLowerCase();
+  const hasBrokerKeyword = BROKER_KEYWORDS.some((kw) => lower.includes(kw));
+  if (requireBrokerKeyword) return hasBrokerKeyword;
+
+  return hasBrokerKeyword || ledger.parent.toLowerCase() === 'sundry creditors';
+}
 
 /**
  * Detect per-scrip naming patterns from a list of ledger names.
@@ -354,15 +393,17 @@ export function matchCOAToProfile(coa: ParsedCOA): COAMatchResult {
   }
 
   // --- Find broker ledger ---
-  for (const l of coa.ledgers) {
-    const lower = l.name.toLowerCase();
-    if (BROKER_KEYWORDS.some((kw) => lower.includes(kw)) ||
-        l.parent.toLowerCase() === 'sundry creditors') {
-      profile.broker = { name: l.name, group: l.parent };
-      matched.add(l.name);
-      matchedFields++;
-      break;
-    }
+  // Prefer explicit broker names first. Only fall back to Sundry Creditors
+  // after excluding charge/tax/gain/dividend ledgers such as
+  // "AMC CHARGES-ZERODHA", which carry a broker word but are not the
+  // settlement ledger used on trade vouchers.
+  const brokerLedger =
+    coa.ledgers.find((l) => isBrokerCandidate(l, true)) ??
+    coa.ledgers.find((l) => isBrokerCandidate(l, false));
+  if (brokerLedger) {
+    profile.broker = { name: brokerLedger.name, group: brokerLedger.parent };
+    matched.add(brokerLedger.name);
+    matchedFields++;
   }
 
   // --- Find bank ledger ---
@@ -480,7 +521,7 @@ export function matchCOAToProfile(coa: ParsedCOA): COAMatchResult {
   for (const pattern of CHARGE_PATTERNS) {
     for (const l of coa.ledgers) {
       const lower = l.name.toLowerCase();
-      if (pattern.keywords.some((kw) => lower.includes(kw))) {
+      if (pattern.matches(lower)) {
         chargeConsolidation.push({
           eventTypes: pattern.eventTypes,
           ledgerName: l.name,

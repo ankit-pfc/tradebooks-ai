@@ -402,6 +402,75 @@ describe('matchCOAToProfile', () => {
     expect(chargeNames).toContain('Stt');
   });
 
+  it('does not select AMC or demat charge ledgers as the broker account', () => {
+    const coa = parseTallyCOA(`<?xml version="1.0" encoding="UTF-8"?>
+      <ENVELOPE><BODY><IMPORTDATA><REQUESTDATA>
+        <TALLYMESSAGE>
+          <LEDGER NAME="AMC CHARGES-ZERODHA" ACTION="Create">
+            <PARENT>Sundry Creditors</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <LEDGER NAME="DEMAT CHARGES" ACTION="Create">
+            <PARENT>Sundry Creditors</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <LEDGER NAME="ZERODHA - KITE" ACTION="Create">
+            <PARENT>Sundry Creditors</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`);
+
+    const result = matchCOAToProfile(coa);
+
+    expect(result.profile.broker?.name).toBe('ZERODHA - KITE');
+  });
+
+  it('does not infer DP transaction charges from AMC or generic demat charge ledgers', () => {
+    const coa = parseTallyCOA(`<?xml version="1.0" encoding="UTF-8"?>
+      <ENVELOPE><BODY><IMPORTDATA><REQUESTDATA>
+        <TALLYMESSAGE>
+          <LEDGER NAME="AMC CHARGES-ZERODHA" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE>
+          <LEDGER NAME="DEMAT CHARGES" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`);
+
+    const result = matchCOAToProfile(coa);
+
+    expect(result.profile.chargeConsolidation ?? []).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ eventTypes: expect.arrayContaining(['DP_CHARGE']) }),
+      ]),
+    );
+  });
+
+  it('still detects real DP charge ledgers', () => {
+    const coa = parseTallyCOA(`<?xml version="1.0" encoding="UTF-8"?>
+      <ENVELOPE><BODY><IMPORTDATA><REQUESTDATA>
+        <TALLYMESSAGE>
+          <LEDGER NAME="DP Charges-Zerodha" ACTION="Create">
+            <PARENT>Capital Account</PARENT>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA></IMPORTDATA></BODY></ENVELOPE>`);
+
+    const result = matchCOAToProfile(coa);
+
+    expect(result.profile.chargeConsolidation).toEqual([
+      expect.objectContaining({
+        ledgerName: 'DP Charges-Zerodha',
+        eventTypes: ['DP_CHARGE'],
+      }),
+    ]);
+  });
+
   it('detects TDS ledgers', () => {
     const coa = parseTallyCOA(CAPITAL_ACCOUNT_COA_XML);
     const result = matchCOAToProfile(coa);

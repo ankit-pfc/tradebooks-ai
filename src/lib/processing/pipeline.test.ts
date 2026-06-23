@@ -273,6 +273,112 @@ describe('runProcessingPipeline — Tally security master mapping', () => {
         expect(result.transactionsXml).not.toContain('MOTILALOFS-SH');
     });
 
+    it('keeps AMC charge ledgers out of trade settlement lines when applying Tally identities', async () => {
+        mockLedgerRepo.listOverrides.mockResolvedValueOnce([
+            {
+                id: 'ledger-amc-charges',
+                user_id: 'user-001',
+                ledger_key: 'AMC_CHARGES_ZERODHA',
+                name: 'AMC CHARGES-ZERODHA',
+                parent_group: 'Capital Account',
+                is_custom: true,
+                created_at: '2026-01-01T00:00:00Z',
+            },
+            {
+                id: 'ledger-boschltd',
+                user_id: 'user-001',
+                ledger_key: 'BOSCHLTD_SH',
+                name: 'BOSCHLTD-SH',
+                parent_group: 'INVESTMENT IN SHARES-ZERODHA',
+                is_custom: true,
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        const boschTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-07,NSE,EQ,BOSCHLTD,INE323A01026,BUY,1,30000.00,CNC,T850,ORD850,09:15:00',
+            '2024-06-11,NSE,EQ,BOSCHLTD,INE323A01026,SELL,1,32000.00,CNC,T851,ORD851,10:30:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-amc-charge-not-settlement',
+            files: [
+                {
+                    fileId: 'file-amc-charge-not-settlement',
+                    fileName: 'bosch-amc-ledger-tradebook.csv',
+                    buffer: boschTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        const sellVoucher = extractVoucherXml(result.transactionsXml, 'Sale of BOSCHLTD');
+
+        expect(sellVoucher).toContain('<LEDGERNAME>ZERODHA - KITE</LEDGERNAME>');
+        expect(sellVoucher).toContain('<LEDGERNAME>BOSCHLTD-SH</LEDGERNAME>');
+        expect(sellVoucher).toContain('<STOCKITEMNAME>BOSCHLTD-SH</STOCKITEMNAME>');
+        expect(sellVoucher).toContain('<LEDGERNAME>STCG ON BOSCHLTD</LEDGERNAME>');
+        expect(sellVoucher).not.toContain('AMC CHARGES-ZERODHA');
+    });
+
+    it('exports a confirmed generated WIPRO mapping as both ledger and stock item masters', async () => {
+        mockStockItemRepo.listStockItems.mockResolvedValueOnce([
+            {
+                id: 'stock-other',
+                user_id: 'user-001',
+                name: 'Some Existing Tally Stock',
+                base_unit: 'NOS',
+                aliases: [],
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        mockStockMappingRepo.listMappings.mockResolvedValueOnce([
+            {
+                id: 'mapping-wipro-generated',
+                user_id: 'user-001',
+                security_id: 'ISIN:INE075A01022',
+                broker_symbol: 'WIPRO',
+                isin: 'INE075A01022',
+                tally_ledger_name: 'WIPRO-SH',
+                tally_ledger_group: 'INVESTMENT IN SHARES-ZERODHA',
+                tally_stock_item_name: 'WIPRO-SH',
+                base_unit: 'NOS',
+                match_source: 'auto_pattern',
+                created_at: '2026-01-01T00:00:00Z',
+                updated_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        const wiproTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-15,NSE,EQ,WIPRO,INE075A01022,BUY,10,500.00,CNC,T860,ORD860,09:15:00',
+            '2024-08-20,NSE,EQ,WIPRO,INE075A01022,SELL,10,550.00,CNC,T861,ORD861,10:30:00',
+        ].join('\n'));
+
+        const result = await runProcessingPipeline({
+            ...BASE_INPUT,
+            batchId: 'batch-confirmed-generated-wipro',
+            files: [
+                {
+                    fileId: 'file-confirmed-generated-wipro',
+                    fileName: 'confirmed-generated-wipro-tradebook.csv',
+                    buffer: wiproTradebook,
+                    mimeType: 'text/csv',
+                },
+            ],
+        });
+
+        expect(result.mastersXml).toContain(
+            '<LEDGER NAME="WIPRO-SH" RESERVEDNAME="" ACTION="Create">',
+        );
+        expect(result.mastersXml).toContain('<ISINVENTORYAFFECTED>Yes</ISINVENTORYAFFECTED>');
+        expect(result.mastersXml).toContain(
+            '<STOCKITEM NAME="WIPRO-SH" RESERVEDNAME="" ACTION="Create">',
+        );
+        expect(result.transactionsXml).toContain('<LEDGERNAME>WIPRO-SH</LEDGERNAME>');
+        expect(result.transactionsXml).toContain('<STOCKITEMNAME>WIPRO-SH</STOCKITEMNAME>');
+    });
+
     it('emits stock item masters for saved mappings even when the item was imported from Tally', async () => {
         mockStockItemRepo.listStockItems.mockResolvedValueOnce([
             {
@@ -461,6 +567,41 @@ describe('runProcessingPipeline — Tally security master mapping', () => {
                         fileId: 'file-unresolved-name',
                         fileName: 'unresolved-name-tradebook.csv',
                         buffer: customNameTradebook,
+                        mimeType: 'text/csv',
+                    },
+                ],
+            }),
+        ).rejects.toMatchObject({
+            code: 'E_TALLY_STOCK_MAPPING_UNRESOLVED',
+        });
+    });
+
+    it('fails safely for unconfirmed generated WIPRO when uploaded Tally stock masters exist', async () => {
+        mockStockItemRepo.listStockItems.mockResolvedValueOnce([
+            {
+                id: 'stock-other',
+                user_id: 'user-001',
+                name: 'Some Existing Tally Stock',
+                base_unit: 'NOS',
+                aliases: [],
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ]);
+        const wiproTradebook = Buffer.from([
+            'Trade Date,Exchange,Segment,Symbol/Scrip,ISIN,Trade Type,Quantity,Price,Product,Trade ID,Order ID,Order Execution Time',
+            '2024-06-15,NSE,EQ,WIPRO,INE075A01022,BUY,10,500.00,CNC,T970,ORD970,09:15:00',
+            '2024-08-20,NSE,EQ,WIPRO,INE075A01022,SELL,10,550.00,CNC,T971,ORD971,10:30:00',
+        ].join('\n'));
+
+        await expect(
+            runProcessingPipeline({
+                ...BASE_INPUT,
+                batchId: 'batch-unconfirmed-generated-wipro',
+                files: [
+                    {
+                        fileId: 'file-unconfirmed-generated-wipro',
+                        fileName: 'unconfirmed-generated-wipro-tradebook.csv',
+                        buffer: wiproTradebook,
                         mimeType: 'text/csv',
                     },
                 ],

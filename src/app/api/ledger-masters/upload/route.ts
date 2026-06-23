@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getLedgerRepository, getStockItemRepository } from '@/lib/db';
 import { getAuthenticatedUserId } from '@/lib/supabase/auth-guard';
-import { matchCOAToProfile, parseTallyCOA } from '@/lib/parsers/tally/coa-parser';
+import {
+    isUnsafeBrokerProfileLedgerName,
+    matchCOAToProfile,
+    parseTallyCOA,
+} from '@/lib/parsers/tally/coa-parser';
 import { SYSTEM_LEDGER_NAME_TO_KEY } from '@/lib/constants/ledger-names';
 import type { LedgerOverrideInput } from '@/lib/db/ledger-repository';
 import { MAX_FILE_SIZE } from '@/lib/upload-constants';
@@ -56,7 +60,10 @@ export async function POST(request: Request) {
         }
 
         const coaMatch = matchCOAToProfile(coa);
-        addProfileMatchInputs(coaMatch.profile, putInput);
+        const warnings = [
+            ...buildUnsafeBrokerCandidateWarnings(coa.ledgers),
+            ...addProfileMatchInputs(coaMatch.profile, putInput),
+        ].filter((warning, index, all) => all.indexOf(warning) === index);
 
         const repo = getLedgerRepository();
         const saved = await repo.bulkUpsertOverrides(userId, Array.from(inputMap.values()));
@@ -78,6 +85,7 @@ export async function POST(request: Request) {
             imported: saved.length,
             stockItemsImported: savedStockItems.length,
             profileMatchConfidence: coaMatch.confidence,
+            warnings,
             ledgers: saved,
             stockItems: savedStockItems,
         });
@@ -133,17 +141,45 @@ function slugify(name: string): string {
         .replace(/^_|_$/g, '');
 }
 
+function buildUnsafeBrokerCandidateWarnings(
+    ledgers: Array<{ name: string; parent: string }>,
+): string[] {
+    return ledgers
+        .filter((ledger) => {
+            if (!isUnsafeBrokerProfileLedgerName(ledger.name)) return false;
+            const name = ledger.name.toLowerCase();
+            return (
+                name.includes('zerodha') ||
+                name.includes('kite') ||
+                ledger.parent.toLowerCase() === 'sundry creditors'
+            );
+        })
+        .map((ledger) =>
+            `Ignored suspicious broker ledger match "${ledger.name}". ` +
+            'Charge, tax, gain/loss, and dividend ledgers cannot be used as the broker settlement ledger.',
+        );
+}
+
 function addProfileMatchInputs(
     profile: ReturnType<typeof matchCOAToProfile>['profile'],
     putInput: (input: LedgerOverrideInput) => void,
-): void {
+): string[] {
+    const warnings: string[] = [];
+
     if (profile.broker) {
-        putInput({
-            ledger_key: 'BROKER',
-            name: profile.broker.name,
-            parent_group: profile.broker.group,
-            is_custom: false,
-        });
+        if (isUnsafeBrokerProfileLedgerName(profile.broker.name)) {
+            warnings.push(
+                `Ignored suspicious broker ledger match "${profile.broker.name}". ` +
+                'Charge, tax, gain/loss, and dividend ledgers cannot be used as the broker settlement ledger.',
+            );
+        } else {
+            putInput({
+                ledger_key: 'BROKER',
+                name: profile.broker.name,
+                parent_group: profile.broker.group,
+                is_custom: false,
+            });
+        }
     }
     if (profile.bank) {
         putInput({
@@ -218,4 +254,6 @@ function addProfileMatchInputs(
             is_custom: false,
         });
     }
+
+    return warnings;
 }
