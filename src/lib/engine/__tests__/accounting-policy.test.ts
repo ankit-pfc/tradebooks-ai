@@ -217,6 +217,12 @@ describe('mergeOverridesIntoProfile', () => {
     expect(result.bank).toEqual(INVESTOR_TALLY_DEFAULT.bank);
   });
 
+  it('ignores stale charge-ledger overrides saved under the broker key', () => {
+    const overrides = [makeOverride('BROKER', 'AMC CHARGES-ZERODHA', 'Capital Account')];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.broker).toEqual(INVESTOR_TALLY_DEFAULT.broker);
+  });
+
   it('overrides capital gain ledger template and group', () => {
     const overrides = [makeOverride('STCG_PROFIT', 'Short Term CG', 'My CG Group')];
     const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);

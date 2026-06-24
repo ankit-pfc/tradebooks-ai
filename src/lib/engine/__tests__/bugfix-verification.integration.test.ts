@@ -279,7 +279,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     expect(actualQty.trim().startsWith('-')).toBe(false);
   });
 
-  it('sell voucher has INVENTORYALLOCATIONS.LIST with negative qty for stock OUT', () => {
+  it('sell voucher has INVENTORYALLOCATIONS.LIST with absolute qty for stock OUT', () => {
     const parsed = parseXml(result.transactionsXml);
     const vouchers = getVouchers(parsed);
     const sellV = vouchers.find(v =>
@@ -292,7 +292,7 @@ describe('Scenario 1: Stock recording in Journal vouchers', () => {
     const allocs = getInventoryAllocations(lineWithInventory);
     const actualQty = String(allocs[0].ACTUALQTY);
     expect(actualQty).toContain('30');
-    expect(actualQty.trim().startsWith('-')).toBe(true);
+    expect(actualQty.trim().startsWith('-')).toBe(false);
   });
 
   it('sell voucher gain/loss uses STCG ledger (holding < 365 days)', () => {

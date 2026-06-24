@@ -530,6 +530,28 @@ const CHARGE_KEY_TO_EVENT_TYPES: Record<string, EventType[]> = {
   DP_CHARGES: [EventType.DP_CHARGE],
 };
 
+function normalizedLedgerName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/**
+ * Broker overrides can be imported from user Tally masters. Older imports may
+ * have misclassified ledgers such as "AMC CHARGES-ZERODHA" as BROKER because
+ * they contained a broker word. Keep those stale overrides out of vouchers.
+ */
+export function isUnsafeBrokerOverrideName(name: string): boolean {
+  const normalized = normalizedLedgerName(name);
+  if (!normalized) return true;
+
+  return (
+    (/\b(amc|demat|dp|depository)\b/.test(normalized) && /\bcharges?\b/.test(normalized)) ||
+    /\b(charges?|brokerage|stt|gst|sebi|exchange|stamp|tds|dividend)\b/.test(normalized) ||
+    /\b(short|long)\s+term\s+capital\s+(gain|loss)\b/.test(normalized) ||
+    /\b(stcg|ltcg|stcl|ltcl)\b/.test(normalized) ||
+    /\bdiv\b/.test(normalized)
+  );
+}
+
 /**
  * Apply user-saved ledger overrides to a base TallyProfile.
  * Returns a new TallyProfile with overridden names/groups where applicable.
@@ -550,6 +572,7 @@ export function mergeOverridesIntoProfile(
 
     switch (o.ledger_key) {
       case 'BROKER':
+        if (isUnsafeBrokerOverrideName(o.name)) break;
         profile.broker = { name: o.name, group: o.parent_group };
         break;
       case 'BANK':

@@ -466,7 +466,7 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
   });
 
-  it('sales CR line emits negative inventory quantity with UOM and matching signed amount', () => {
+  it('sales CR line emits absolute inventory quantity with UOM and matching signed amount', () => {
     const salesVoucher = makeVoucher({
       voucher_type: VoucherType.SALES,
       lines: [
@@ -490,8 +490,8 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     const entries = getEntries(generateVouchersXml([salesVoucher], 'Co'));
     const inventoryEntry = entries[1]['INVENTORYALLOCATIONS.LIST'];
 
-    expect(inventoryEntry.ACTUALQTY).toBe('-10 NOS');
-    expect(inventoryEntry.BILLEDQTY).toBe('-10 NOS');
+    expect(inventoryEntry.ACTUALQTY).toBe('10 NOS');
+    expect(inventoryEntry.BILLEDQTY).toBe('10 NOS');
     expect(inventoryEntry.AMOUNT).toBe('25000.00');
     // ISDEEMEDPOSITIVE is no longer emitted on INVENTORYALLOCATIONS.LIST
     expect(inventoryEntry.ISDEEMEDPOSITIVE).toBeUndefined();
@@ -558,10 +558,10 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
 
     expect(Math.abs(sum)).toBeLessThan(0.01);
     expect(entries[1]['INVENTORYALLOCATIONS.LIST']).toBeDefined();
-    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('-10 NOS');
+    expect(entries[1]['INVENTORYALLOCATIONS.LIST'].ACTUALQTY).toBe('10 NOS');
   });
 
-  it('buy ACTUALQTY stays positive and sell ACTUALQTY stays negative across trade vouchers', () => {
+  it('buy and sell ACTUALQTY stay positive across trade vouchers', () => {
     const buy = makeVoucher({
       voucher_type: VoucherType.PURCHASE,
       lines: [
@@ -581,8 +581,10 @@ describe('INVENTORYALLOCATIONS.LIST conformance', () => {
     const xml = generateVouchersXml([buy, sell], 'Co');
     expect(xml).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
     expect(xml).toContain('<BILLEDQTY>10 NOS</BILLEDQTY>');
-    expect(xml).toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
-    expect(xml).toContain('<BILLEDQTY>-10 NOS</BILLEDQTY>');
+    expect(xml).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
+    expect(xml).toContain('<BILLEDQTY>10 NOS</BILLEDQTY>');
+    expect(xml).not.toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
+    expect(xml).not.toContain('<BILLEDQTY>-10 NOS</BILLEDQTY>');
   });
 });
 

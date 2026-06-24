@@ -276,6 +276,15 @@ describe('runProcessingPipeline — Tally security master mapping', () => {
     it('keeps AMC charge ledgers out of trade settlement lines when applying Tally identities', async () => {
         mockLedgerRepo.listOverrides.mockResolvedValueOnce([
             {
+                id: 'ledger-stale-broker-amc',
+                user_id: 'user-001',
+                ledger_key: 'BROKER',
+                name: 'AMC CHARGES-ZERODHA',
+                parent_group: 'Capital Account',
+                is_custom: false,
+                created_at: '2026-01-01T00:00:00Z',
+            },
+            {
                 id: 'ledger-amc-charges',
                 user_id: 'user-001',
                 ledger_key: 'AMC_CHARGES_ZERODHA',
@@ -1240,7 +1249,7 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         expect(sellVoucher).not.toContain('Unmatched Sell Suspense');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>80.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
@@ -1330,7 +1339,7 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         expect(sellVoucher).not.toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>120.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>1200.00</AMOUNT>');
     });
@@ -1386,7 +1395,7 @@ describe('runProcessingPipeline — multi-FY opening lots', () => {
         expect(sellVoucher).not.toContain('Opening stock assumed in Tally');
         expect(sellVoucher).toContain('<LEDGERNAME>63MOONS-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>63MOONS-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>-10 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<ACTUALQTY>10 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>80.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>800.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON 63MOONS</LEDGERNAME>');
@@ -1529,7 +1538,7 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.voucherCount).toBe(2);
         expect(sellVoucher).toContain('<LEDGERNAME>IRCTC-SH</LEDGERNAME>');
         expect(sellVoucher).toContain('<STOCKITEMNAME>IRCTC-SH</STOCKITEMNAME>');
-        expect(sellVoucher).toContain('<ACTUALQTY>-50 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<ACTUALQTY>50 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>840.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>42000.00</AMOUNT>');
         expect(sellVoucher).toContain('<LEDGERNAME>STCG ON IRCTC</LEDGERNAME>');
@@ -1580,7 +1589,7 @@ describe('runProcessingPipeline — corporate actions', () => {
         expect(result.eventCount).toBe(3);
         expect(result.voucherCount).toBe(2);
         expect(purchaseVoucherCount).toBe(1);
-        expect(sellVoucher).toContain('<ACTUALQTY>-150 NOS</ACTUALQTY>');
+        expect(sellVoucher).toContain('<ACTUALQTY>150 NOS</ACTUALQTY>');
         expect(sellVoucher).toContain('<RATE>100.00/NOS</RATE>');
         expect(sellVoucher).toContain('<AMOUNT>15000.00</AMOUNT>');
         expect(closingLots['ISIN:INE222A01011'][0].open_quantity).toBe('50');
