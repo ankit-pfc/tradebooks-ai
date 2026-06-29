@@ -230,7 +230,9 @@ export const CA_LTCG_GROUP = 'LTCG';
 export const CA_STCL_GROUP = 'STCL';
 export const CA_LTCL_GROUP = 'LTCL';
 export const CA_DIVIDEND_GROUP = 'Div on Shares';
-export const CA_SPECULATION_GROUP = 'Speculative Business Income';
+export const LEGACY_CA_SPECULATION_GROUP = 'Speculative Business Income';
+export const CA_SPECULATION_GROUP = LEGACY_CA_SPECULATION_GROUP;
+export const CA_SPECULATION_PNL_GROUP = 'Indirect Incomes';
 export const CA_PARENT_GROUP = 'Capital Account';
 export const CA_ZERODHA_INVESTMENT_GROUP = 'INVESTMENT IN SHARES-ZERODHA';
 
@@ -309,13 +311,12 @@ export const CA_AMC_CHARGES: LedgerDef = {
 // Capital Account — Speculation (intraday)
 // ---------------------------------------------------------------------------
 
-// SINGLE intraday net ledger. Per bug report items #12 and #13: intraday
-// gains and losses net off in the SAME Tally ledger, no separate gain/loss
-// segregation. Gains are CR-side, losses are DR-side to the same ledger,
-// producing a net position on the ledger.
+// SINGLE intraday net ledger. Intraday gains/losses are speculative business
+// income, so the ledger belongs in Tally's P&L hierarchy. Gains are CR-side,
+// losses are DR-side to the same ledger, producing a net position.
 export const CA_SPECULATION_GAIN: LedgerDef = {
   name: 'Intraday Gain on Sale of Shares - ZERODHA',
-  group: CA_SPECULATION_GROUP,
+  group: CA_SPECULATION_PNL_GROUP,
 };
 
 /** @deprecated Aliased to CA_SPECULATION_GAIN — there is no separate loss
@@ -394,7 +395,6 @@ export const CA_CUSTOM_GROUPS: ReadonlyArray<{ name: string; parent: string }> =
   { name: CA_STCL_GROUP, parent: CA_PARENT_GROUP },
   { name: CA_LTCL_GROUP, parent: CA_PARENT_GROUP },
   { name: CA_DIVIDEND_GROUP, parent: CA_PARENT_GROUP },
-  { name: CA_SPECULATION_GROUP, parent: 'Indirect Incomes' },
   { name: CA_ZERODHA_INVESTMENT_GROUP, parent: INVESTMENT_GROUP },
 ] as const;
 

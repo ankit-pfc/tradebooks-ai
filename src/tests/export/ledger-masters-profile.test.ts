@@ -118,6 +118,10 @@ describe('collectRequiredLedgers with TallyProfile', () => {
 
     expect(names).toContain(INVESTOR_TALLY_DEFAULT.speculationGain.name);
     expect(names).toContain(INVESTOR_TALLY_DEFAULT.speculationLoss.name);
+    const speculationLedger = ledgers.find(
+      (ledger) => ledger.name === INVESTOR_TALLY_DEFAULT.speculationGain.name,
+    );
+    expect(speculationLedger?.parent_group).toBe('Indirect Incomes');
   });
 
   it('handles events with no security_id gracefully', () => {

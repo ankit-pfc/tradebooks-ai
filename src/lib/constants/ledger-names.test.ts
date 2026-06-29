@@ -99,9 +99,9 @@ describe('Capital Account constants', () => {
     expect(L.CA_DP_CHARGES.name).toBe('DP Charges-Zerodha');
   });
 
-  it('speculation ledgers are under Speculative Business Income', () => {
-    expect(L.CA_SPECULATION_GAIN.group).toBe('Speculative Business Income');
-    expect(L.CA_SPECULATION_LOSS.group).toBe('Speculative Business Income');
+  it('speculation ledgers are under P&L', () => {
+    expect(L.CA_SPECULATION_GAIN.group).toBe('Indirect Incomes');
+    expect(L.CA_SPECULATION_LOSS.group).toBe('Indirect Incomes');
   });
 
   it('TDS ledgers exist', () => {
@@ -116,7 +116,7 @@ describe('Capital Account constants', () => {
     expect(groupNames).toContain('STCL');
     expect(groupNames).toContain('LTCL');
     expect(groupNames).toContain('Div on Shares');
-    expect(groupNames).toContain('Speculative Business Income');
+    expect(groupNames).not.toContain('Speculative Business Income');
     expect(groupNames).toContain('INVESTMENT IN SHARES-ZERODHA');
   });
 

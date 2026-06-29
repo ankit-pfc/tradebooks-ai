@@ -264,6 +264,28 @@ describe('mergeOverridesIntoProfile', () => {
     expect(result.bank.name).toBe('HDFC Bank');
     expect(result.speculationGain.name).toBe('Intraday Gain');
   });
+
+  it('normalizes legacy default speculation overrides to P&L', () => {
+    const overrides = [
+      makeOverride(
+        'SPECULATIVE_PROFIT',
+        'Intraday Gain on Sale of Shares - ZERODHA',
+        'Speculative Business Income',
+      ),
+    ];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.speculationGain.group).toBe('Indirect Incomes');
+    expect(result.speculationLoss).toEqual(result.speculationGain);
+  });
+
+  it('preserves explicit custom speculation override groups', () => {
+    const overrides = [
+      makeOverride('SPECULATIVE_PROFIT', 'Intraday Gain', 'Speculative Business Income'),
+    ];
+    const result = mergeOverridesIntoProfile(INVESTOR_TALLY_DEFAULT, overrides);
+    expect(result.speculationGain.group).toBe('Speculative Business Income');
+    expect(result.speculationLoss).toEqual(result.speculationGain);
+  });
 });
 
 // ---------------------------------------------------------------------------

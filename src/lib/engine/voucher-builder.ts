@@ -294,8 +294,7 @@ export function deriveEffectiveProfile(
       };
     case TradeClassification.SPECULATIVE_BUSINESS:
       // Intraday/speculative trades use INVESTOR mode to produce Journal
-      // vouchers with inventory allocation and gain/loss routing to the
-      // Speculative Business Income group, per CA convention.
+      // vouchers with gain/loss routing to Tally's P&L hierarchy.
       return {
         ...profile,
         mode: AccountingMode.INVESTOR,
@@ -1064,8 +1063,8 @@ export function buildIntradayConsolidatedVoucher(
   );
 
   const brokerName = tallyProfile?.broker.name ?? L.BROKER.name;
-  // For intraday (holding_period_days = 0) the ledger resolver routes to
-  // CA_SPECULATION_GAIN = "Intraday Gain on Sale of Shares - ZERODHA".
+  // For intraday (holding_period_days = 0) the ledger resolver routes to the
+  // unified speculation P&L ledger.
   const intradayLedger = tallyProfile
     ? resolveCapitalGainLedger(tallyProfile, symbol, 0, true).name
     : L.CA_SPECULATION_GAIN.name;

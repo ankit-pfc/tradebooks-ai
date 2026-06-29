@@ -92,20 +92,6 @@
           </GROUP>
         </TALLYMESSAGE>
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
-          <GROUP NAME="Speculative Business Income" RESERVEDNAME="" ACTION="Create">
-            <NAME.LIST>
-              <NAME>Speculative Business Income</NAME>
-            </NAME.LIST>
-            <PARENT>Indirect Incomes</PARENT>
-            <LANGUAGENAME.LIST>
-              <NAME.LIST TYPE="String">
-                <NAME>Speculative Business Income</NAME>
-              </NAME.LIST>
-              <LANGUAGEID> 1033</LANGUAGEID>
-            </LANGUAGENAME.LIST>
-          </GROUP>
-        </TALLYMESSAGE>
-        <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <GROUP NAME="INVESTMENT IN SHARES-ZERODHA" RESERVEDNAME="" ACTION="Create">
             <NAME.LIST>
               <NAME>INVESTMENT IN SHARES-ZERODHA</NAME>
@@ -257,7 +243,7 @@
             <NAME.LIST>
               <NAME>Intraday Gain on Sale of Shares - ZERODHA</NAME>
             </NAME.LIST>
-            <PARENT>Speculative Business Income</PARENT>
+            <PARENT>Indirect Incomes</PARENT>
             <ISBILLWISEON>No</ISBILLWISEON>
             <ISCOSTCENTRESON>No</ISCOSTCENTRESON>
             <AFFECTSSTOCK>No</AFFECTSSTOCK>

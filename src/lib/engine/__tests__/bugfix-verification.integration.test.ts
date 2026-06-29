@@ -554,7 +554,7 @@ describe('Scenario 4: Speculative gain/loss single ledger', () => {
     expect(specLine).toBeDefined();
   });
 
-  it('mastersXml has speculation ledger(s) under Speculative Business Income group', () => {
+  it('mastersXml has speculation ledger(s) under P&L', () => {
     const parsed = parseXml(result.mastersXml);
     const ledgers = getLedgers(parsed);
     const specLedgers = ledgers.filter(l => {
@@ -563,10 +563,10 @@ describe('Scenario 4: Speculative gain/loss single ledger', () => {
     });
     expect(specLedgers.length).toBeGreaterThan(0);
 
-    // All speculation ledgers should be under "Speculative Business Income" group
+    // All speculation ledgers should land directly in Tally's P&L hierarchy.
     for (const sl of specLedgers) {
       const parent = String((sl as Record<string, unknown>).PARENT ?? '');
-      expect(parent).toBe('Speculative Business Income');
+      expect(parent).toBe('Indirect Incomes');
     }
   });
 });

@@ -130,7 +130,7 @@ describe('resolveCapitalGainLedger', () => {
       true,
     );
     expect(result.name).toBe('Intraday Gain on Sale of Shares - ZERODHA');
-    expect(result.group).toBe('Speculative Business Income');
+    expect(result.group).toBe('Indirect Incomes');
   });
 
   it('intraday → routes losses to the SAME ledger as gains (single net ledger)', () => {

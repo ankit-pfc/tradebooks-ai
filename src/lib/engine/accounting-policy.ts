@@ -534,6 +534,17 @@ function normalizedLedgerName(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+function normalizeSpeculationOverrideGroup(name: string, group: string): string {
+  if (
+    name === L.CA_SPECULATION_GAIN.name &&
+    group === L.LEGACY_CA_SPECULATION_GROUP
+  ) {
+    return L.CA_SPECULATION_GAIN.group;
+  }
+
+  return group;
+}
+
 /**
  * Broker overrides can be imported from user Tally masters. Older imports may
  * have misclassified ledgers such as "AMC CHARGES-ZERODHA" as BROKER because
@@ -598,8 +609,13 @@ export function mergeOverridesIntoProfile(
       case 'SPECULATIVE_LOSS':
         // Single intraday net ledger — gains and losses both post here.
         // Either override key updates BOTH fields so the profile remains
-        // self-consistent regardless of which key the override uses.
-        profile.speculationGain = { name: o.name, group: o.parent_group };
+        // self-consistent regardless of which key the override uses. Legacy
+        // seeded defaults may still point at the old subgroup; normalize only
+        // that default so explicit custom Tally-ledger choices remain intact.
+        profile.speculationGain = {
+          name: o.name,
+          group: normalizeSpeculationOverrideGroup(o.name, o.parent_group),
+        };
         profile.speculationLoss = profile.speculationGain;
         break;
       case 'DIVIDEND_INCOME':
